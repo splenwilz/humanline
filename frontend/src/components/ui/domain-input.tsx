@@ -1,10 +1,11 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { useDomainValidation } from '@/hooks/useDomainValidation'
+import { useOnboarding } from '@/contexts/OnboardingContext'
 import { cn } from '@/lib/utils'
 
 interface DomainInputProps {
@@ -23,6 +24,12 @@ export const DomainInput: React.FC<DomainInputProps> = ({
   disabled = false
 }) => {
   const { isValid, isChecking, message } = useDomainValidation(value)
+  const { setDomainValid } = useOnboarding()
+
+  // Sync domain validation state with context
+  useEffect(() => {
+    setDomainValid(isValid)
+  }, [isValid, setDomainValid])
 
   const getStatusIcon = () => {
     if (isChecking) {

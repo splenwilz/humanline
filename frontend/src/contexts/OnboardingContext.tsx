@@ -39,6 +39,10 @@ interface OnboardingContextType {
   // Submission
   isSubmitting: boolean
   submitForm: () => Promise<void>
+  
+  // Domain validation
+  isDomainValid: boolean
+  setDomainValid: (isValid: boolean) => void
 }
 
 const initialFormData: OnboardingFormData = {
@@ -72,6 +76,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingFormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDomainValid, setIsDomainValid] = useState(true)
   const router = useRouter()
 
   const updateFormData = (data: Partial<OnboardingFormData>) => {
@@ -102,13 +107,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
         return (
           formData.companyName.trim() !== '' &&
           formData.companyDomain.trim() !== '' &&
-          formData.companySize.trim() !== ''
+          formData.companySize.trim() !== '' &&
+          isDomainValid
         )
       case 2:
         // Add step 2 validation
         const step2Valid =
           formData.companyDomain.trim() !== '' &&
-          formData.companyIndustry.trim() !== ''
+          formData.companyIndustry.trim() !== '' &&
+          isDomainValid
 
         return step2Valid
       case 3:
@@ -222,6 +229,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     submitCurrentStep,
     isSubmitting,
     submitForm,
+    isDomainValid,
+    setDomainValid: setIsDomainValid,
   }
 
   return (

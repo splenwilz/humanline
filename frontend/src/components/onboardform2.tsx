@@ -13,11 +13,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from './ui/radio-group'
 import { Label } from './ui/label'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { Separator } from './ui/separator'
+import { DomainInput } from '@/components/ui/domain-input'
 
 const formSchema = z.object({
   companyDomain: z.string().min(2, {
@@ -29,7 +29,7 @@ const formSchema = z.object({
 })
 
 export function OnboardForm2() {
-  const { formData, updateFormData, nextStep, canGoNext } = useOnboarding()
+  const { formData, updateFormData, nextStep } = useOnboarding()
 
   // 1. Define your form with initial values from context
   const form = useForm<z.infer<typeof formSchema>>({
@@ -91,14 +91,18 @@ export function OnboardForm2() {
           name="companyDomain"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Company Domain</FormLabel>
               <FormControl>
                 <div className="flex flex-row gap-3">
-                  <Input
-                    placeholder="unpixel"
-                    {...field}
-                    className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
-                  />
+                  <div className="flex-1">
+                    <DomainInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="unpixel"
+                    />
+                  </div>
+                  <div className="bg-[#F1F2F4] mt-5 pt-3 rounded-[10px] w-[150px] text-center h-11 text-[#687588] cursor-pointer">
+                    hrline.com
+                  </div>
                 </div>
               </FormControl>
 
