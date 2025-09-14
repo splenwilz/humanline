@@ -13,11 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from './ui/radio-group'
-import { Label } from './ui/label'
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
+import { Label } from '../ui/label'
 import { useOnboarding } from '@/contexts/OnboardingContext'
-import { Separator } from './ui/separator'
+import { Separator } from '../ui/separator'
 
 const formSchema = z.object({
   yourNeeds: z.string().min(1, {
@@ -26,7 +25,7 @@ const formSchema = z.object({
 })
 
 export function OnboardForm4() {
-  const { formData, updateFormData, nextStep, canGoNext } = useOnboarding()
+  const { formData, updateFormData } = useOnboarding()
 
   // 1. Define your form with initial values from context
   const form = useForm<z.infer<typeof formSchema>>({

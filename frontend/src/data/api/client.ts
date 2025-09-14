@@ -5,13 +5,13 @@ import {
   NetworkError,
   ApiConfig,
 } from './types'
-import { 
-  isTokenValid, 
-  isRefreshTokenValid, 
-  getAccessToken, 
+import {
+  isTokenValid,
+  isRefreshTokenValid,
+  getAccessToken,
   getRefreshToken,
   storeTokens,
-  clearTokens 
+  clearTokens,
 } from '@/lib/auth'
 
 class ApiClient {
@@ -35,7 +35,7 @@ class ApiClient {
         console.warn('No refresh token available')
         return null
       }
-      
+
       // Check if refresh token is valid before attempting refresh
       if (!isRefreshTokenValid()) {
         console.warn('Refresh token is invalid or expired')
@@ -56,7 +56,7 @@ class ApiClient {
       }
 
       const data = await response.json()
-      
+
       // Store new tokens
       storeTokens({
         access_token: data.access_token,
@@ -88,7 +88,7 @@ class ApiClient {
 
     // Get and validate access token
     let accessToken = getAccessToken()
-    
+
     // Check if token is valid, if not try to refresh
     if (accessToken) {
       try {
@@ -111,7 +111,7 @@ class ApiClient {
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
         ...options.headers,
       },
       signal: this.abortController.signal,

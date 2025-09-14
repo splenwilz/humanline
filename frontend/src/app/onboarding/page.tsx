@@ -1,23 +1,17 @@
 'use client'
 
-import { OnboardForm1 } from '@/components/onboardform1'
-import { OnboardForm4 } from '@/components/OnboardForm4'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import React from 'react'
 import { OnboardingProvider, useOnboarding } from '@/contexts/OnboardingContext'
-import { OnboardForm2 } from '@/components/onboardform2'
-import { OnboardForm3 } from '@/components/onboardform3'
+import { OnboardForm1 } from '@/components/onboarding/form1'
+import { OnboardForm2 } from '@/components/onboarding/form2'
+import { OnboardForm3 } from '@/components/onboarding/form3'
+import { OnboardForm4 } from '@/components/onboarding/form4'
 
 const OnboardingContent = () => {
-  const {
-    currentStep,
-    nextStep,
-    prevStep,
-    canGoNext,
-    canGoPrev,
-    submitForm,
-  } = useOnboarding()
+  const { currentStep, nextStep, prevStep, canGoNext, canGoPrev, submitForm } =
+    useOnboarding()
 
   const renderStepIndicator = () => {
     return (

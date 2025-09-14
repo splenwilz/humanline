@@ -13,38 +13,32 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { RadioGroup, RadioGroupItem } from './ui/radio-group'
-import { Label } from './ui/label'
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
+import { Label } from '../ui/label'
 import { useOnboarding } from '@/contexts/OnboardingContext'
-import { Separator } from './ui/separator'
-import { DomainInput } from '@/components/ui/domain-input'
+import { Separator } from '../ui/separator'
 
 const formSchema = z.object({
-  companyDomain: z.string().min(2, {
-    message: 'Company domain must be at least 2 characters.',
-  }),
-  companyIndustry: z.string().min(1, {
-    message: 'Please select a company industry.',
+  companyRoles: z.string().min(1, {
+    message: 'Please select a company roles.',
   }),
 })
 
-export function OnboardForm2() {
+export function OnboardForm3() {
   const { formData, updateFormData, nextStep } = useOnboarding()
 
   // 1. Define your form with initial values from context
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      companyDomain: formData.companyDomain,
-      companyIndustry: formData.companyIndustry,
+      companyRoles: formData.companyRoles,
     },
   })
 
   // Update form when context data changes
   useEffect(() => {
     form.reset({
-      companyDomain: formData.companyDomain,
-      companyIndustry: formData.companyIndustry,
+      companyRoles: formData.companyRoles,
     })
   }, [formData, form])
 
@@ -52,8 +46,7 @@ export function OnboardForm2() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Save to context
     updateFormData({
-      companyDomain: values.companyDomain,
-      companyIndustry: values.companyIndustry,
+      companyRoles: values.companyRoles,
     })
 
     // Move to next step
@@ -64,19 +57,18 @@ export function OnboardForm2() {
   useEffect(() => {
     const subscription = form.watch((values) => {
       updateFormData({
-        companyDomain: values.companyDomain || '',
-        companyIndustry: values.companyIndustry || '',
+        companyRoles: values.companyRoles || '',
       })
     })
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
 
-  const companyIndustries = [
-    { value: 'crypto', label: 'Crypto' },
-    { value: 'ecommerce', label: 'Ecommerce' },
-    { value: 'fintech', label: 'Fintech' },
-    { value: 'health-tech', label: 'Health Tech' },
-    { value: 'software-outsourcing', label: 'Software Outsourcing' },
+  const companyRoles = [
+    { value: 'ceo-founder-owner ', label: 'CEO/Founder/Owner' },
+    { value: 'hr-manager', label: 'HR Manager' },
+    { value: 'hr-staff', label: 'HR Staff' },
+    { value: 'it-tech-manager', label: 'IT Tech Manager' },
+    { value: 'it-tech-staff', label: 'IT Tech Staff' },
     { value: 'other', label: 'Other' },
   ]
 
@@ -86,36 +78,19 @@ export function OnboardForm2() {
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8 bg-white rounded-[10px] p-10 h-[80vh]"
       >
-        <FormField
-          control={form.control}
-          name="companyDomain"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <div className="flex flex-row gap-3">
-                  <div className="flex-1">
-                    <DomainInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="unpixel"
-                    />
-                  </div>
-                  <div className="bg-[#F1F2F4] mt-5 pt-3 rounded-[10px] w-[150px] text-center h-11 text-[#687588] cursor-pointer">
-                    hrline.com
-                  </div>
-                </div>
-              </FormControl>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormLabel className="text-muted-foreground font-light">
+          Your company domain
+        </FormLabel>
+        <h1 className="text-xl font-medium">
+          {formData.companyDomain}
+          {'.hrline.com'}
+        </h1>
         <Separator />
 
-        <h1 className="text-xl font-medium">What is your industry</h1>
+        <h1 className="text-xl font-medium">Choose role</h1>
         <FormField
           control={form.control}
-          name="companyIndustry"
+          name="companyRoles"
           render={({ field }) => (
             <FormItem>
               <FormControl>
@@ -124,40 +99,40 @@ export function OnboardForm2() {
                   onValueChange={field.onChange}
                   className="grid grid-cols-3 gap-y-5 gap-x-5"
                 >
-                  {companyIndustries.map((industry) => (
+                  {companyRoles.map((role) => (
                     <div
-                      key={industry.value}
+                      key={role.value}
                       onClick={(e) => {
                         e.preventDefault()
-                        field.onChange(industry.value)
+                        field.onChange(role.value)
                       }}
                       className={`flex justify-between gap-8 p-3 py-3 border rounded-[10px] cursor-pointer transition-all ${
-                        field.value === industry.value
+                        field.value === role.value
                           ? 'border-custom-base-green bg-custom-base-green/5'
                           : 'border-gray-300 hover:border-custom-base-green/50'
                       }`}
                     >
                       <Label
-                        htmlFor={`r-${industry.value}`}
+                        htmlFor={`r-${role.value}`}
                         className="cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault()
-                          field.onChange(industry.value)
+                          field.onChange(role.value)
                         }}
                       >
-                        {industry.label}
+                        {role.label}
                       </Label>
                       <RadioGroupItem
-                        value={industry.value}
-                        id={`r-${industry.value}`}
+                        value={role.value}
+                        id={`r-${role.value}`}
                         className={
-                          field.value === industry.value
+                          field.value === role.value
                             ? 'border-custom-base-green'
                             : ''
                         }
                         onClick={(e) => {
                           e.preventDefault()
-                          field.onChange(industry.value)
+                          field.onChange(role.value)
                         }}
                       />
                     </div>

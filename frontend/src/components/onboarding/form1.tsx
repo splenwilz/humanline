@@ -15,8 +15,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { AlertCircleIcon } from 'lucide-react'
-import { RadioGroup, RadioGroupItem } from './ui/radio-group'
-import { Label } from './ui/label'
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
+import { Label } from '../ui/label'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { DomainInput } from '@/components/ui/domain-input'
 

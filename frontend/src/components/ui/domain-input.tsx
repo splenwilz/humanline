@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, { useEffect } from 'react'
 import { Input } from '@/components/ui/input'
@@ -19,9 +19,9 @@ interface DomainInputProps {
 export const DomainInput: React.FC<DomainInputProps> = ({
   value,
   onChange,
-  placeholder = "Enter your company domain",
+  placeholder = 'Enter your company domain',
   className,
-  disabled = false
+  disabled = false,
 }) => {
   const { isValid, isChecking, message } = useDomainValidation(value)
   const { setDomainValid } = useOnboarding()
@@ -35,20 +35,24 @@ export const DomainInput: React.FC<DomainInputProps> = ({
     if (isChecking) {
       return <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
     }
-    
+
     if (value.length >= 3) {
-      return isValid 
-        ? <CheckCircle className="h-4 w-4 text-green-500" />
-        : <XCircle className="h-4 w-4 text-red-500" />
+      return isValid ? (
+        <CheckCircle className="h-4 w-4 text-green-500" />
+      ) : (
+        <XCircle className="h-4 w-4 text-red-500" />
+      )
     }
-    
+
     return null
   }
 
-  const getInputStyles = () => {           
+  const getInputStyles = () => {
     return cn(
-      "pr-10 h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green",
-      isValid ? " focus:border-green-500" : "border-red-500 focus:border-red-500"
+      'pr-10 h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green',
+      isValid
+        ? ' focus:border-green-500'
+        : 'border-red-500 focus:border-red-500',
     )
   }
 
@@ -69,12 +73,11 @@ export const DomainInput: React.FC<DomainInputProps> = ({
           {getStatusIcon()}
         </div>
       </div>
-      
+
       {message && (
-        <p className={cn(
-          "text-sm",
-          isValid ? "text-green-600" : "text-red-600"
-        )}>
+        <p
+          className={cn('text-sm', isValid ? 'text-green-600' : 'text-red-600')}
+        >
           {message}
         </p>
       )}

@@ -52,10 +52,10 @@ export default function SigninForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
-    
+
     try {
       const result = await signin(values.email, values.password)
-      
+
       if (result.success) {
         console.log('Login successful:', result.data)
         // Redirect to dashboard or home page

@@ -21,11 +21,13 @@ import { Toaster } from '@/components/ui/sonner'
 const manrope = Manrope({
   variable: '--font-manrope',
   subsets: ['latin'],
+  display: 'swap',
 })
 
 const inter = Inter({
   variable: '--font-inter',
   subsets: ['latin'],
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -40,7 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${inter.variable} antialiased`}>
+      <body
+        className={`${manrope.variable} ${inter.variable} font-manrope antialiased`}
+      >
         {children}
         <Toaster />
       </body>

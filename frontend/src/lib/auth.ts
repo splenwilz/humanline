@@ -119,13 +119,13 @@ export const parseJWT = (token: string): JWTPayload | null => {
       console.warn('Invalid JWT token format:', token)
       return null
     }
-    
+
     const base64Url = parts[1]
     if (!base64Url) {
       console.warn('JWT token missing payload part')
       return null
     }
-    
+
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
     const jsonPayload = decodeURIComponent(
       atob(base64)
@@ -164,7 +164,7 @@ export const isTokenExpired = (token?: string): boolean => {
   const expirationTime = payload.exp * 1000 // Convert to milliseconds
   const currentTime = Date.now()
 
-  return currentTime >= (expirationTime - bufferTime)
+  return currentTime >= expirationTime - bufferTime
 }
 
 // Check if token is valid and not expired

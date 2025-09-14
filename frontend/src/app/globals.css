@@ -8,8 +8,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-manrope: var(--font-manrope);
   --color-custom-grey-900: #1a202c;
+  --color-custom-grey-800: #1f2937;
+  --color-custom-grey-700: #323b49;
+  --color-custom-grey-600: #687588;
+  --color-custom-grey-500: #a0aec0;
+  --color-custom-grey-300: #E9EAEC;
+  --color-custom-grey-50: #fafafa;
   --color-custom-base-green: #27a376;
+  --color-custom-base-red: #e03137;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

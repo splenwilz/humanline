@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 import { onboardingApi } from '@/data/api/onboarding'
 import { useRouter } from 'next/navigation'
-import { toast } from "sonner"
+import { toast } from 'sonner'
 // Define the form data interface for frontend (camelCase)
 interface OnboardingFormData {
   companyName: string
@@ -13,9 +13,6 @@ interface OnboardingFormData {
   companyRoles: string
   yourNeeds: string
 }
-
-
-
 
 interface OnboardingContextType {
   // Current step
@@ -39,7 +36,7 @@ interface OnboardingContextType {
   // Submission
   isSubmitting: boolean
   submitForm: () => Promise<void>
-  
+
   // Domain validation
   isDomainValid: boolean
   setDomainValid: (isValid: boolean) => void
@@ -148,11 +145,11 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     setIsSubmitting(true)
     try {
       console.log('Submitting complete form data:', formData)
-      
+
       // Additional validation before submission
       if (!formData.companyDomain || formData.companyDomain.length < 3) {
         toast.error('Invalid Domain', {
-          description: 'Please enter a valid company domain'
+          description: 'Please enter a valid company domain',
         })
         return
       }
@@ -168,34 +165,40 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
       }
 
       const response = await onboardingApi.post(apiData)
-      
+
       // Show success toast
       toast.success('Onboarding completed!', {
-        description: 'Welcome to Humanline! Your workspace is being set up.'
+        description: 'Welcome to Humanline! Your workspace is being set up.',
       })
-      
+
       console.log('Form submitted successfully!', response)
 
       // Reset form after successful submission
       resetFormData()
-      
+
       // Navigate to dashboard
       router.push('/dashboard')
     } catch (error) {
       console.error('Error submitting form:', error)
-      
+
       let errorMessage = 'Failed to submit onboarding form. Please try again.'
-      
+
       if (error instanceof Error) {
         const errorMsg = error.message.toLowerCase()
-        
-        if (errorMsg.includes('company domain already exists') || 
-            errorMsg.includes('duplicate key value violates unique constraint') ||
-            errorMsg.includes('already exists')) {
-          errorMessage = 'This company domain is already taken. Please choose a different one.'
+
+        if (
+          errorMsg.includes('company domain already exists') ||
+          errorMsg.includes('duplicate key value violates unique constraint') ||
+          errorMsg.includes('already exists')
+        ) {
+          errorMessage =
+            'This company domain is already taken. Please choose a different one.'
         } else if (errorMsg.includes('already completed onboarding')) {
           errorMessage = 'You have already completed onboarding.'
-        } else if (errorMsg.includes('invalid or expired') || errorMsg.includes('unauthorized')) {
+        } else if (
+          errorMsg.includes('invalid or expired') ||
+          errorMsg.includes('unauthorized')
+        ) {
           errorMessage = 'Your session has expired. Please sign in again.'
           // Redirect to signin
           setTimeout(() => {
@@ -205,11 +208,11 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
           errorMessage = 'Please check your form data and try again.'
         }
       }
-      
+
       toast.error('Submission Failed', {
-        description: errorMessage
+        description: errorMessage,
       })
-      
+
       throw error
     } finally {
       setIsSubmitting(false)

@@ -16,7 +16,11 @@ export interface Onboarding {
 // This is the request for the POST onboarding
 export type OnboardingRequest = Omit<
   Onboarding,
-  'user_id' | 'onboarding_completed' | 'workspace_created' | 'last_updated' | 'onboarding_id'
+  | 'user_id'
+  | 'onboarding_completed'
+  | 'workspace_created'
+  | 'last_updated'
+  | 'onboarding_id'
 >
 
 // This is the response for the POST onboarding
