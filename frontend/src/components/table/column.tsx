@@ -72,7 +72,11 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
               />
             ) : (
               <span className="text-sm font-medium text-gray-600">
-                {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                {employee.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()}
               </span>
             )}
           </div>
@@ -156,17 +160,21 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
     cell: ({ row }) => {
       const status = row.getValue('employement_status') as string
       const statusColors = {
-        'ACTIVE': 'bg-green-100 text-green-800',
+        ACTIVE: 'bg-green-100 text-green-800',
         'ON BOARDING': 'bg-yellow-100 text-yellow-800',
-        'PROBATION': 'bg-purple-100 text-purple-800',
+        PROBATION: 'bg-purple-100 text-purple-800',
         'ON LEAVE': 'bg-red-100 text-red-800',
-        'INACTIVE': 'bg-gray-100 text-gray-800',
+        INACTIVE: 'bg-gray-100 text-gray-800',
       }
-      const colorClass = statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'
-      
+      const colorClass =
+        statusColors[status as keyof typeof statusColors] ||
+        'bg-gray-100 text-gray-800'
+
       return (
         <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+          >
             {status}
           </span>
           <ChevronDown className="h-4 w-4 text-gray-400" />

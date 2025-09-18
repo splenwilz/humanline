@@ -30,7 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
-import { SearchIcon } from 'lucide-react'
+
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { DownloadIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { Label } from '../ui/label'
+import { AddEmployeeForm } from '../employees/AddEmployeeForm'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -43,7 +56,7 @@ function getUniqueValues<TData>(data: TData[], key: keyof TData): string[] {
   return Array.from(new Set(values)).sort()
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable2<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -81,9 +94,51 @@ export function DataTable<TData, TValue>({
   return (
     <div className="overflow-hidden border bg-white shadow-none border-none rounded-xl w-full min-w-0">
       <div className="flex items-center justify-between px-4 py-4 mt-4">
-        <h5 className="text-custom-grey-900 font-bold text-[18px]">
-          Employees
-        </h5>
+        <div className="">
+          <h5 className="text-custom-grey-900 font-bold text-[18px]">
+            Employees
+          </h5>
+          <p className="text-xs py-1 text-custom-grey-600 tracking-wider">
+            Manage your Employee
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {/* Download and add new button */}
+          <Button
+            variant="outline"
+            className="border-custom-grey-900 text-custom-grey-900 cursor-pointer"
+          >
+            <DownloadIcon className="h-4 w-4" />
+            Download
+          </Button>
+
+          <Sheet>
+            <SheetTrigger>
+              <Button className="bg-custom-grey-900 text-white cursor-pointer">
+                <PlusIcon className="h-4 w-4" />
+                Add New
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle className="text-[20px] font-bold text-custom-grey-900 my-2">
+                  Add New Profile
+                </SheetTitle>
+              </SheetHeader>
+              <div className="px-4">
+                <AddEmployeeForm />
+              </div>
+              <SheetFooter>
+                <Button type="submit">Add Employee</Button>
+                <SheetClose asChild>
+                  <Button variant="outline">Close</Button>
+                </SheetClose>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 py-4 px-4 w-full">
         <div className="relative">
           <Input
             placeholder="Search employees..."
@@ -95,8 +150,6 @@ export function DataTable<TData, TValue>({
           />
           <SearchIcon className="absolute h-4 w-4 right-2 top-1/2 transform -translate-y-1/2 text-custom-grey-500" />
         </div>
-      </div>
-      <div className="flex items-center gap-4 py-4 px-4 w-full">
         <Select
           value={(table.getColumn('office')?.getFilterValue() as string) ?? ''}
           onValueChange={(value) =>

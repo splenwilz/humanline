@@ -1,5 +1,6 @@
-'use client'
+// 'use client'
 
+import EmployeeTable from '@/components/employees/EmployeeTable'
 import Greeting from '@/components/navigation/Greeting'
 import Navigation from '@/components/navigation/Navigation'
 import { employeeColumns } from '@/components/table/column'
@@ -16,7 +17,6 @@ import TotalEmployee from '@/components/widgets/totalEmployee'
 import TotalJob from '@/components/widgets/totalJob'
 import { formatNumber } from '@/lib/utils'
 import { MoveDown, MoveUp } from 'lucide-react'
-import { useEmployees } from '@/hooks/useEmployees'
 interface Employee {
   title: string
   increased: boolean
@@ -24,9 +24,6 @@ interface Employee {
   percentage: string
 }
 export default function Dashboard() {
-  // Use demo API hook for employee data
-  const { employees: employeeData, loading, error } = useEmployees()
-
   // Static data for summary cards
   const employees: Employee[] = [
     {
@@ -55,11 +52,9 @@ export default function Dashboard() {
     },
   ]
 
-  // Use employee data from demo API
-  const data = employeeData
   return (
-    <div className="flex flex-col h-screen border-0 rounded-none bg-custom-grey-50 mb-52">
-      <Navigation />
+    <div className="flex flex-col border-0 rounded-none bg-custom-grey-50 mb-52">
+      <Navigation variant="navigation" className="bg-custom-grey-800" />
       <Greeting />
       <div className="flex justify-center w-full ">
         <div className=" w-[calc(100%-150px)] shadow-sm -mt-20 bg-custom-grey-50 rounded-xl ">
@@ -102,20 +97,7 @@ export default function Dashboard() {
             <TotalJob className="w-[28.5%]" />
             <TeamPerformance className="w-[43%]" />
           </div>
-          {/* Table */}
-          <div className="flex flex-col gap-2 mt-5">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-custom-grey-600">Loading employees...</div>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-red-500">Error: {error}</div>
-              </div>
-            ) : (
-              <DataTable columns={employeeColumns} data={data} />
-            )}
-          </div>
+          <EmployeeTable />
         </div>
       </div>
     </div>

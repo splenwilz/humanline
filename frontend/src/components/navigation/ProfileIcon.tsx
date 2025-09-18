@@ -19,12 +19,14 @@ import { ChevronDown } from 'lucide-react'
 
 export function ProfileIcon({
   user,
+  variant,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
+  variant: string
 }) {
   return (
     <DropdownMenu>
@@ -35,7 +37,9 @@ export function ProfileIcon({
             <AvatarFallback className="rounded-lg">CN</AvatarFallback>
           </Avatar>
           <div className=" text-sm leading-tight">
-            <span className="truncate font-medium text-white">
+            <span
+              className={`truncate font-medium ${variant === 'navigationWithSidebar' ? 'text-custom-grey-900' : 'text-white'}`}
+            >
               <ChevronDown className="size-4" />
             </span>
           </div>

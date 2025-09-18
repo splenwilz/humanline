@@ -1,10 +1,14 @@
 import Image from 'next/image'
 
-export default function NotificationIcon() {
+export default function NotificationIcon({ variant }: { variant: string }) {
   return (
     <div className="relative">
       <Image
-        src="/icons/message.png"
+        src={
+          variant === 'navigationWithSidebar'
+            ? '/icons/messagewhite.png'
+            : '/icons/message.png'
+        }
         alt="notification"
         width={20}
         height={20}

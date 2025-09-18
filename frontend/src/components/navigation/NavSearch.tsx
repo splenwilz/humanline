@@ -1,13 +1,31 @@
 import { CommandIcon, SearchIcon } from 'lucide-react'
 import { Input } from '../ui/input'
 
-export default function NavSearch({ className }: { className: string }) {
+export default function NavSearch({ variant }: { variant: string }) {
+  if (variant === 'navigationWithSidebar') {
+    return (
+      <div className="w-[300px] relative">
+        <SearchIcon className="absolute h-4 w-4 text-custom-grey-900 left-2 top-1/2 transform -translate-y-1/2" />
+        <Input
+          type="text"
+          placeholder="Search anything..."
+          className="w-full pl-8  border-0 ring-0 focus-visible:ring-0 bg-custom-grey-100 text-custom-grey-900 placeholder-custom-grey-900"
+        />
+        <div className="absolute bg-white rounded-md h-6 w-11 right-2 top-1/2 transform -translate-y-1/2">
+          <div className="flex items-center justify-center mt-0.5">
+            <CommandIcon className="h-3 w-3 text-custom-grey-900" />
+            <p className="ml-2 text-sm text-custom-grey-900">F</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   return (
-    <div className={`w-[250px] relative ${className}`}>
+    <div className="w-[250px] relative">
       <SearchIcon className="absolute h-4 w-4 text-white left-2 top-1/2 transform -translate-y-1/2" />
       <Input
         type="text"
-        placeholder="Search anything"
+        placeholder="Search anything..."
         className="w-full pl-8  border-0 ring-0 focus-visible:ring-0 bg-custom-grey-700 text-white placeholder-custom-grey-600"
       />
       <div className="absolute bg-custom-grey-800 rounded-md h-6 w-11 right-2 top-1/2 transform -translate-y-1/2">
