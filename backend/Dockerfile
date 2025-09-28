@@ -69,10 +69,10 @@ USER humanline
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check - use PORT environment variable
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Default command - dynamically set based on environment
-# Use environment variable to determine if we should use reload (development) or workers (production)
-CMD ["sh", "-c", "if [ \"$ENVIRONMENT\" = \"development\" ]; then uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug; else uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4; fi"]
+# Default command - use Render's PORT environment variable
+# Render automatically sets $PORT, fallback to 8000 for local development
+CMD ["sh", "-c", "if [ \"$ENVIRONMENT\" = \"development\" ]; then uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --reload --log-level debug; else uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2; fi"]

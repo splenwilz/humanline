@@ -19,13 +19,17 @@ from api.auth import router as auth_router
 from api.users import router as users_router
 
 # Configure logging
+import os
+log_handlers = [logging.StreamHandler(sys.stdout)]
+
+# Only add file logging if logs directory exists and we're in production
+if settings.is_production and os.path.exists("logs"):
+    log_handlers.append(logging.FileHandler("logs/app.log"))
+
 logging.basicConfig(
     level=logging.INFO if settings.is_production else logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/app.log") if settings.is_production else logging.NullHandler(),
-    ]
+    handlers=log_handlers
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +71,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Humanline API",
     version="1.0.0",
+    description="Humanline HR Management System API",
     contact={
         "name": "Humanline API Support",
         "email": "support@humanline.com",
@@ -76,10 +81,11 @@ app = FastAPI(
         "url": "https://humanline.com/license",
     },
     lifespan=lifespan,
-    # Disable docs in production for security
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
     debug=not settings.is_production,
+    # Explicitly enable docs in all environments
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 
@@ -94,17 +100,18 @@ app.add_middleware(
 )
 
 
-# Add custom security middleware
-# Provides rate limiting and security headers
-app.add_middleware(
-    SecurityMiddleware,
-    rate_limit_requests=100,  # 100 requests per minute per IP
-    rate_limit_window=60,
-)
+# Add custom security middleware only in production
+# In development, skip security middleware to avoid blocking docs
+if settings.is_production:
+    app.add_middleware(
+        SecurityMiddleware,
+        rate_limit_requests=100,  # 100 requests per minute per IP
+        rate_limit_window=60,
+    )
 
-from debug_toolbar.middleware import DebugToolbarMiddleware
-    
-app.add_middleware(DebugToolbarMiddleware)
+# Add debug toolbar only in development
+if not settings.is_production:
+    app.add_middleware(DebugToolbarMiddleware)
 
 
 # Include API routers
