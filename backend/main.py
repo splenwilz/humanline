@@ -102,13 +102,9 @@ app.add_middleware(
     rate_limit_window=60,
 )
 
-
-# Add debug toolbar middleware only in development
-# Provides detailed debugging information including SQL queries, request/response data
-if not settings.is_production:
-    from debug_toolbar.middleware import DebugToolbarMiddleware
+from debug_toolbar.middleware import DebugToolbarMiddleware
     
-    app.add_middleware(DebugToolbarMiddleware)
+app.add_middleware(DebugToolbarMiddleware)
 
 
 # Include API routers
