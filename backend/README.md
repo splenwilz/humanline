@@ -1,366 +1,234 @@
-# Humanline Backend API
+# Humanline Backend - Secure FastAPI Application
 
-A FastAPI backend with Supabase integration for authentication and user management using **OTP-only email confirmation**.
+A modern, secure backend API built with FastAPI, SQLAlchemy, PostgreSQL, and comprehensive security features.
 
 ## 🚀 Features
 
-- **User Authentication**: Signup, signin, and token refresh
-- **OTP System**: One-Time Password verification for email confirmation
-- **JWT Tokens**: Secure authentication with access and refresh tokens
-- **Supabase Integration**: Backend-as-a-Service for database and auth
-- **No Email Links**: Pure OTP-based confirmation system
+- **JWT Authentication**: Secure token-based authentication with bcrypt password hashing
+- **PostgreSQL Database**: Async SQLAlchemy with Alembic migrations
+- **Security Middleware**: Rate limiting, security headers, CORS protection
+- **Input Validation**: Pydantic schemas for request/response validation
+- **Clean Architecture**: Organized code structure with separation of concerns
+- **API Documentation**: Auto-generated OpenAPI/Swagger documentation
+- **Production Ready**: Comprehensive error handling and security best practices
 
-## 🏗️ Architecture
+## 🛠️ Tech Stack
 
-```
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── config.py          # Configuration and environment variables
-│   ├── main.py            # FastAPI application entry point
-│   ├── models/
-│   │   └── user.py        # Pydantic models for data validation
-│   ├── routers/
-│   │   └── auth.py        # Authentication API endpoints
-│   └── services/
-│       ├── auth_service.py # Supabase authentication logic
-│       └── otp_service.py # OTP generation and verification
-├── requirements.txt        # Python dependencies
-├── .env.example           # Environment variables template
-├── start.sh               # Development server startup script
-├── supabase_otp_setup.sql # SQL script for OTP table setup
-├── SUPABASE_SETUP.md      # Supabase configuration guide
-└── OTP_SETUP_GUIDE.md    # Complete OTP system setup guide
-```
+- **FastAPI**: Modern, fast web framework for building APIs
+- **SQLAlchemy**: Async ORM for database operations
+- **Alembic**: Database migration management
+- **PostgreSQL**: Robust relational database with asyncpg driver
+- **JWT**: JSON Web Tokens for secure authentication
+- **bcrypt**: Secure password hashing
+- **Pydantic**: Data validation and serialization
+- **uvicorn**: ASGI server for production deployment
 
-## 🛠️ Setup
+## 📋 Prerequisites
 
-### 1. **Environment Setup**
+- Python 3.13+
+- PostgreSQL 12+
+- uv (Python package manager)
+
+## 🔧 Installation & Setup
+
+1. **Clone and navigate to the project:**
+   ```bash
+   cd backend3
+   ```
+
+2. **Create virtual environment:**
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   uv sync
+   ```
+
+4. **Set up environment variables:**
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. **Set up PostgreSQL database:**
+   ```sql
+   CREATE DATABASE backend3_db;
+   CREATE USER backend3_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE backend3_db TO backend3_user;
+   ```
+
+6. **Run database migrations:**
+   ```bash
+   alembic upgrade head
+   ```
+
+7. **Start the application:**
+   ```bash
+   ./start.sh
+   # Or manually: uvicorn backend3.main:app --reload
+   ```
+
+## 📖 API Documentation
+
+Once running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## 🔐 Authentication
+
+### Register a new user:
 ```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 2. **Environment Variables**
-Copy `.env.example` to `.env` and fill in your Supabase credentials:
-```bash
-cp .env.example .env
-```
-
-Required variables:
-```env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_KEY=your_supabase_service_key
-```
-
-### 3. **Supabase Setup**
-1. Create a Supabase project
-2. Run the SQL script in `supabase_otp_setup.sql` in your Supabase SQL editor
-3. Configure email templates in Supabase dashboard for OTP delivery
-4. **Important**: Disable email confirmation links in Supabase settings
-
-### 4. **Start Development Server**
-```bash
-# Option 1: Use the startup script
-./start.sh
-
-# Option 2: Manual start
-source .venv/bin/activate
-uvicorn main:app --reload --port 8000
-```
-
-The API will be available at `http://localhost:8000`
-
-## 📚 API Endpoints
-
-### Authentication
-
-#### **POST** `/api/v1/auth/signup`
-Create a new user account with OTP generation.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword123",
-  "full_name": "John Doe"
-}
-```
-
-**Response:**
-```json
-{
-  "user_id": "uuid",
-  "email": "user@example.com",
-  "message": "User created successfully. Check your email for the OTP code to confirm your account.",
-  "confirmation_sent": false,
-  "otp_sent": true
-}
-```
-
-**Features:**
-- Creates user account in Supabase
-- Generates and stores OTP code
-- **No confirmation email sent** (OTP only)
-- Returns user ID and OTP status
-
-#### **POST** `/api/v1/auth/signin**
-Authenticate existing user (email must be confirmed via OTP).
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword123"
-}
-```
-
-**Response:**
-```json
-{
-  "access_token": "jwt_token",
-  "refresh_token": "refresh_token",
-  "token_type": "bearer",
-  "expires_in": 3600,
-  "user": {
-    "id": "uuid",
+curl -X POST "http://localhost:8000/api/v1/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
     "email": "user@example.com",
-    "full_name": "John Doe",
-    "email_confirmed_at": "2024-01-01T00:00:00Z",
-    "created_at": "2024-01-01T00:00:00Z"
-  }
-}
+    "password": "securepassword123",
+    "first_name": "John",
+    "last_name": "Doe"
+  }'
 ```
 
-#### **POST** `/api/v1/auth/verify-otp`
-Verify OTP code for email confirmation.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "otp": "123456"
-}
-```
-
-**Note**: The email is typically retrieved from the frontend state or URL parameters, not manually entered by the user.
-
-**Response:**
-```json
-{
-  "message": "OTP verified successfully. Email confirmed.",
-  "verified": true,
-  "access_token": "jwt_token",
-  "refresh_token": "refresh_token",
-  "token_type": "bearer",
-  "expires_in": 3600,
-  "user": {
-    "id": "uuid",
+### Login:
+```bash
+curl -X POST "http://localhost:8000/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
     "email": "user@example.com",
-    "full_name": "John Doe",
-    "email_confirmed_at": "2024-01-01T00:00:00Z",
-    "created_at": "2024-01-01T00:00:00Z"
-  }
-}
+    "password": "securepassword123"
+  }'
 ```
 
-#### **POST** `/api/v1/auth/resend-otp**
-Generate and send a new OTP code.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com"
-}
+### Use JWT token:
+```bash
+curl -X GET "http://localhost:8000/api/v1/users/me" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-**Response:**
-```json
-{
-  "message": "New OTP code has been sent to your email",
-  "otp_sent": true
-}
+## 🏗️ Project Structure
+
+```
+backend3/
+├── src/backend3/           # Main application package
+│   ├── api/               # API endpoints
+│   │   ├── auth.py        # Authentication routes
+│   │   └── users.py       # User management routes
+│   ├── core/              # Core functionality
+│   │   ├── config.py      # Configuration settings
+│   │   ├── database.py    # Database setup
+│   │   ├── dependencies.py # FastAPI dependencies
+│   │   └── security.py    # Security utilities
+│   ├── middleware/        # Custom middleware
+│   │   └── security.py    # Security middleware
+│   ├── models/            # SQLAlchemy models
+│   │   └── user.py        # User model
+│   ├── schemas/           # Pydantic schemas
+│   │   ├── auth.py        # Auth schemas
+│   │   └── user.py        # User schemas
+│   ├── services/          # Business logic
+│   │   ├── auth_service.py # Authentication service
+│   │   └── user_service.py # User service
+│   └── main.py            # FastAPI application
+├── alembic/               # Database migrations
+├── env.example            # Environment variables template
+├── start.sh              # Startup script
+└── README.md             # This file
 ```
 
-#### **POST** `/api/v1/auth/refresh**
-Refresh access token using refresh token.
+## 🔒 Security Features
 
-**Request Body:**
-```json
-{
-  "refresh_token": "your_refresh_token"
-}
+- **Password Security**: bcrypt hashing with configurable rounds
+- **JWT Tokens**: Secure token generation with expiration
+- **Rate Limiting**: IP-based request limiting
+- **Security Headers**: XSS, clickjacking, and content type protection
+- **CORS**: Configurable cross-origin resource sharing
+- **Input Validation**: Comprehensive request/response validation
+- **SQL Injection Protection**: SQLAlchemy ORM prevents injection attacks
+
+## 🗄️ Database Migrations
+
+Create a new migration:
+```bash
+alembic revision --autogenerate -m "Description of changes"
 ```
 
-**Response:** Same as signin response with new tokens.
-
-## 🔐 OTP System
-
-### **How It Works**
-1. **Signup**: User signs up → OTP generated and stored in database
-2. **Email**: User receives email with OTP code (no confirmation links)
-3. **Confirmation**: User visits `/confirm` → Enters OTP → Backend verifies
-4. **Activation**: Account confirmed → User can sign in
-
-### **OTP Features**
-- **6-digit codes**: Secure random generation
-- **10-minute expiry**: Automatic expiration for security
-- **One-time use**: Each OTP can only be used once
-- **Database storage**: Stored in Supabase with proper indexing
-- **Cleanup**: Automatic cleanup of expired OTPs
-
-### **Database Schema**
-```sql
-otp_codes (
-  id UUID PRIMARY KEY,
-  email TEXT NOT NULL,
-  otp_code TEXT NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  used BOOLEAN DEFAULT FALSE
-)
+Apply migrations:
+```bash
+alembic upgrade head
 ```
 
-### **Security Features**
-- Row Level Security (RLS) enabled
-- Service role permissions for OTP operations
-- Automatic cleanup of expired codes
-- Rate limiting considerations (implement as needed)
-
-## 🔧 Configuration
-
-### **Supabase Settings**
-- **Site URL**: `http://localhost:3000`
-- **Redirect URLs**: **Leave empty** (no email confirmation links)
-- **Email confirmations**: **Disabled** (OTP only)
-
-### **Email Templates**
-Configure in Supabase Dashboard → Authentication → Email Templates:
-- **Confirm signup**: Include OTP code (not confirmation link)
-- **Magic link**: Optional for alternative signin
-
-### **CORS Configuration**
-Configured for frontend at `http://localhost:3000`
+Rollback migration:
+```bash
+alembic downgrade -1
+```
 
 ## 🧪 Testing
 
-### **Test Complete OTP Flow**
-```bash
-# 1. Sign up user
-curl -X POST http://localhost:8000/api/v1/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "password123", "full_name": "Test User"}'
+The application includes comprehensive error handling and validation. Test the API using:
 
-# 2. Check backend logs for OTP code
-# 3. Verify OTP
-curl -X POST http://localhost:8000/api/v1/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "otp": "123456"}'
+1. **Health Check**: `GET /health`
+2. **User Registration**: `POST /api/v1/auth/register`
+3. **User Login**: `POST /api/v1/auth/login`
+4. **Protected Routes**: Include `Authorization: Bearer <token>` header
 
-# 4. Test signin with confirmed account
-curl -X POST http://localhost:8000/api/v1/auth/signin \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "password123"}'
-```
+## 🔧 Debug Toolbar (Development Only)
 
-### **Test OTP Resend**
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/resend-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com"}'
-```
+The FastAPI Debug Toolbar is automatically enabled in development mode and provides:
 
-### **Test Token Refresh**
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token": "your_refresh_token"}'
-```
+- **SQL Query Panel**: View all database queries with execution time
+- **Profiling Panel**: Performance profiling of request processing
+- **Request Variables Panel**: Inspect request data and parameters
+- **Headers Panel**: View all request/response headers
+- **Timer Panel**: Detailed timing information
 
-## 📝 Development Notes
+**Access the debug toolbar:**
+1. Make any API request through your browser or tools
+2. Look for the debug toolbar icon/panel in the response
+3. The toolbar provides detailed debugging information for each request
 
-### **Current TODOs**
-- [ ] Implement proper JWT token generation for OTP verification
-- [ ] Add email service for sending OTP codes
-- [ ] Implement rate limiting for OTP requests
-- [ ] Add logging and monitoring
-- [ ] Implement proper error handling for edge cases
-
-### **Security Considerations**
-- OTP codes expire after 10 minutes
-- Each OTP can only be used once
-- Database cleanup removes expired codes
-- Service role required for OTP operations
-- Consider implementing rate limiting
-
-### **Performance Optimizations**
-- Database indexes on email and expiry
-- Automatic cleanup of expired OTPs
-- Efficient OTP generation and storage
+**Note**: Debug toolbar is automatically disabled in production for security.
 
 ## 🚀 Production Deployment
 
-### **Environment Variables**
-- Use production Supabase credentials
-- Set proper CORS origins
-- Configure logging levels
-- Set secure cookie settings
+1. **Set environment to production:**
+   ```bash
+   export ENVIRONMENT=production
+   ```
 
-### **Database**
-- Run OTP table setup script
-- Configure automated cleanup jobs
-- Monitor database performance
-- Set up backups
+2. **Use a production ASGI server:**
+   ```bash
+   gunicorn backend3.main:app -w 4 -k uvicorn.workers.UvicornWorker
+   ```
 
-### **Security**
-- Enable HTTPS
-- Set secure headers
-- Implement rate limiting
-- Monitor for abuse
+3. **Set up reverse proxy** (nginx recommended)
 
-## 📚 Additional Resources
+4. **Configure SSL/TLS** for HTTPS
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Pydantic Documentation](https://pydantic-docs.helpmanual.io/)
-- [OTP Security Best Practices](https://owasp.org/www-project-authentication-cheat-sheet/)
+5. **Set up monitoring** and logging
+
+## 📝 Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+| `SECRET_KEY` | JWT signing secret | Required |
+| `ALGORITHM` | JWT algorithm | HS256 |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration | 30 |
+| `ALLOWED_ORIGINS` | CORS allowed origins | localhost:3000 |
+| `ENVIRONMENT` | App environment | development |
+| `HOST` | Server host | 0.0.0.0 |
+| `PORT` | Server port | 8000 |
 
 ## 🤝 Contributing
 
-1. Follow the existing code structure
-2. Add proper error handling
-3. Include tests for new features
-4. Update documentation
-5. Follow security best practices
+1. Follow the existing code structure and patterns
+2. Add comprehensive comments explaining business logic
+3. Include proper error handling
+4. Update documentation for new features
+5. Test all endpoints before submitting
 
-## 🎯 Key Differences from Traditional Systems
+## 📄 License
 
-### **Traditional Email Confirmation**
-- User clicks email link
-- Redirects to confirmation page
-- Automatic account activation
-
-### **Humanline OTP System**
-- User receives OTP code via email
-- User manually enters OTP on confirmation page
-- Backend verifies OTP before activation
-- **No email links or redirects**
-
-### **Benefits of OTP-Only Approach**
-- ✅ **More secure** - No clickable links in emails
-- ✅ **Better UX** - Users control when to confirm
-- ✅ **Mobile friendly** - Works on all devices
-- ✅ **No redirect issues** - Direct page access
-- ✅ **Audit trail** - OTP usage tracking
-- ✅ **Rate limiting** - Prevent abuse
-
----
-
-**🎉 Your Humanline backend is configured for OTP-only authentication!**
+MIT License - see LICENSE file for details

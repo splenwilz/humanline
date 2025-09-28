@@ -1,30 +1,39 @@
 #!/bin/bash
 
-# Check if .env file exists
-if [ ! -f .env ]; then
-    echo "⚠️  Creating .env file from template..."
-    cp env.example .env
-    echo "📝 Please edit .env file with your Supabase credentials:"
-    echo "   - SUPABASE_URL"
-    echo "   - SUPABASE_ANON_KEY" 
-    echo "   - SUPABASE_SERVICE_KEY"
-    echo ""
-    echo "Get these from: https://app.supabase.com/project/YOUR_PROJECT/settings/api"
-    echo ""
+# Humanline Backend Startup Script
+# This script sets up and starts the FastAPI application
+
+set -e  # Exit on any error
+
+echo "🚀 Starting Humanline Backend Application..."
+
+# Check if virtual environment exists
+if [ ! -d ".venv" ]; then
+    echo "❌ Virtual environment not found. Please run setup first."
+    exit 1
 fi
 
 # Activate virtual environment
-echo "🔧 Activating virtual environment..."
+echo "📦 Activating virtual environment..."
 source .venv/bin/activate
 
-# Install dependencies if needed
-if [ ! -d ".venv/lib/python*/site-packages/fastapi" ]; then
-    echo "📦 Installing dependencies..."
-    pip install -r requirements.txt
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo "⚠️  .env file not found. Creating from template..."
+    cp env.example .env
+    echo "📝 Please edit .env file with your configuration before running again."
+    exit 1
 fi
 
-# Start the server
-echo "🚀 Starting FastAPI server on http://localhost:8000"
-echo "📚 API docs: http://localhost:8000/docs"
+# Run database migrations
+echo "🗄️  Running database migrations..."
+alembic upgrade head
+
+# Start the application
+echo "🌟 Starting FastAPI application..."
+echo "📖 API Documentation will be available at: http://localhost:8000/docs"
+echo "🔍 Alternative docs at: http://localhost:8000/redoc"
 echo ""
-uvicorn main:app --reload --port 8000
+
+# Run with uvicorn directly for better control
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload

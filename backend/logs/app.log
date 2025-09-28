@@ -1,0 +1,83 @@
+2025-09-28 00:32:36,249 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:36,249 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:36,249 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:36,250 - main - INFO - Environment: production
+2025-09-28 00:32:36,250 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:36,250 - main - INFO - Debug mode: False
+2025-09-28 00:32:36,250 - main - INFO - Environment: production
+2025-09-28 00:32:36,250 - main - INFO - Environment: production
+2025-09-28 00:32:36,250 - main - INFO - Environment: production
+2025-09-28 00:32:36,253 - main - INFO - Debug mode: False
+2025-09-28 00:32:36,253 - main - INFO - Debug mode: False
+2025-09-28 00:32:36,253 - main - INFO - Debug mode: False
+2025-09-28 00:32:36,293 - main - INFO - Database initialized successfully
+2025-09-28 00:32:36,293 - main - ERROR - Database initialization failed: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "pg_class_relname_nsp_index"
+DETAIL:  Key (relname, relnamespace)=(users_id_seq, 2200) already exists.
+[SQL: 
+CREATE TABLE users (
+	id SERIAL NOT NULL, 
+	email VARCHAR(255) NOT NULL, 
+	hashed_password TEXT NOT NULL, 
+	first_name VARCHAR(100), 
+	last_name VARCHAR(100), 
+	is_active BOOLEAN NOT NULL, 
+	is_verified BOOLEAN NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-09-28 00:32:36,294 - main - ERROR - Database initialization failed: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "pg_type_typname_nsp_index"
+DETAIL:  Key (typname, typnamespace)=(users, 2200) already exists.
+[SQL: 
+CREATE TABLE users (
+	id SERIAL NOT NULL, 
+	email VARCHAR(255) NOT NULL, 
+	hashed_password TEXT NOT NULL, 
+	first_name VARCHAR(100), 
+	last_name VARCHAR(100), 
+	is_active BOOLEAN NOT NULL, 
+	is_verified BOOLEAN NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-09-28 00:32:36,294 - main - ERROR - Database initialization failed: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.UniqueViolationError'>: duplicate key value violates unique constraint "pg_type_typname_nsp_index"
+DETAIL:  Key (typname, typnamespace)=(users, 2200) already exists.
+[SQL: 
+CREATE TABLE users (
+	id SERIAL NOT NULL, 
+	email VARCHAR(255) NOT NULL, 
+	hashed_password TEXT NOT NULL, 
+	first_name VARCHAR(100), 
+	last_name VARCHAR(100), 
+	is_active BOOLEAN NOT NULL, 
+	is_verified BOOLEAN NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-09-28 00:32:37,262 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:37,263 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:37,264 - main - INFO - Environment: production
+2025-09-28 00:32:37,264 - main - INFO - Debug mode: False
+2025-09-28 00:32:37,263 - main - INFO - Environment: production
+2025-09-28 00:32:37,266 - main - INFO - Debug mode: False
+2025-09-28 00:32:37,274 - main - INFO - Starting up Humanline Backend application...
+2025-09-28 00:32:37,274 - main - INFO - Environment: production
+2025-09-28 00:32:37,274 - main - INFO - Debug mode: False
+2025-09-28 00:32:37,286 - main - INFO - Database initialized successfully
+2025-09-28 00:32:37,290 - main - INFO - Database initialized successfully
+2025-09-28 00:32:37,296 - main - INFO - Database initialized successfully
+2025-09-28 00:42:10,381 - main - INFO - Shutting down Humanline Backend application...
+2025-09-28 00:42:10,387 - main - INFO - Shutting down Humanline Backend application...
+2025-09-28 00:42:10,390 - main - INFO - Shutting down Humanline Backend application...
+2025-09-28 00:42:10,415 - main - INFO - Shutting down Humanline Backend application...

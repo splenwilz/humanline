@@ -31,14 +31,10 @@ const performanceData = [
 ]
 
 // Custom dot component for the highlighted point
-const CustomDot = (props: {
-  cx: number
-  cy: number
-  payload: { month: string }
-}) => {
+const CustomDot = (props: any) => {
   const { cx, cy, payload } = props
   // Show dot on April data point
-  if (payload.month === 'Apr') {
+  if (payload && payload.month === 'Apr') {
     return (
       <Dot
         cx={cx}

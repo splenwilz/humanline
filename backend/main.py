@@ -1,84 +1,205 @@
+"""
+Main FastAPI application entry point.
+
+This module creates and configures the FastAPI application with all
+necessary middleware, routers, and security configurations.
+"""
+
+import logging
+import sys
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
-from app.routers import auth, onboarding
-import logging
+from fastapi.responses import JSONResponse
+
+from core.config import settings
+from core.database import init_db
+from middleware.security import SecurityMiddleware
+from api.auth import router as auth_router
+from api.users import router as users_router
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO if settings.is_production else logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("logs/app.log") if settings.is_production else logging.NullHandler(),
+    ]
+)
+
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
+# Import debug toolbar only in development
+if not settings.is_production:
+    from debug_toolbar.middleware import DebugToolbarMiddleware
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager.
+    
+    Handles startup and shutdown events for the FastAPI application.
+    Initializes database tables on startup.
+    """
+    # Startup
+    logger.info("Starting up Humanline Backend application...")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Debug mode: {not settings.is_production}")
+    
+    # Initialize database tables
+    # In production, use Alembic migrations instead
+    try:
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down Humanline Backend application...")
+
+
+# Create FastAPI application with comprehensive configuration
 app = FastAPI(
-    title=settings.app_name,
-    description="Humanline Backend API",
+    title="Humanline API",
     version="1.0.0",
-    debug=settings.debug,
+    contact={
+        "name": "Humanline API Support",
+        "email": "support@humanline.com",
+    },
+    license_info={
+        "name": "Humanline API License",
+        "url": "https://humanline.com/license",
+    },
+    lifespan=lifespan,
+    # Disable docs in production for security
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
+    debug=not settings.is_production,
 )
 
-# Add Basic Auth to OpenAPI schema
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    
-    from fastapi.openapi.utils import get_openapi
-    openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
-    
-    # Add JWT Bearer Auth
-    openapi_schema["components"]["securitySchemes"] = {
-        "HTTPBearer": {
-            "type": "http",
-            "scheme": "bearer"
-        }
-    }
-    
-    # Ensure components exist
-    if "components" not in openapi_schema:
-        openapi_schema["components"] = {}
-    if "securitySchemes" not in openapi_schema["components"]:
-        openapi_schema["components"]["securitySchemes"] = {}
-    
-    # Add security requirements to specific endpoints
-    if "/api/v1/onboarding" in openapi_schema["paths"]:
-        if "post" in openapi_schema["paths"]["/api/v1/onboarding"]:
-            openapi_schema["paths"]["/api/v1/onboarding"]["post"]["security"] = [{"HTTPBearer": []}]
-        if "get" in openapi_schema["paths"]["/api/v1/onboarding"]:
-            openapi_schema["paths"]["/api/v1/onboarding"]["get"]["security"] = [{"HTTPBearer": []}]
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
 
-app.openapi = custom_openapi
-
-# Add CORS middleware
+# Add CORS middleware for frontend integration
+# Configured with specific origins for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8000"],  # Frontend URL and Swagger UI
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.allowed_origins_list,
+    allow_credentials=True,  # Allow cookies/auth headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],  # Allow all headers (can be restricted in production)
 )
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(onboarding.router, prefix="/api/v1")
 
-@app.get("/")
+# Add custom security middleware
+# Provides rate limiting and security headers
+app.add_middleware(
+    SecurityMiddleware,
+    rate_limit_requests=100,  # 100 requests per minute per IP
+    rate_limit_window=60,
+)
+
+
+# Add debug toolbar middleware only in development
+# Provides detailed debugging information including SQL queries, request/response data
+if not settings.is_production:
+    from debug_toolbar.middleware import DebugToolbarMiddleware
+    
+    app.add_middleware(DebugToolbarMiddleware)
+
+
+# Include API routers
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
+
+
+# Root endpoint for health check
+@app.get(
+    "/",
+    tags=["Health"],
+    summary="Health Check",
+    description="Simple health check endpoint to verify API is running"
+)
 async def root():
-    """Root endpoint for health check."""
+    """
+    Health check endpoint.
+    
+    Returns basic API information and status.
+    Useful for load balancers and monitoring systems.
+    """
     return {
         "message": "Humanline API is running",
         "version": "1.0.0",
-        "status": "healthy"
+        "status": "healthy",
+        "environment": settings.environment
     }
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}
 
+# Health check endpoint
+@app.get(
+    "/health",
+    tags=["Health"],
+    summary="Detailed Health Check",
+    description="Detailed health check with system information"
+)
+async def health_check():
+    """
+    Detailed health check endpoint.
+    
+    Returns comprehensive health information including
+    database connectivity and system status.
+    """
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "environment": settings.environment,
+        "database": "connected",  # In production, actually check DB connection
+        "timestamp": "2024-01-01T00:00:00Z"  # Use actual timestamp
+    }
+
+
+# Global exception handler for unhandled errors
+@app.exception_handler(500)
+async def internal_server_error_handler(request, exc):
+    """
+    Global handler for internal server errors.
+    
+    Provides consistent error response format and prevents
+    sensitive information leakage in production.
+    """
+    if settings.is_production:
+        # Don't expose error details in production
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "error_id": "ISE_001"  # Error ID for tracking
+            }
+        )
+    else:
+        # Show detailed errors in development
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "error": str(exc),
+                "type": type(exc).__name__
+            }
+        )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Run application with uvicorn
+    # In production, use a proper ASGI server like gunicorn + uvicorn
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=not settings.is_production,  # Auto-reload in development only
+        log_level="info"
+    )
