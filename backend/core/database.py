@@ -24,10 +24,21 @@ class Base(DeclarativeBase):
 # Async engine for PostgreSQL with asyncpg driver
 # pool_pre_ping=True ensures connections are validated before use
 # echo=True in development for SQL query logging (disabled in production for security)
+
+# Convert sync PostgreSQL URL to async URL if needed (for Railway compatibility)
+database_url = settings.database_url
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 engine = create_async_engine(
-    settings.database_url,
+    database_url,
     pool_pre_ping=True,
     echo=not settings.is_production,  # Only log SQL queries in development
+    # Production-optimized connection pooling
+    pool_size=5,  # Good for async workloads
+    max_overflow=10,  # Allow burst capacity
+    pool_recycle=3600,  # Recycle connections every hour
+    pool_timeout=30,  # Connection timeout
 )
 
 # Async session factory
