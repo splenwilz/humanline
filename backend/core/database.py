@@ -25,10 +25,14 @@ class Base(DeclarativeBase):
 # pool_pre_ping=True ensures connections are validated before use
 # echo=True in development for SQL query logging (disabled in production for security)
 
-# Convert sync PostgreSQL URL to async URL if needed (for Railway compatibility)
-database_url = settings.database_url
-if database_url.startswith("postgresql://"):
-    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # Convert sync PostgreSQL URL to async URL and clean Neon-specific parameters
+    database_url = settings.database_url
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    # Remove asyncpg-incompatible parameters that Neon includes
+    if "channel_binding=require" in database_url:
+        database_url = database_url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?").replace("?channel_binding=require", "")
 
 engine = create_async_engine(
     database_url,
