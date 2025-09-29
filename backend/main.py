@@ -34,9 +34,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Import debug toolbar only in development
-if not settings.is_production:
-    from debug_toolbar.middleware import DebugToolbarMiddleware
+# Import debug toolbar for performance analysis
+from debug_toolbar.middleware import DebugToolbarMiddleware
 
 
 @asynccontextmanager
