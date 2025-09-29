@@ -50,8 +50,8 @@ engine = create_async_engine(
             "jit": "off",  # Disable JIT for faster startup
         },
         # Optimized for external database connections
-        "connect_timeout": 10,
         "command_timeout": 30,
+        # Note: asyncpg doesn't support connect_timeout, uses command_timeout for both
     }
 )
 
