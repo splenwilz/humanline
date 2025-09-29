@@ -34,17 +34,20 @@ engine = create_async_engine(
     database_url,
     pool_pre_ping=True,
     echo=not settings.is_production,  # Only log SQL queries in development
-    # Railway-optimized connection pooling for faster requests
-    pool_size=2,  # Smaller pool for Railway's limited resources
-    max_overflow=3,  # Limited overflow for Railway containers
-    pool_recycle=1800,  # Recycle connections every 30 minutes (Railway limits)
-    pool_timeout=10,  # Faster timeout for quicker failures
-    # Additional optimizations for Railway
+    # Optimized for Neon database
+    pool_size=3,  # Good pool size for Neon
+    max_overflow=5,  # Allow some overflow for burst traffic
+    pool_recycle=1800,  # 30 minutes - good for cloud databases
+    pool_timeout=10,  # Fast timeout for external connections
+    # Neon-optimized connection settings
     connect_args={
         "server_settings": {
             "application_name": "humanline_backend",
-            "jit": "off",  # Disable JIT compilation for faster startup
-        }
+            "jit": "off",  # Disable JIT for faster startup
+        },
+        # Optimized for external database connections
+        "connect_timeout": 10,
+        "command_timeout": 30,
     }
 )
 
