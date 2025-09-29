@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from core.config import settings
 from core.database import init_db
 from middleware.security import SecurityMiddleware
+from middleware.profiler import ProfilingMiddleware
 from api.auth import router as auth_router
 from api.users import router as users_router
 
@@ -107,6 +108,9 @@ if settings.is_production:
         rate_limit_requests=100,  # 100 requests per minute per IP
         rate_limit_window=60,
     )
+
+# Add profiling middleware for detailed performance analysis
+app.add_middleware(ProfilingMiddleware)
 
 # Add debug toolbar in all environments for performance analysis
 # TODO: Remove from production after performance testing
