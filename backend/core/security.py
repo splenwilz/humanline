@@ -20,9 +20,10 @@ from core.config import settings
 pwd_context = CryptContext(
     schemes=["argon2"],
     deprecated="auto",
-    argon2__memory_cost=65536,  # 64 MB memory usage
-    argon2__time_cost=3,        # 3 iterations
-    argon2__parallelism=1,      # Single thread
+    # Optimized for production speed while maintaining security
+    argon2__memory_cost=8192,   # 8 MB memory usage (8x faster)
+    argon2__time_cost=2,        # 2 iterations (1.5x faster)
+    argon2__parallelism=1,      # Single thread (Railway containers have limited CPU)
 )
 
 

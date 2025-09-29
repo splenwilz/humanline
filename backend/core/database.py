@@ -34,11 +34,18 @@ engine = create_async_engine(
     database_url,
     pool_pre_ping=True,
     echo=not settings.is_production,  # Only log SQL queries in development
-    # Production-optimized connection pooling
-    pool_size=5,  # Good for async workloads
-    max_overflow=10,  # Allow burst capacity
-    pool_recycle=3600,  # Recycle connections every hour
-    pool_timeout=30,  # Connection timeout
+    # Railway-optimized connection pooling for faster requests
+    pool_size=2,  # Smaller pool for Railway's limited resources
+    max_overflow=3,  # Limited overflow for Railway containers
+    pool_recycle=1800,  # Recycle connections every 30 minutes (Railway limits)
+    pool_timeout=10,  # Faster timeout for quicker failures
+    # Additional optimizations for Railway
+    connect_args={
+        "server_settings": {
+            "application_name": "humanline_backend",
+            "jit": "off",  # Disable JIT compilation for faster startup
+        }
+    }
 )
 
 # Async session factory

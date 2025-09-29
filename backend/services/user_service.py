@@ -62,15 +62,17 @@ class UserService:
         Raises:
             ValueError: If email already exists
         """
-        # Check if email already exists
-        existing_user = await UserService.get_user_by_email(db, user_data.email)
-        if existing_user:
+        # Check if email already exists (optimized query)
+        email_check = await db.execute(
+            select(User.id).where(User.email == user_data.email).limit(1)
+        )
+        if email_check.scalar_one_or_none():
             raise ValueError("Email already registered")
         
         # Hash password before storing
         hashed_password = get_password_hash(user_data.password)
         
-        # Create new user
+        # Create new user with immediate return of ID
         db_user = User(
             email=user_data.email,
             hashed_password=hashed_password,
@@ -80,7 +82,8 @@ class UserService:
         
         db.add(db_user)
         await db.commit()
-        await db.refresh(db_user)
+        # Skip refresh for better performance - we have all needed data
+        # await db.refresh(db_user)
         
         return db_user
     
