@@ -78,12 +78,24 @@ async def init_db() -> None:
     """
     Initialize database tables.
     
-    Creates all tables defined in models. In production, this should be
-    handled by Alembic migrations instead of this function.
+    Creates all tables defined in models if they don't exist.
+    Uses checkfirst=True to avoid duplicate table errors.
     """
-    async with engine.begin() as conn:
-        # Import all models here to ensure they're registered with Base
-        from models import user  # noqa: F401
-        
-        # Create all tables
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # Import all models here to ensure they're registered with Base
+            from models import user  # noqa: F401
+            
+            # Create all tables only if they don't exist (checkfirst=True)
+            await conn.run_sync(
+                lambda sync_conn: Base.metadata.create_all(sync_conn, checkfirst=True)
+            )
+    except Exception as e:
+        # Log the error but don't fail startup if tables already exist
+        import logging
+        logger = logging.getLogger(__name__)
+        if "already exists" in str(e) or "duplicate" in str(e).lower():
+            logger.info("Database tables already exist, skipping creation")
+        else:
+            logger.error(f"Database initialization failed: {e}")
+            raise
