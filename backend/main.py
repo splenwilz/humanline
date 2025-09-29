@@ -109,9 +109,9 @@ if settings.is_production:
         rate_limit_window=60,
     )
 
-# Add debug toolbar only in development
-if not settings.is_production:
-    app.add_middleware(DebugToolbarMiddleware)
+# Add debug toolbar in all environments for performance analysis
+# TODO: Remove from production after performance testing
+app.add_middleware(DebugToolbarMiddleware)
 
 
 # Include API routers
