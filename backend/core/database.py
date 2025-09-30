@@ -36,21 +36,24 @@ if "channel_binding=require" in database_url:
 
 engine = create_async_engine(
     database_url,
-    pool_pre_ping=True,
     echo=not settings.is_production,  # Only log SQL queries in development
-    # Optimized for Neon database
-    pool_size=3,  # Good pool size for Neon
-    max_overflow=5,  # Allow some overflow for burst traffic
+    # Optimized for Neon database with faster query performance
+    pool_size=5,  # Increased pool size for better concurrency
+    max_overflow=10,  # More overflow connections for burst traffic
     pool_recycle=1800,  # 30 minutes - good for cloud databases
-    pool_timeout=10,  # Fast timeout for external connections
-    # Neon-optimized connection settings
+    pool_timeout=5,  # Faster timeout for quicker failover
+    pool_pre_ping=True,  # Validate connections before use
+    # Neon-optimized connection settings for speed
     connect_args={
         "server_settings": {
             "application_name": "humanline_backend",
             "jit": "off",  # Disable JIT for faster startup
+            "shared_preload_libraries": "",  # Minimize startup overhead
+            "log_statement": "none",  # Reduce logging overhead
         },
-        # Optimized for external database connections
-        "command_timeout": 30,
+        # Optimized for fast external database connections
+        "command_timeout": 15,  # Faster timeout for queries
+        "prepared_statement_cache_size": 100,  # Cache prepared statements
         # Note: asyncpg doesn't support connect_timeout, uses command_timeout for both
     }
 )

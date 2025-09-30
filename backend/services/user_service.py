@@ -7,7 +7,7 @@ providing a clean interface between API endpoints and database models.
 
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, exists
 import time
 import logging
 
@@ -70,15 +70,16 @@ class UserService:
         start_time = time.perf_counter()
         logger.info(f"🔄 Starting user creation for: {user_data.email}")
         
-        # Check if email already exists (optimized query)
+        # Check if email already exists (ultra-optimized EXISTS query)
         email_start = time.perf_counter()
-        email_check = await db.execute(
-            select(User.id).where(User.email == user_data.email).limit(1)
-        )
+        # Use EXISTS query for maximum performance - database-level optimization
+        email_exists_query = select(exists().where(User.email == user_data.email))
+        email_check = await db.execute(email_exists_query)
+        email_exists = email_check.scalar()
         email_time = time.perf_counter() - email_start
         logger.info(f"📧 Email check completed in: {email_time:.3f}s")
         
-        if email_check.scalar_one_or_none():
+        if email_exists:
             raise ValueError("Email already registered")
         
         # Hash password before storing
