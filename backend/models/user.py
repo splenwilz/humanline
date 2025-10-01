@@ -85,10 +85,12 @@ class User(Base):
     # Email verification code (6-digit)
     # User-friendly verification code for email confirmation
     # Nullable because verified users don't need codes
+    # Unique constraint prevents account takeover via code collisions
     email_verification_code: Mapped[str] = mapped_column(
         String(6),
         nullable=True,
-        index=True,  # Index for fast code lookups during verification
+        unique=True,  # Ensure uniqueness to prevent collision attacks
+        index=True,   # Index for fast code lookups during verification
         comment="6-digit verification code for email confirmation"
     )
     

@@ -26,8 +26,8 @@ export const authApi = {
     user_email: string;
     confirmed_at: string;
   }> {
-    // Use POST request with query parameter as the backend expects
-    return apiClient.post(`/auth/confirm-email?code=${encodeURIComponent(code)}`)
+    // Send code in request body for better security (prevents logging in URLs)
+    return apiClient.post('/auth/confirm-email', { code })
   },
 
   // Verify OTP code (legacy - may be removed)

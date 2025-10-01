@@ -39,8 +39,8 @@ export const useSignup = () => {
           token_type: response.token_type,
         })
 
-        return { 
-          success: true, 
+        return {
+          success: true,
           data: response,
           type: 'immediate_login',
           message: 'Registration successful! Welcome to Humanline.'
@@ -50,8 +50,8 @@ export const useSignup = () => {
         const { storePendingEmail } = await import('@/lib/auth')
         storePendingEmail(email)
 
-        return { 
-          success: true, 
+        return {
+          success: true,
           data: response,
           type: 'email_confirmation_required',
           message: response.message

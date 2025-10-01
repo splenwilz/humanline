@@ -128,13 +128,13 @@ class AuthService:
             # EMAIL CONFIRMATION FLOW
             # Create user account in inactive state pending email verification
             
-            # Generate secure 6-digit verification code for email confirmation
-            # This code will be displayed in the confirmation email
-            verification_code = email_service.generate_verification_code()
+            # Generate unique 6-digit verification code for email confirmation
+            # Ensure uniqueness to prevent account takeover attacks
+            verification_code = await AuthService._generate_unique_verification_code(db)
             code_expiration = email_service.calculate_code_expiration()
             
-            # Create user account with email verification fields populated
-            # User starts as inactive and unverified until email confirmation
+            # Create or update user account with email verification fields
+            # UserService handles both new registrations and re-registration for unverified accounts
             user = await UserService.create_user_with_verification(
                 db=db,
                 user_data=user_data,
@@ -160,7 +160,8 @@ class AuthService:
                 "message": "Registration successful! Please check your email for a confirmation link.",
                 "email": user.email,
                 "email_sent": email_sent,
-                "expires_in_hours": settings.email_confirmation_expire_hours
+                "expires_in_hours": settings.email_confirmation_expire_hours,
+                "next_step": "check_email_for_confirmation_link"
             }
             
         else:
@@ -278,3 +279,48 @@ class AuthService:
             "confirmed_at": current_time.isoformat(),
             "message": "Email confirmed successfully! Your account is now active."
         }
+
+    @staticmethod
+    async def _generate_unique_verification_code(db: AsyncSession) -> str:
+        """
+        Generate a unique 6-digit verification code that doesn't exist in the database.
+        
+        This prevents account takeover attacks due to code collisions by ensuring
+        each active verification code is unique across all pending registrations.
+        
+        Args:
+            db: Database session
+            
+        Returns:
+            str: Unique 6-digit verification code
+            
+        Raises:
+            RuntimeError: If unable to generate unique code after max attempts
+        """
+        max_attempts = 10  # Prevent infinite loops
+        
+        for attempt in range(max_attempts):
+            # Generate a candidate verification code
+            candidate_code = email_service.generate_verification_code()
+            
+            # Check if this code is already in use by any pending verification
+            existing_query = select(User).where(
+                User.email_verification_code == candidate_code
+            )
+            existing_result = await db.execute(existing_query)
+            existing_user = existing_result.scalar_one_or_none()
+            
+            # If no collision found, use this code
+            if not existing_user:
+                return candidate_code
+                
+            # Log collision for monitoring (in production, you might want metrics)
+            print(f"Verification code collision detected on attempt {attempt + 1}: {candidate_code}")
+        
+        # If we couldn't generate a unique code after max attempts, this indicates
+        # either a very high collision rate or a potential issue with randomness
+        raise RuntimeError(
+            f"Unable to generate unique verification code after {max_attempts} attempts. "
+            "This may indicate high system load or insufficient entropy."
+        )
+

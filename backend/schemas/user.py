@@ -7,7 +7,7 @@ providing automatic validation and documentation generation.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 
 
 class UserBase(BaseModel):
@@ -40,6 +40,30 @@ class UserCreate(UserBase):
         description="User's password (8-128 characters)",
         example="securepassword123"
     )
+    
+    @validator('first_name', 'last_name')
+    def validate_name_fields(cls, v):
+        """Validate name fields to prevent XSS and injection attacks."""
+        if v is None:
+            return v
+            
+        # Remove potentially dangerous characters that could be used for XSS
+        dangerous_patterns = ['<script', '</script', 'javascript:', 'data:', 'vbscript:', 'onload=', 'onerror=', 'onclick=']
+        v_lower = v.lower()
+        
+        for pattern in dangerous_patterns:
+            if pattern in v_lower:
+                raise ValueError("Name contains invalid characters. Please use only letters, numbers, spaces, and basic punctuation.")
+        
+        # Check for HTML tags in general
+        if '<' in v and '>' in v:
+            raise ValueError("HTML tags are not allowed in names.")
+            
+        # Additional length check for security (beyond Field max_length)
+        if len(v) > 50:
+            raise ValueError("Name is too long. Please use 50 characters or less.")
+            
+        return v.strip()
 
 
 class UserUpdate(BaseModel):

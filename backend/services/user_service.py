@@ -6,7 +6,7 @@ providing a clean interface between API endpoints and database models.
 """
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exists
 import time
@@ -147,17 +147,42 @@ class UserService:
         start_time = time.perf_counter()
         logger.info(f"🔄 Starting user creation with verification for: {user_data.email}")
         
-        # Check if email already exists (ultra-optimized EXISTS query)
-        # This prevents duplicate accounts and maintains data integrity
+        # Check if email already exists and handle unverified accounts
+        # This prevents duplicate accounts while allowing re-registration for unverified users
         email_start = time.perf_counter()
-        email_exists_query = select(exists().where(User.email == user_data.email))
-        email_check = await db.execute(email_exists_query)
-        email_exists = email_check.scalar()
+        existing_user_query = select(User).where(User.email == user_data.email)
+        existing_user_result = await db.execute(existing_user_query)
+        existing_user = existing_user_result.scalar_one_or_none()
         email_time = time.perf_counter() - email_start
         logger.info(f"📧 Email check completed in: {email_time:.3f}s")
-        
-        if email_exists:
-            raise ValueError("Email already registered")
+
+        if existing_user:
+            # If user exists and is verified, prevent duplicate registration
+            if existing_user.is_verified:
+                raise ValueError("Email already registered")
+            
+            # If user exists but is unverified, this is a re-registration attempt
+            # We should update the existing record instead of creating a new one
+            logger.info(f"🔄 Re-registration attempt for unverified account: {user_data.email}")
+            
+            # Update the existing unverified user with new data
+            existing_user.first_name = user_data.first_name
+            existing_user.last_name = user_data.last_name
+            existing_user.hashed_password = get_password_hash(user_data.password)
+            existing_user.email_verification_code = verification_code
+            existing_user.email_verification_expires_at = code_expiration
+            existing_user.is_active = is_active
+            existing_user.is_verified = is_verified
+            existing_user.updated_at = datetime.now(timezone.utc)
+            
+            # Commit the updates
+            await db.commit()
+            await db.refresh(existing_user)
+            
+            total_time = time.perf_counter() - start_time
+            logger.info(f"✅ Updated existing unverified user in: {total_time:.3f}s")
+            
+            return existing_user
         
         # Hash password before storing for security
         # Never store plain text passwords in the database

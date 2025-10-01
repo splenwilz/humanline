@@ -44,7 +44,11 @@ class EmailService:
         
         # Initialize Jinja2 environment for email templates
         # BaseLoader allows us to define templates as strings
-        self.template_env = Environment(loader=BaseLoader())
+        # SECURITY: autoescape=True prevents XSS attacks by escaping user input in templates
+        self.template_env = Environment(
+            loader=BaseLoader(),
+            autoescape=True  # Critical: prevents XSS by escaping HTML in user input
+        )
         
     async def send_email(
         self, 
@@ -148,6 +152,7 @@ class EmailService:
         - 6 digits provides 1 million possible combinations
         - Should be paired with rate limiting and expiration
         - Less secure than tokens but more user-friendly
+        - Uniqueness must be enforced at database level to prevent collisions
         """
         # Generate a random 6-digit number using cryptographically secure random
         # This ensures the code cannot be predicted or brute-forced easily
@@ -288,9 +293,15 @@ class EmailService:
         }
         
         # Render both HTML and text versions
-        # This ensures maximum compatibility across email clients
+        # HTML version uses autoescape for XSS protection
+        # Text version doesn't need HTML escaping since it's plain text
         html_content = html_template_obj.render(**template_context)
+        
+        # For text content, temporarily disable autoescape since it's plain text
+        # The user_name is already validated at input, and text emails don't execute HTML
+        text_template_obj.environment.autoescape = False
         text_content = text_template_obj.render(**template_context)
+        text_template_obj.environment.autoescape = True  # Re-enable for safety
         
         return html_content, text_content
     

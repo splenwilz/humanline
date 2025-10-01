@@ -5,11 +5,11 @@ This module provides endpoints for user authentication including
 login, registration, and token management with comprehensive error handling.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest
 from services.auth_service import AuthService
 
 
@@ -150,7 +150,7 @@ async def register(
     description="Confirm user email address using 6-digit verification code"
 )
 async def confirm_email(
-    code: str = Query(..., description="6-digit verification code from confirmation email"),
+    request: EmailConfirmationRequest,
     db: AsyncSession = Depends(get_db)
 ) -> dict:
     """
@@ -164,7 +164,7 @@ async def confirm_email(
     5. Clears the verification code
 
     Args:
-        code: 6-digit verification code from confirmation email
+        request: Email confirmation request containing the 6-digit code
         db: Database session dependency
 
     Returns:
@@ -174,9 +174,9 @@ async def confirm_email(
         HTTPException: 400 if code is invalid/expired, 404 if user not found
     """
     try:
-        # Attempt to confirm the email using the provided code
+        # Attempt to confirm the email using the provided code from request body
         # This handles all validation and database updates
-        result = await AuthService.confirm_email(db, code)
+        result = await AuthService.confirm_email(db, request.code)
         
         if result["success"]:
             return {

@@ -5,7 +5,7 @@ This module centralizes all configuration management using Pydantic Settings
 for type safety and validation. Environment variables are loaded from .env file.
 """
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
@@ -98,6 +98,17 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",  # Ignore extra environment variables
     )
+
+    @model_validator(mode='after')
+    def validate_email_config(self) -> 'Settings':
+        """Validate that SMTP credentials are provided when email confirmation is required."""
+        if self.require_email_confirmation:
+            if not self.smtp_user or not self.smtp_password:
+                raise ValueError(
+                    "SMTP credentials (smtp_user and smtp_password) are required "
+                    "when require_email_confirmation is enabled"
+                )
+        return self
     
     @property
     def allowed_origins_list(self) -> List[str]:

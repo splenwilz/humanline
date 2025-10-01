@@ -69,3 +69,15 @@ class TokenData(BaseModel):
     
     user_id: int = Field(description="User ID from token")
     email: str = Field(description="User email from token")
+
+
+class EmailConfirmationRequest(BaseModel):
+    """Schema for email confirmation requests."""
+    
+    code: str = Field(
+        min_length=6,
+        max_length=6,
+        pattern=r'^\d{6}$',
+        description="6-digit verification code from confirmation email",
+        example="123456"
+    )
