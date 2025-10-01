@@ -43,14 +43,13 @@ engine = create_async_engine(
     pool_recycle=1800,  # 30 minutes - good for cloud databases
     pool_timeout=5,  # Faster timeout for quicker failover
     pool_pre_ping=True,  # Validate connections before use
-    # Railway-optimized connection settings for speed
+    # Optimized connection settings for local development
     connect_args={
         "server_settings": {
             "application_name": "humanline_backend",
-            "jit": "off",  # Disable JIT for faster startup
-            "log_statement": "none",  # Reduce logging overhead
+            # Removed jit and log_statement as they require superuser privileges
         },
-        # Optimized for fast internal database connections
+        # Optimized for fast database connections
         "command_timeout": 15,  # Faster timeout for queries
         "prepared_statement_cache_size": 100,  # Cache prepared statements
         # Note: asyncpg doesn't support connect_timeout, uses command_timeout for both
