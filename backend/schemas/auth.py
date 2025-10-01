@@ -5,6 +5,7 @@ These schemas handle authentication requests and responses,
 ensuring proper validation of login credentials and token data.
 """
 
+from typing import Union
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -90,3 +91,32 @@ class ResendConfirmationRequest(BaseModel):
         description="Email address to resend confirmation code to",
         example="user@example.com"
     )
+
+
+class EmailConfirmationResponse(BaseModel):
+    """Schema for email confirmation required response."""
+    
+    message: str = Field(
+        description="Success message about email confirmation",
+        example="Registration successful! Please check your email for a confirmation link."
+    )
+    email: str = Field(
+        description="Email address where confirmation was sent",
+        example="user@example.com"
+    )
+    email_sent: bool = Field(
+        description="Whether the confirmation email was successfully sent",
+        example=True
+    )
+    expires_in_hours: int = Field(
+        description="Hours until the confirmation code expires",
+        example=24
+    )
+    next_step: str = Field(
+        description="Next step for the user",
+        example="check_email_for_confirmation_link"
+    )
+
+
+# Union type for registration responses
+RegisterResponse = Union[TokenResponse, EmailConfirmationResponse]

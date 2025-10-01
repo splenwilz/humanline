@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest, ResendConfirmationRequest
+from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest, ResendConfirmationRequest, RegisterResponse
 from services.auth_service import AuthService
 
 
@@ -67,6 +67,7 @@ async def login(
 
 @router.post(
     "/register",
+    response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
     summary="User Registration",
     description="Create new user account - returns JWT token or email confirmation message"
@@ -116,13 +117,14 @@ async def register(
         elif result["type"] == "email_confirmation_required":
             # Email confirmation enabled - return confirmation message
             # Client should redirect user to check email
-            return {
-                "message": result["message"],
-                "email": result["email"],
-                "email_sent": result["email_sent"],
-                "expires_in_hours": result["expires_in_hours"],
-                "next_step": "check_email_for_confirmation_link"
-            }
+            from schemas.auth import EmailConfirmationResponse
+            return EmailConfirmationResponse(
+                message=result["message"],
+                email=result["email"],
+                email_sent=result["email_sent"],
+                expires_in_hours=result["expires_in_hours"],
+                next_step="check_email_for_confirmation_link"
+            )
         else:
             # Unexpected response type - should not happen
             raise HTTPException(
