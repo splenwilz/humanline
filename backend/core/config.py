@@ -5,7 +5,7 @@ This module centralizes all configuration management using Pydantic Settings
 for type safety and validation. Environment variables are loaded from .env file.
 """
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
@@ -55,12 +55,60 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, description="Server port")
     
+    # Email Configuration
+    # SMTP settings for sending confirmation emails
+    smtp_host: str = Field(
+        default="smtp.gmail.com",
+        description="SMTP server hostname for sending emails"
+    )
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port (587 for TLS, 465 for SSL)"
+    )
+    smtp_user: str = Field(
+        default="",
+        description="SMTP username/email address for authentication"
+    )
+    smtp_password: str = Field(
+        default="",
+        description="SMTP password or app-specific password"
+    )
+    from_email: str = Field(
+        default="noreply@humanline.com",
+        description="Default sender email address for system emails"
+    )
+    
+    # Email Confirmation Feature Toggle
+    # Controls whether email confirmation is required before account activation
+    require_email_confirmation: bool = Field(
+        default=True,
+        description="Whether to require email confirmation before activating user accounts"
+    )
+    
+    # Email confirmation token expiration (in hours)
+    # Tokens expire after this time for security
+    email_confirmation_expire_hours: int = Field(
+        default=24,
+        description="Email confirmation token expiration time in hours"
+    )
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # Ignore extra environment variables
     )
+
+    @model_validator(mode='after')
+    def validate_email_config(self) -> 'Settings':
+        """Validate that SMTP credentials are provided when email confirmation is required."""
+        if self.require_email_confirmation:
+            if not self.smtp_user or not self.smtp_password:
+                raise ValueError(
+                    "SMTP credentials (smtp_user and smtp_password) are required "
+                    "when require_email_confirmation is enabled"
+                )
+        return self
     
     @property
     def allowed_origins_list(self) -> List[str]:

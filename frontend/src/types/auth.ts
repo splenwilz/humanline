@@ -2,16 +2,30 @@
 export interface SignupRequest {
   email: string
   password: string
-  full_name?: string
+  first_name: string
+  last_name: string
   [key: string]: unknown
 }
 
-export interface SignupResponse {
-  user_id: string
-  email: string
+// Union type for signup response - can be either immediate login or email confirmation
+export type SignupResponse = 
+  | SignupImmediateLoginResponse 
+  | SignupEmailConfirmationResponse
+
+// Response when email confirmation is disabled (immediate login)
+export interface SignupImmediateLoginResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
+// Response when email confirmation is enabled
+export interface SignupEmailConfirmationResponse {
   message: string
-  confirmation_sent: boolean
-  otp_sent: boolean
+  email: string
+  email_sent: boolean
+  expires_in_hours: number
+  next_step: string
 }
 
 export interface SigninRequest {

@@ -82,6 +82,26 @@ class User(Base):
         comment="Whether the user's email has been verified"
     )
     
+    # Email verification code (6-digit)
+    # User-friendly verification code for email confirmation
+    # Nullable because verified users don't need codes
+    # Unique constraint prevents account takeover via code collisions
+    email_verification_code: Mapped[str] = mapped_column(
+        String(6),
+        nullable=True,
+        unique=True,  # Ensure uniqueness to prevent collision attacks
+        index=True,   # Index for fast code lookups during verification
+        comment="6-digit verification code for email confirmation"
+    )
+    
+    # Email verification code expiration
+    # Codes expire for security - prevents indefinite validity
+    email_verification_expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Email verification code expiration timestamp"
+    )
+    
     # Audit timestamps
     # timezone.utc ensures consistent timezone handling
     created_at: Mapped[datetime] = mapped_column(
