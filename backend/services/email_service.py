@@ -292,16 +292,19 @@ class EmailService:
             "expiration_hours": settings.email_confirmation_expire_hours
         }
         
-        # Render both HTML and text versions
+        # Render both HTML and text versions with separate environments for thread safety
         # HTML version uses autoescape for XSS protection
-        # Text version doesn't need HTML escaping since it's plain text
         html_content = html_template_obj.render(**template_context)
         
-        # For text content, temporarily disable autoescape since it's plain text
-        # The user_name is already validated at input, and text emails don't execute HTML
-        text_template_obj.environment.autoescape = False
-        text_content = text_template_obj.render(**template_context)
-        text_template_obj.environment.autoescape = True  # Re-enable for safety
+        # For text content, create a separate non-autoescaping environment
+        # This prevents race conditions in concurrent email sending
+        from jinja2 import Environment, BaseLoader
+        text_env = Environment(
+            loader=BaseLoader(),
+            autoescape=False  # Plain text doesn't need HTML escaping
+        )
+        text_template_obj_safe = text_env.from_string(text_template)
+        text_content = text_template_obj_safe.render(**template_context)
         
         return html_content, text_content
     

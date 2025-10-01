@@ -8,6 +8,8 @@ providing automatic validation and documentation generation.
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
+from typing import Optional
+import re
 
 
 class UserBase(BaseModel):
@@ -19,13 +21,13 @@ class UserBase(BaseModel):
     )
     first_name: Optional[str] = Field(
         None,
-        max_length=100,
+        max_length=50,  # Consistent with validator
         description="User's first name",
         example="John"
     )
     last_name: Optional[str] = Field(
         None,
-        max_length=100,
+        max_length=50,  # Consistent with validator
         description="User's last name", 
         example="Doe"
     )
@@ -43,27 +45,57 @@ class UserCreate(UserBase):
     
     @validator('first_name', 'last_name')
     def validate_name_fields(cls, v):
-        """Validate name fields to prevent XSS and injection attacks."""
+        """
+        Comprehensive validation for name fields to prevent XSS and ensure data quality.
+        
+        Uses multiple validation layers:
+        1. HTML tag detection with regex
+        2. Dangerous pattern detection
+        3. Character whitelist approach
+        4. Length validation
+        """
         if v is None:
             return v
             
-        # Remove potentially dangerous characters that could be used for XSS
-        dangerous_patterns = ['<script', '</script', 'javascript:', 'data:', 'vbscript:', 'onload=', 'onerror=', 'onclick=']
-        v_lower = v.lower()
+        # Strip whitespace first
+        v = v.strip()
+        
+        # Check for empty string after stripping
+        if not v:
+            return None
+            
+        # 1. HTML tag detection using regex (more robust than string matching)
+        html_pattern = re.compile(r'<[^>]*>', re.IGNORECASE)
+        if html_pattern.search(v):
+            raise ValueError("HTML tags are not allowed in names.")
+        
+        # 2. Check for dangerous patterns that could be used for XSS
+        dangerous_patterns = [
+            r'javascript:', r'data:', r'vbscript:', r'file:', r'ftp:',
+            r'on\w+\s*=',  # Event handlers like onclick=, onload=, etc.
+            r'expression\s*\(',  # CSS expressions
+            r'url\s*\(',  # CSS url() functions
+        ]
         
         for pattern in dangerous_patterns:
-            if pattern in v_lower:
+            if re.search(pattern, v, re.IGNORECASE):
                 raise ValueError("Name contains invalid characters. Please use only letters, numbers, spaces, and basic punctuation.")
         
-        # Check for HTML tags in general
-        if '<' in v and '>' in v:
-            raise ValueError("HTML tags are not allowed in names.")
-            
-        # Additional length check for security (beyond Field max_length)
+        # 3. Character whitelist approach (more secure than blacklist)
+        # Allow: letters, numbers, spaces, hyphens, apostrophes, periods
+        allowed_pattern = re.compile(r"^[a-zA-Z0-9\s\-'.]+$")
+        if not allowed_pattern.match(v):
+            raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
+        
+        # 4. Length validation (consistent with Field max_length)
         if len(v) > 50:
             raise ValueError("Name is too long. Please use 50 characters or less.")
+        
+        # 5. Prevent names that are only special characters
+        if re.match(r'^[\s\-\'.]+$', v):
+            raise ValueError("Name must contain at least one letter or number.")
             
-        return v.strip()
+        return v
 
 
 class UserUpdate(BaseModel):
@@ -71,14 +103,64 @@ class UserUpdate(BaseModel):
     
     first_name: Optional[str] = Field(
         None,
-        max_length=100,
+        max_length=50,  # Consistent with UserCreate
         description="User's first name"
     )
     last_name: Optional[str] = Field(
         None,
-        max_length=100,
+        max_length=50,  # Consistent with UserCreate
         description="User's last name"
     )
+    
+    @validator('first_name', 'last_name')
+    def validate_name_fields(cls, v):
+        """
+        Apply the same comprehensive validation as UserCreate for security consistency.
+        
+        This ensures that updates cannot bypass the security validations applied during creation.
+        """
+        if v is None:
+            return v
+            
+        # Strip whitespace first
+        v = v.strip()
+        
+        # Check for empty string after stripping
+        if not v:
+            return None
+            
+        # 1. HTML tag detection using regex (more robust than string matching)
+        html_pattern = re.compile(r'<[^>]*>', re.IGNORECASE)
+        if html_pattern.search(v):
+            raise ValueError("HTML tags are not allowed in names.")
+        
+        # 2. Check for dangerous patterns that could be used for XSS
+        dangerous_patterns = [
+            r'javascript:', r'data:', r'vbscript:', r'file:', r'ftp:',
+            r'on\w+\s*=',  # Event handlers like onclick=, onload=, etc.
+            r'expression\s*\(',  # CSS expressions
+            r'url\s*\(',  # CSS url() functions
+        ]
+        
+        for pattern in dangerous_patterns:
+            if re.search(pattern, v, re.IGNORECASE):
+                raise ValueError("Name contains invalid characters. Please use only letters, numbers, spaces, and basic punctuation.")
+        
+        # 3. Character whitelist approach (more secure than blacklist)
+        # Allow: letters, numbers, spaces, hyphens, apostrophes, periods
+        allowed_pattern = re.compile(r"^[a-zA-Z0-9\s\-'.]+$")
+        if not allowed_pattern.match(v):
+            raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
+        
+        # 4. Length validation (consistent with Field max_length)
+        if len(v) > 50:
+            raise ValueError("Name is too long. Please use 50 characters or less.")
+        
+        # 5. Prevent names that are only special characters
+        if re.match(r'^[\s\-\'.]+$', v):
+            raise ValueError("Name must contain at least one letter or number.")
+            
+        return v
 
 
 class UserResponse(UserBase):

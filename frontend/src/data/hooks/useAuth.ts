@@ -18,9 +18,14 @@ export const useSignup = () => {
   const signup = async (email: string, password: string, fullName?: string) => {
     try {
       // Split full name into first and last name for backend compatibility
-      const nameParts = fullName?.trim().split(' ') || ['', '']
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
+      // Handle single names and empty inputs gracefully
+      const trimmedName = fullName?.trim() || ''
+      const nameParts = trimmedName.split(' ').filter(part => part.length > 0)
+      
+      const firstName = nameParts[0] || 'User'  // Fallback for empty names
+      const lastName = nameParts.length > 1 
+        ? nameParts.slice(1).join(' ') 
+        : firstName  // Use first name as last name for single names
 
       const response = await authApi.signup({
         email,
