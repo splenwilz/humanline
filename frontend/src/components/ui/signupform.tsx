@@ -63,13 +63,31 @@ export default function SignupForm() {
       if (result.success) {
         console.log('Signup successful:', result.data)
 
-        toast.success('Account created successfully!', {
-          description:
-            'Please check your email for the OTP code to confirm your account.',
-        })
+        // Handle different response types based on email confirmation setting
+        if (result.type === 'immediate_login') {
+          // Email confirmation disabled - user is logged in immediately
+          toast.success('Account created successfully!', {
+            description: 'Welcome to Humanline! You are now logged in.',
+          })
 
-        // Redirect to confirmation page (no URL params needed)
-        router.push('/confirm')
+          // Redirect to dashboard
+          router.push('/dashboard')
+        } else if (result.type === 'email_confirmation_required') {
+          // Email confirmation enabled - user needs to check email
+          toast.success('Account created successfully!', {
+            description: result.message || 'Please check your email for a confirmation link.',
+          })
+
+          // Redirect to confirmation page
+          router.push('/confirm')
+        } else {
+          // Fallback for unexpected response type
+          toast.success('Account created successfully!', {
+            description: 'Please check your email for further instructions.',
+          })
+
+          router.push('/confirm')
+        }
       } else {
         console.error('Signup failed:', result.error)
 

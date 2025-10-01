@@ -55,6 +55,43 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, description="Server port")
     
+    # Email Configuration
+    # SMTP settings for sending confirmation emails
+    smtp_host: str = Field(
+        default="smtp.gmail.com",
+        description="SMTP server hostname for sending emails"
+    )
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port (587 for TLS, 465 for SSL)"
+    )
+    smtp_user: str = Field(
+        default="",
+        description="SMTP username/email address for authentication"
+    )
+    smtp_password: str = Field(
+        default="",
+        description="SMTP password or app-specific password"
+    )
+    from_email: str = Field(
+        default="noreply@humanline.com",
+        description="Default sender email address for system emails"
+    )
+    
+    # Email Confirmation Feature Toggle
+    # Controls whether email confirmation is required before account activation
+    require_email_confirmation: bool = Field(
+        default=True,
+        description="Whether to require email confirmation before activating user accounts"
+    )
+    
+    # Email confirmation token expiration (in hours)
+    # Tokens expire after this time for security
+    email_confirmation_expire_hours: int = Field(
+        default=24,
+        description="Email confirmation token expiration time in hours"
+    )
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

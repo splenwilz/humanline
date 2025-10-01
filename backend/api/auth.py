@@ -5,7 +5,7 @@ This module provides endpoints for user authentication including
 login, registration, and token management with comprehensive error handling.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -67,37 +67,68 @@ async def login(
 
 @router.post(
     "/register",
-    response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
     summary="User Registration",
-    description="Create new user account and return JWT access token"
+    description="Create new user account - returns JWT token or email confirmation message"
 )
 async def register(
     register_data: RegisterRequest,
     db: AsyncSession = Depends(get_db)
-) -> TokenResponse:
+):
     """
-    Register new user account and return JWT access token.
+    Register new user account with flexible response based on email confirmation setting.
     
-    This endpoint:
+    This endpoint behavior depends on the REQUIRE_EMAIL_CONFIRMATION setting:
+    
+    If email confirmation is DISABLED:
+    1. Validates registration data format
+    2. Checks email is not already registered  
+    3. Creates active user account with hashed password
+    4. Returns JWT token for immediate login
+    
+    If email confirmation is ENABLED:
     1. Validates registration data format
     2. Checks email is not already registered
-    3. Creates new user account with hashed password
-    4. Returns JWT token for immediate login
+    3. Creates inactive user account with verification token
+    4. Sends confirmation email to user
+    5. Returns confirmation message (no JWT token)
     
     Args:
         register_data: User registration data
         db: Database session dependency
         
     Returns:
-        TokenResponse: JWT access token and metadata
+        Either TokenResponse (immediate login) or confirmation message
         
     Raises:
         HTTPException: 400 if email already exists or validation fails
     """
     try:
-        token_response = await AuthService.register(db, register_data)
-        return token_response
+        # Call the updated register method that handles both flows
+        # The response format depends on the email confirmation setting
+        result = await AuthService.register(db, register_data)
+        
+        # Handle different response types based on confirmation requirement
+        if result["type"] == "immediate_login":
+            # Email confirmation disabled - return JWT token for immediate login
+            # This maintains backward compatibility with existing clients
+            return result["token_response"]
+        elif result["type"] == "email_confirmation_required":
+            # Email confirmation enabled - return confirmation message
+            # Client should redirect user to check email
+            return {
+                "message": result["message"],
+                "email": result["email"],
+                "email_sent": result["email_sent"],
+                "expires_in_hours": result["expires_in_hours"],
+                "next_step": "check_email_for_confirmation_link"
+            }
+        else:
+            # Unexpected response type - should not happen
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Unexpected registration response type"
+            )
         
     except ValueError as e:
         # Handle business logic errors (e.g., email already exists)
@@ -110,4 +141,65 @@ async def register(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed. Please try again."
+        )
+
+
+@router.post(
+    "/confirm-email",
+    summary="Email Confirmation", 
+    description="Confirm user email address using 6-digit verification code"
+)
+async def confirm_email(
+    code: str = Query(..., description="6-digit verification code from confirmation email"),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Confirm user email address and activate account.
+
+    This endpoint:
+    1. Validates the 6-digit verification code
+    2. Checks code hasn't expired
+    3. Activates the user account
+    4. Marks email as verified
+    5. Clears the verification code
+
+    Args:
+        code: 6-digit verification code from confirmation email
+        db: Database session dependency
+
+    Returns:
+        dict: Success message and user status
+
+    Raises:
+        HTTPException: 400 if code is invalid/expired, 404 if user not found
+    """
+    try:
+        # Attempt to confirm the email using the provided code
+        # This handles all validation and database updates
+        result = await AuthService.confirm_email(db, code)
+        
+        if result["success"]:
+            return {
+                "message": result["message"],
+                "user_email": result["user_email"],
+                "confirmed_at": result["confirmed_at"]
+            }
+        else:
+            # Code validation failed - return appropriate error with proper status code
+            # Use 400 for client errors (invalid/expired codes)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["error"]
+            )
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions (don't catch our own exceptions)
+        raise
+    except Exception as e:
+        # Handle unexpected database or system errors
+        # Log the actual error for debugging but don't expose internal details
+        print(f"Email confirmation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Email confirmation failed due to a server error. Please try again."
         )

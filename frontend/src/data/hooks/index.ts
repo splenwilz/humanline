@@ -2,6 +2,7 @@
 export {
   useSignup,
   useSignin,
+  useEmailConfirmation,
   useOTPVerification,
   useResendOTP,
   useTokenRefresh,

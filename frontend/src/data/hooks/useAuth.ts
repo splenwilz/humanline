@@ -7,7 +7,7 @@ import {
   clearPendingEmail,
 } from '@/lib/auth'
 
-// Hook for user signup
+// Hook for user signup - handles both immediate login and email confirmation flows
 export const useSignup = () => {
   const { data, error, isLoading, mutate } = useSWR(
     null, // No key for mutations
@@ -17,17 +17,46 @@ export const useSignup = () => {
 
   const signup = async (email: string, password: string, fullName?: string) => {
     try {
+      // Split full name into first and last name for backend compatibility
+      const nameParts = fullName?.trim().split(' ') || ['', '']
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
       const response = await authApi.signup({
         email,
         password,
-        full_name: fullName,
+        first_name: firstName,
+        last_name: lastName,
       })
 
-      // Store pending email for confirmation
-      const { storePendingEmail } = await import('@/lib/auth')
-      storePendingEmail(email)
+      // Check response type to determine next action
+      if ('access_token' in response) {
+        // Immediate login response - store tokens and redirect to dashboard
+        storeTokens({
+          access_token: response.access_token,
+          refresh_token: '', // Not provided in immediate login
+          expires_in: response.expires_in,
+          token_type: response.token_type,
+        })
 
-      return { success: true, data: response }
+        return { 
+          success: true, 
+          data: response,
+          type: 'immediate_login',
+          message: 'Registration successful! Welcome to Humanline.'
+        }
+      } else {
+        // Email confirmation response - store pending email and show confirmation message
+        const { storePendingEmail } = await import('@/lib/auth')
+        storePendingEmail(email)
+
+        return { 
+          success: true, 
+          data: response,
+          type: 'email_confirmation_required',
+          message: response.message
+        }
+      }
     } catch (error) {
       return { success: false, error }
     }
@@ -77,34 +106,100 @@ export const useSignin = () => {
   }
 }
 
+// Hook for email confirmation
+export const useEmailConfirmation = () => {
+  const { data, error, isLoading, mutate } = useSWR(null, null, {
+    revalidateOnFocus: false,
+  })
+
+  const confirmEmail = async (code: string) => {
+    try {
+      const response = await authApi.confirmEmail(code)
+
+      // Clear pending email after successful confirmation
+      clearPendingEmail()
+
+      return { success: true, data: response }
+    } catch (error) {
+      console.error('Email confirmation error:', error)
+
+      // Extract meaningful error message from different error types
+      let errorMessage = 'Email confirmation failed'
+
+      if (error && typeof error === 'object') {
+        if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message
+        } else if ('detail' in error && typeof error.detail === 'string') {
+          errorMessage = error.detail
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+
+      return {
+        success: false,
+        error: {
+          message: errorMessage,
+          originalError: error
+        }
+      }
+    }
+  }
+
+  return {
+    confirmEmail,
+    data,
+    error,
+    isLoading,
+  }
+}
+
 // Hook for OTP verification
 export const useOTPVerification = () => {
   const { data, error, isLoading, mutate } = useSWR(null, null, {
     revalidateOnFocus: false,
   })
 
-  const verifyOTP = async (email: string, otp: string) => {
+  const verifyOTP = async (email: string, code: string) => {
     try {
-      const response = await authApi.verifyOTP({ email, otp })
+      // Use the email confirmation endpoint instead of the old OTP endpoint
+      const response = await authApi.confirmEmail(code)
 
-      // Store tokens and user profile
-      storeTokens({
-        access_token: response.access_token,
-        refresh_token: response.refresh_token,
-        expires_in: response.expires_in,
-        token_type: response.token_type,
-      })
-
-      if (response.user) {
-        storeUserProfile(response.user)
-      }
-
-      // Clear pending email after successful verification
+      // Clear pending email after successful confirmation
       clearPendingEmail()
 
-      return { success: true, data: response }
+      // Return success with user data (no tokens since this is just email confirmation)
+      // The frontend will need to redirect to login after successful confirmation
+      return { 
+        success: true, 
+        data: {
+          message: response.message,
+          user: {
+            email: response.user_email
+          },
+          confirmed_at: response.confirmed_at
+        }
+      }
     } catch (error) {
-      return { success: false, error }
+      console.error('Email confirmation error:', error)
+
+      // Extract meaningful error message from different error types
+      let errorMessage = 'Email confirmation failed'
+
+      if (error && typeof error === 'object') {
+        if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message
+        } else if ('detail' in error && typeof error.detail === 'string') {
+          errorMessage = error.detail
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+
+      return {
+        success: false,
+        error: new Error(errorMessage)
+      }
     }
   }
 
@@ -124,8 +219,13 @@ export const useResendOTP = () => {
 
   const resendOTP = async (email: string) => {
     try {
-      const response = await authApi.resendOTP(email)
-      return { success: true, data: response }
+      // For now, we don't have a resend endpoint for email confirmation codes
+      // In a real implementation, you would create a resend endpoint
+      // For now, we'll return a message asking user to sign up again
+      return { 
+        success: false, 
+        error: new Error('To get a new verification code, please sign up again.') 
+      }
     } catch (error) {
       return { success: false, error }
     }

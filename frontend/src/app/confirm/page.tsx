@@ -77,37 +77,31 @@ export default function EmailConfirmationPage() {
     }
   }, [router])
 
-  // Auto-login after successful OTP verification
+  // Redirect to signin after successful email confirmation
   useEffect(() => {
     if (status.success && userEmail && !isAutoLoggingIn) {
-      handleAutoLogin()
+      handleRedirectToSignin()
     }
   }, [status.success, userEmail, isAutoLoggingIn])
 
-  const handleAutoLogin = async () => {
+  const handleRedirectToSignin = async () => {
     if (!userEmail) return
 
     setIsAutoLoggingIn(true)
 
     try {
-      // The OTP verification already stored the tokens in localStorage
-      // We just need to redirect to the onboarding page
-
-      toast.success('Login successful!', {
-        description: 'Welcome to Humanline! Setting up your workspace...',
+      // Email confirmation successful - now user needs to sign in
+      toast.success('Email confirmed successfully!', {
+        description: 'Your account is now active. Please sign in to continue.',
       })
 
-      // Redirect to onboarding page after a short delay
+      // Redirect to signin page after a short delay
       setTimeout(() => {
-        router.push('/onboarding')
-      }, 1500)
+        router.push('/signin')
+      }, 2000)
     } catch (error) {
-      console.error('Auto-login failed:', error)
-      toast.error('Auto-login failed', {
-        description: 'Please login manually.',
-      })
-
-      // Fallback to manual login
+      console.error('Redirect failed:', error)
+      // Fallback to manual redirect
       setTimeout(() => {
         router.push('/signin')
       }, 2000)
@@ -128,7 +122,7 @@ export default function EmailConfirmationPage() {
       const result = await verifyOTP(userEmail, data.pin)
 
       if (result.success && result.data) {
-        toast.success('OTP verified successfully!', {
+        toast.success('Email verified successfully!', {
           description:
             'Your account is now active. You can sign in to continue.',
         })
@@ -141,10 +135,7 @@ export default function EmailConfirmationPage() {
           userEmail: result.data.user?.email || null,
         })
 
-        // Redirect to dashboard or home after a short delay
-        setTimeout(() => {
-          router.push('/onboarding')
-        }, 2000)
+        // The useEffect will handle redirecting to signin
       } else {
         setStatus({
           loading: false,
@@ -230,8 +221,8 @@ export default function EmailConfirmationPage() {
           </h2>
           <p className="text-gray-600 mb-6">
             {isAutoLoggingIn
-              ? 'Automatically logging you in...'
-              : 'Email verified successfully!'}
+              ? 'Redirecting to sign in...'
+              : 'Email verified successfully! Please sign in to continue.'}
           </p>
 
           {/* Loading indicator */}
@@ -239,18 +230,24 @@ export default function EmailConfirmationPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-custom-base-green"></div>
             <p className="text-sm text-gray-500">
               {isAutoLoggingIn
-                ? 'Setting up your workspace...'
-                : 'Preparing your account...'}
+                ? 'Taking you to sign in...'
+                : 'Your account is now active!'}
             </p>
           </div>
 
           <div className="space-y-3">
             <Button
-              onClick={() => router.push('/onboarding')}
+              onClick={() => router.push('/signin')}
+              className="w-full"
+            >
+              Sign In Now
+            </Button>
+            <Button
+              onClick={() => router.push('/')}
               variant="outline"
               className="w-full"
             >
-              Go to Onboarding
+              Go Home
             </Button>
           </div>
         </div>
@@ -309,11 +306,11 @@ export default function EmailConfirmationPage() {
           />
 
           <h2 className="text-xl font-semibold text-gray-900">
-            OTP Verification
+            Email Verification
           </h2>
           <p className="text-gray-600 text-sm">
-            We have sent a verification code to email address{' '}
-            <b>{userEmail ? userEmail : 'pristia@gmail.com'}</b>.{' '}
+            We have sent a 6-digit verification code to{' '}
+            <b>{userEmail || 'your email address'}</b>.{' '}
             <Link href="/signup" className="text-custom-base-green">
               Wrong Email?
             </Link>

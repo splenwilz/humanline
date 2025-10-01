@@ -11,16 +11,25 @@ from alembic import context
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Import our models and configuration
-from backend3.core.database import Base
-from backend3.core.config import settings
-from backend3.models import user  # Import all models to register them
+from core.database import Base
+from core.config import settings
+from models import user  # Import all models to register them
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
 # Set the database URL from our settings (convert async URL to sync for Alembic)
+# Handle SSL parameters that are incompatible with psycopg2
 sync_database_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+# Remove SSL parameters that cause issues with psycopg2 in Alembic
+# These parameters are valid for asyncpg but not for psycopg2
+if "ssl=require" in sync_database_url:
+    # Remove SSL parameters for local development
+    # In production, SSL should be handled at the connection level
+    sync_database_url = sync_database_url.split("?")[0]
+    
 config.set_main_option("sqlalchemy.url", sync_database_url)
 
 # Interpret the config file for Python logging.
