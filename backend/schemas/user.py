@@ -10,6 +10,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from typing import Optional
 import re
+import unicodedata
 
 
 class UserBase(BaseModel):
@@ -81,18 +82,26 @@ class UserCreate(UserBase):
             if re.search(pattern, v, re.IGNORECASE):
                 raise ValueError("Name contains invalid characters. Please use only letters, numbers, spaces, and basic punctuation.")
         
-        # 3. Character whitelist approach (more secure than blacklist)
-        # Allow: letters, numbers, spaces, hyphens, apostrophes, periods
-        allowed_pattern = re.compile(r"^[a-zA-Z0-9\s\-'.]+$")
-        if not allowed_pattern.match(v):
-            raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
+        # 3. Character whitelist that supports international characters
+        # Use Unicode categories to allow letters from any language while maintaining security
+        allowed_punctuation = set(" -'.")
+        for char in v:
+            category = unicodedata.category(char)
+            # Allow letters (L*), numbers (N*), and specific safe punctuation
+            if not (category.startswith('L') or category.startswith('N') or char in allowed_punctuation):
+                raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
         
         # 4. Length validation (consistent with Field max_length)
         if len(v) > 50:
             raise ValueError("Name is too long. Please use 50 characters or less.")
         
         # 5. Prevent names that are only special characters
-        if re.match(r'^[\s\-\'.]+$', v):
+        # Check if name contains at least one letter or number using Unicode categories
+        has_letter_or_number = any(
+            unicodedata.category(char).startswith('L') or unicodedata.category(char).startswith('N')
+            for char in v
+        )
+        if not has_letter_or_number:
             raise ValueError("Name must contain at least one letter or number.")
             
         return v
@@ -146,18 +155,26 @@ class UserUpdate(BaseModel):
             if re.search(pattern, v, re.IGNORECASE):
                 raise ValueError("Name contains invalid characters. Please use only letters, numbers, spaces, and basic punctuation.")
         
-        # 3. Character whitelist approach (more secure than blacklist)
-        # Allow: letters, numbers, spaces, hyphens, apostrophes, periods
-        allowed_pattern = re.compile(r"^[a-zA-Z0-9\s\-'.]+$")
-        if not allowed_pattern.match(v):
-            raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
+        # 3. Character whitelist that supports international characters
+        # Use Unicode categories to allow letters from any language while maintaining security
+        allowed_punctuation = set(" -'.")
+        for char in v:
+            category = unicodedata.category(char)
+            # Allow letters (L*), numbers (N*), and specific safe punctuation
+            if not (category.startswith('L') or category.startswith('N') or char in allowed_punctuation):
+                raise ValueError("Name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")
         
         # 4. Length validation (consistent with Field max_length)
         if len(v) > 50:
             raise ValueError("Name is too long. Please use 50 characters or less.")
         
         # 5. Prevent names that are only special characters
-        if re.match(r'^[\s\-\'.]+$', v):
+        # Check if name contains at least one letter or number using Unicode categories
+        has_letter_or_number = any(
+            unicodedata.category(char).startswith('L') or unicodedata.category(char).startswith('N')
+            for char in v
+        )
+        if not has_letter_or_number:
             raise ValueError("Name must contain at least one letter or number.")
             
         return v

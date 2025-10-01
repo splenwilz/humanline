@@ -281,6 +281,93 @@ class AuthService:
         }
 
     @staticmethod
+    async def resend_confirmation(db: AsyncSession, email: str) -> Dict[str, Any]:
+        """
+        Resend email confirmation code to an unverified user.
+
+        This method handles resending verification codes:
+        1. Finds the unverified user by email
+        2. Generates a new unique 6-digit verification code
+        3. Updates the user's verification code and expiration
+        4. Sends a new confirmation email
+        5. Implements basic rate limiting by checking last update time
+
+        Args:
+            db: Database session
+            email: Email address to resend confirmation to
+
+        Returns:
+            Dict containing success status and message
+
+        Raises:
+            ValueError: If user not found, already verified, or rate limited
+        """
+        # Find user by email
+        query = select(User).where(User.email == email)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+
+        # Validate user exists
+        if not user:
+            return {
+                "success": False,
+                "error": "No account found with this email address. Please sign up first."
+            }
+
+        # Check if user is already verified
+        if user.is_verified:
+            return {
+                "success": False,
+                "error": "This email address is already verified. You can sign in to your account."
+            }
+
+        # Basic rate limiting: prevent resend within 1 minute of last update
+        # This prevents abuse while allowing legitimate resend requests
+        current_time = datetime.now(timezone.utc)
+        if user.updated_at:
+            time_since_last_update = current_time - user.updated_at
+            if time_since_last_update.total_seconds() < 60:  # 1 minute cooldown
+                remaining_seconds = 60 - int(time_since_last_update.total_seconds())
+                return {
+                    "success": False,
+                    "error": f"Please wait {remaining_seconds} seconds before requesting another confirmation code."
+                }
+
+        # Generate new unique verification code
+        verification_code = await AuthService._generate_unique_verification_code(db)
+        code_expiration = email_service.calculate_code_expiration()
+
+        # Update user with new verification code and expiration
+        user.email_verification_code = verification_code
+        user.email_verification_expires_at = code_expiration
+        user.updated_at = current_time
+
+        # Commit the code update to database
+        await db.commit()
+        await db.refresh(user)
+
+        # Send new confirmation email
+        user_display_name = f"{user.first_name} {user.last_name}".strip() or user.email
+        email_sent = await email_service.send_confirmation_email(
+            user_email=user.email,
+            user_name=user_display_name,
+            verification_code=verification_code
+        )
+
+        if email_sent:
+            return {
+                "success": True,
+                "message": "A new confirmation code has been sent to your email address.",
+                "email": user.email,
+                "expires_in_hours": settings.email_confirmation_expire_hours
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Failed to send confirmation email. Please try again later."
+            }
+
+    @staticmethod
     async def _generate_unique_verification_code(db: AsyncSession) -> str:
         """
         Generate a unique 6-digit verification code that doesn't exist in the database.

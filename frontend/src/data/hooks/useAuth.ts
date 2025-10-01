@@ -224,15 +224,37 @@ export const useResendOTP = () => {
 
   const resendOTP = async (email: string) => {
     try {
-      // For now, we don't have a resend endpoint for email confirmation codes
-      // In a real implementation, you would create a resend endpoint
-      // For now, we'll return a message asking user to sign up again
+      // Call the new resend confirmation endpoint
+      const response = await authApi.resendConfirmation(email)
+
       return { 
-        success: false, 
-        error: new Error('To get a new verification code, please sign up again.') 
+        success: true, 
+        data: {
+          message: response.message,
+          email: response.email,
+          expires_in_hours: response.expires_in_hours
+        }
       }
     } catch (error) {
-      return { success: false, error }
+      console.error('Resend confirmation error:', error)
+
+      // Extract meaningful error message from different error types
+      let errorMessage = 'Failed to resend confirmation code'
+
+      if (error && typeof error === 'object') {
+        if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message
+        } else if ('detail' in error && typeof error.detail === 'string') {
+          errorMessage = error.detail
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+
+      return {
+        success: false,
+        error: new Error(errorMessage)
+      }
     }
   }
 

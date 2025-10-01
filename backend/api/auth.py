@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest
+from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest, ResendConfirmationRequest
 from services.auth_service import AuthService
 
 
@@ -202,4 +202,65 @@ async def confirm_email(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Email confirmation failed due to a server error. Please try again."
+        )
+
+
+@router.post(
+    "/resend-confirmation",
+    summary="Resend Email Confirmation",
+    description="Resend 6-digit verification code to unverified email address"
+)
+async def resend_confirmation(
+    request: ResendConfirmationRequest,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Resend email confirmation code to an unverified user.
+
+    This endpoint:
+    1. Validates the email address exists and is unverified
+    2. Implements rate limiting to prevent abuse (1 minute cooldown)
+    3. Generates a new unique 6-digit verification code
+    4. Updates the user's verification code and expiration
+    5. Sends a new confirmation email
+
+    Args:
+        request: Resend confirmation request containing email address
+        db: Database session dependency
+
+    Returns:
+        dict: Success message and email details
+
+    Raises:
+        HTTPException: 400 if user not found/verified/rate limited, 500 for server errors
+    """
+    try:
+        # Attempt to resend confirmation email using the provided email address
+        # This handles all validation, rate limiting, and email sending
+        result = await AuthService.resend_confirmation(db, request.email)
+        
+        if result["success"]:
+            return {
+                "message": result["message"],
+                "email": result["email"],
+                "expires_in_hours": result["expires_in_hours"]
+            }
+        else:
+            # Resend failed - return appropriate error with proper status code
+            # Use 400 for client errors (user not found, already verified, rate limited)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["error"]
+            )
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions (don't catch our own exceptions)
+        raise
+    except Exception as e:
+        # Handle unexpected database or system errors
+        # Log the actual error for debugging but don't expose internal details
+        print(f"Resend confirmation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to resend confirmation email due to a server error. Please try again."
         )

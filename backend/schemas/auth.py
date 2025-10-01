@@ -81,3 +81,12 @@ class EmailConfirmationRequest(BaseModel):
         description="6-digit verification code from confirmation email",
         example="123456"
     )
+
+
+class ResendConfirmationRequest(BaseModel):
+    """Schema for resend confirmation email requests."""
+    
+    email: EmailStr = Field(
+        description="Email address to resend confirmation code to",
+        example="user@example.com"
+    )

@@ -30,6 +30,15 @@ export const authApi = {
     return apiClient.post('/auth/confirm-email', { code })
   },
 
+  // Resend email confirmation code to unverified user
+  async resendConfirmation(email: string): Promise<{
+    message: string;
+    email: string;
+    expires_in_hours: number;
+  }> {
+    return apiClient.post('/auth/resend-confirmation', { email })
+  },
+
   // Verify OTP code (legacy - may be removed)
   async verifyOTP(
     data: OTPVerificationRequest,
