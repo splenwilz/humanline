@@ -22,7 +22,7 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp'
 import { getPendingEmail } from '@/lib/auth'
-import { useOTPVerification, useResendOTP, useSignin } from '@/data/hooks'
+import { useEmailConfirmation, useResendConfirmation, useSignin } from '@/data/hooks/useAuth'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -55,8 +55,8 @@ export default function EmailConfirmationPage() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState<boolean>(false)
 
-  const { verifyOTP, isLoading: isVerifying } = useOTPVerification()
-  const { resendOTP, isLoading: isResending } = useResendOTP()
+  const { confirmEmail, isLoading: isVerifying } = useEmailConfirmation()
+  const { resendConfirmation, isLoading: isResending } = useResendConfirmation()
   const { signin } = useSignin()
 
   const form = useForm<z.infer<typeof OTPFormSchema>>({
@@ -119,7 +119,7 @@ export default function EmailConfirmationPage() {
     }
 
     try {
-      const result = await verifyOTP(userEmail, data.pin)
+      const result = await confirmEmail(data.pin)
 
       if (result.success && result.data) {
         toast.success('Email verified successfully!', {
@@ -132,7 +132,7 @@ export default function EmailConfirmationPage() {
           loading: false,
           success: true,
           error: null,
-          userEmail: result.data.user?.email || null,
+          userEmail: result.data.user_email || null,
         })
 
         // The useEffect will handle redirecting to signin
@@ -175,18 +175,15 @@ export default function EmailConfirmationPage() {
     }
 
     try {
-      const result = await resendOTP(userEmail)
+      const result = await resendConfirmation(userEmail)
 
       if (result.success) {
-        toast.success('OTP resent successfully!', {
-          description: 'Please check your email for the new OTP code.',
+        toast.success('Confirmation code resent successfully!', {
+          description: 'Please check your email for the new verification code.',
         })
       } else {
-        toast.error('Failed to resend OTP', {
-          description:
-            result.error instanceof Error
-              ? result.error.message
-              : 'Please try again.',
+        toast.error('Failed to resend confirmation code', {
+          description: 'Please try again.',
         })
       }
     } catch (error) {

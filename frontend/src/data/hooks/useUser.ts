@@ -1,5 +1,6 @@
 import useSWR from 'swr'
-import { getUserProfile, isAuthenticated, getAccessToken } from '@/lib/auth'
+import { getUserProfile, isAuthenticated } from '@/lib/auth'
+import { createCacheKey } from '@/lib/swr-config'
 
 // Hook for getting current user profile
 export const useUser = () => {
@@ -9,7 +10,7 @@ export const useUser = () => {
     isLoading,
     mutate,
   } = useSWR(
-    'user',
+    createCacheKey.user(),
     async () => {
       if (!isAuthenticated()) {
         return null
@@ -20,6 +21,11 @@ export const useUser = () => {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       refreshInterval: 0, // Don't auto-refresh
+      // Don't retry if user is not authenticated
+      shouldRetryOnError: (error) => {
+        if (error?.status === 401) return false
+        return true
+      }
     },
   )
 
@@ -40,7 +46,7 @@ export const useAuth = () => {
     isLoading,
     mutate,
   } = useSWR(
-    'auth',
+    'auth-status',
     async () => {
       return isAuthenticated()
     },
@@ -48,38 +54,13 @@ export const useAuth = () => {
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       refreshInterval: 0,
+      // Fast refresh for auth status
+      dedupingInterval: 1000,
     },
   )
 
   return {
     isAuthenticated: isAuth || false,
-    error,
-    isLoading,
-    mutate,
-  }
-}
-
-// Hook for getting access token
-export const useAccessToken = () => {
-  const {
-    data: token,
-    error,
-    isLoading,
-    mutate,
-  } = useSWR(
-    'accessToken',
-    async () => {
-      return getAccessToken()
-    },
-    {
-      revalidateOnFocus: true,
-      revalidateOnReconnect: true,
-      refreshInterval: 0,
-    },
-  )
-
-  return {
-    accessToken: token,
     error,
     isLoading,
     mutate,

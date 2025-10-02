@@ -17,6 +17,9 @@ import {
 class ApiClient {
   private config: ApiConfig
   private abortController: AbortController | null = null
+  private refreshPromise: Promise<string | null> | null = null
+  private requestQueue: Array<() => void> = []
+  private isRefreshing = false
 
   constructor() {
     this.config = {
@@ -27,8 +30,33 @@ class ApiClient {
     }
   }
 
-  // Refresh access token using refresh token
+  // Process queued requests after token refresh
+  private processQueue(token: string | null) {
+    this.requestQueue.forEach(callback => callback())
+    this.requestQueue = []
+  }
+
+  // Refresh access token using refresh token with proper queuing
   private async refreshAccessToken(): Promise<string | null> {
+    // If already refreshing, return the existing promise
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    this.isRefreshing = true
+    this.refreshPromise = this.performTokenRefresh()
+
+    try {
+      const newToken = await this.refreshPromise
+      this.processQueue(newToken)
+      return newToken
+    } finally {
+      this.isRefreshing = false
+      this.refreshPromise = null
+    }
+  }
+
+  private async performTokenRefresh(): Promise<string | null> {
     try {
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
@@ -39,6 +67,7 @@ class ApiClient {
       // Check if refresh token is valid before attempting refresh
       if (!isRefreshTokenValid()) {
         console.warn('Refresh token is invalid or expired')
+        clearTokens()
         return null
       }
 
@@ -52,6 +81,9 @@ class ApiClient {
 
       if (!response.ok) {
         console.warn('Token refresh failed:', response.status)
+        if (response.status === 401) {
+          clearTokens()
+        }
         return null
       }
 
@@ -68,6 +100,7 @@ class ApiClient {
       return data.access_token
     } catch (error) {
       console.error('Error refreshing token:', error)
+      clearTokens()
       return null
     }
   }
@@ -141,6 +174,21 @@ class ApiClient {
             // Try to refresh token and retry once
             if (retryCount === 0 && isRefreshTokenValid()) {
               console.log('401 error, attempting token refresh and retry...')
+              
+              // If currently refreshing, queue this request
+              if (this.isRefreshing) {
+                return new Promise((resolve, reject) => {
+                  this.requestQueue.push(async () => {
+                    try {
+                      const result = await this.request(endpoint, options, retryCount + 1)
+                      resolve(result)
+                    } catch (error) {
+                      reject(error)
+                    }
+                  })
+                })
+              }
+
               const newToken = await this.refreshAccessToken()
               if (newToken) {
                 console.log('Token refreshed, retrying request...')

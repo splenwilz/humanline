@@ -8,6 +8,7 @@ import {
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme/theme-provider'
+import { SWRProvider } from '@/lib/swr-config'
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -47,14 +48,16 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${inter.variable} font-manrope antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <SWRProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </SWRProvider>
         <Toaster />
       </body>
     </html>
