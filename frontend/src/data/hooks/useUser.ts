@@ -33,7 +33,7 @@ export const useUser = () => {
     user,
     error,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !error,
     mutate,
   }
 }

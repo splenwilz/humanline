@@ -18,7 +18,7 @@ import Image from 'next/image'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useSignin } from '@/data/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -170,7 +170,14 @@ export default function SigninForm() {
           type="submit"
           disabled={isLoading}
         >
-          {isLoading ? 'Logging in...' : 'Login'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Logging in...
+            </>
+          ) : (
+            'Login'
+          )}
         </Button>
 
         {/* Or login with */}

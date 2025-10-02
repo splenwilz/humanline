@@ -30,10 +30,14 @@ class ApiClient {
     }
   }
 
-  // Process queued requests after token refresh
-  private processQueue(token: string | null) {
-    this.requestQueue.forEach(callback => callback())
+  // Process queued requests sequentially to avoid race conditions
+  private async processQueue(token: string | null) {
+    const pending = [...this.requestQueue]
     this.requestQueue = []
+    
+    for (const callback of pending) {
+      await callback()
+    }
   }
 
   // Refresh access token using refresh token with proper queuing
@@ -48,7 +52,7 @@ class ApiClient {
 
     try {
       const newToken = await this.refreshPromise
-      this.processQueue(newToken)
+      await this.processQueue(newToken)
       return newToken
     } finally {
       this.isRefreshing = false
@@ -177,10 +181,10 @@ class ApiClient {
               
               // If currently refreshing, queue this request
               if (this.isRefreshing) {
-                return new Promise((resolve, reject) => {
+                return new Promise<T>((resolve, reject) => {
                   this.requestQueue.push(async () => {
                     try {
-                      const result = await this.request(endpoint, options, retryCount + 1)
+                      const result = await this.request<T>(endpoint, options, retryCount + 1)
                       resolve(result)
                     } catch (error) {
                       reject(error)

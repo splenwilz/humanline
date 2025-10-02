@@ -118,7 +118,7 @@ export const useEmployeeSearch = () => {
   }
 
   return {
-    employees: employees ? employees.map(transformEmployeeToTableFormat) : [],
+    employees: employees || [],
     loading: isLoading,
     error: error?.message || null,
     search,
