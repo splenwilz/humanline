@@ -7,7 +7,7 @@ import { employeeColumns } from '../table/column'
 
 export default function EmployeeTable() {
   const { employees: employeeData, loading, error } = useEmployees()
-  const data = employeeData
+  const data = employeeData || []
   return (
     <div className="flex flex-col gap-2 mt-5 w-full min-w-0">
       {loading ? (

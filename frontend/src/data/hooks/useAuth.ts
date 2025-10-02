@@ -1,38 +1,60 @@
-import useSWR from 'swr'
+import useSWRMutation from 'swr/mutation'
+import { mutate } from 'swr'
 import { authApi } from '../api/auth'
 import {
   storeTokens,
   storeUserProfile,
   clearTokens,
   clearPendingEmail,
+  storePendingEmail,
 } from '@/lib/auth'
+import { createCacheKey, invalidateCache } from '@/lib/swr-config'
+import { toast } from 'sonner'
 
-// Hook for user signup - handles both immediate login and email confirmation flows
+// Mutation fetchers
+async function signupFetcher(_: string, { arg }: { arg: { email: string; password: string; fullName?: string } }) {
+  const { email, password, fullName } = arg
+  
+  // Split full name into first and last name for backend compatibility
+  const trimmedName = fullName?.trim() || ''
+  const nameParts = trimmedName.split(' ').filter(part => part.length > 0)
+  
+  const firstName = nameParts[0] || 'User'
+  const lastName = nameParts.length > 1 
+    ? nameParts.slice(1).join(' ') 
+    : firstName
+
+  return authApi.signup({
+    email,
+    password,
+    first_name: firstName,
+    last_name: lastName,
+  })
+}
+
+async function signinFetcher(_: string, { arg }: { arg: { email: string; password: string } }) {
+  return authApi.signin(arg)
+}
+
+async function confirmEmailFetcher(_: string, { arg }: { arg: { code: string } }) {
+  return authApi.confirmEmail(arg.code)
+}
+
+async function resendConfirmationFetcher(_: string, { arg }: { arg: { email: string } }) {
+  return authApi.resendConfirmation(arg.email)
+}
+
+async function refreshTokenFetcher(_: string, { arg }: { arg: { refreshToken: string } }) {
+  return authApi.refreshToken(arg.refreshToken)
+}
+
+// Hook for user signup
 export const useSignup = () => {
-  const { data, error, isLoading, mutate } = useSWR(
-    null, // No key for mutations
-    null,
-    { revalidateOnFocus: false },
-  )
+  const { trigger, data, error, isMutating } = useSWRMutation('/auth/register', signupFetcher)
 
   const signup = async (email: string, password: string, fullName?: string) => {
     try {
-      // Split full name into first and last name for backend compatibility
-      // Handle single names and empty inputs gracefully
-      const trimmedName = fullName?.trim() || ''
-      const nameParts = trimmedName.split(' ').filter(part => part.length > 0)
-      
-      const firstName = nameParts[0] || 'User'  // Fallback for empty names
-      const lastName = nameParts.length > 1 
-        ? nameParts.slice(1).join(' ') 
-        : firstName  // Use first name as last name for single names
-
-      const response = await authApi.signup({
-        email,
-        password,
-        first_name: firstName,
-        last_name: lastName,
-      })
+      const response = await trigger({ email, password, fullName })
 
       // Check response type to determine next action
       if ('access_token' in response) {
@@ -44,6 +66,11 @@ export const useSignup = () => {
           token_type: response.token_type,
         })
 
+        // Invalidate user cache to trigger refetch
+        await mutate(createCacheKey.user())
+
+        toast.success('Registration successful! Welcome to Humanline.')
+        
         return {
           success: true,
           data: response,
@@ -51,10 +78,11 @@ export const useSignup = () => {
           message: 'Registration successful! Welcome to Humanline.'
         }
       } else {
-        // Email confirmation response - store pending email and show confirmation message
-        const { storePendingEmail } = await import('@/lib/auth')
+        // Email confirmation response - store pending email
         storePendingEmail(email)
 
+        toast.info('Please check your email for verification code.')
+        
         return {
           success: true,
           data: response,
@@ -62,8 +90,10 @@ export const useSignup = () => {
           message: response.message
         }
       }
-    } catch (error) {
-      return { success: false, error }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Registration failed'
+      toast.error(errorMessage)
+      throw error
     }
   }
 
@@ -71,19 +101,17 @@ export const useSignup = () => {
     signup,
     data,
     error,
-    isLoading,
+    isLoading: isMutating,
   }
 }
 
 // Hook for user signin
 export const useSignin = () => {
-  const { data, error, isLoading, mutate } = useSWR(null, null, {
-    revalidateOnFocus: false,
-  })
+  const { trigger, data, error, isMutating } = useSWRMutation('/auth/login', signinFetcher)
 
   const signin = async (email: string, password: string) => {
     try {
-      const response = await authApi.signin({ email, password })
+      const response = await trigger({ email, password })
 
       // Store tokens and user profile
       storeTokens({
@@ -97,9 +125,16 @@ export const useSignin = () => {
         storeUserProfile(response.user)
       }
 
+      // Invalidate user cache to trigger refetch
+      await mutate(createCacheKey.user())
+
+      toast.success('Welcome back!')
+
       return { success: true, data: response }
-    } catch (error) {
-      return { success: false, error }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Sign in failed'
+      toast.error(errorMessage)
+      throw error
     }
   }
 
@@ -107,47 +142,28 @@ export const useSignin = () => {
     signin,
     data,
     error,
-    isLoading,
+    isLoading: isMutating,
   }
 }
 
 // Hook for email confirmation
 export const useEmailConfirmation = () => {
-  const { data, error, isLoading, mutate } = useSWR(null, null, {
-    revalidateOnFocus: false,
-  })
+  const { trigger, data, error, isMutating } = useSWRMutation('/auth/confirm-email', confirmEmailFetcher)
 
   const confirmEmail = async (code: string) => {
     try {
-      const response = await authApi.confirmEmail(code)
+      const response = await trigger({ code })
 
       // Clear pending email after successful confirmation
       clearPendingEmail()
 
+      toast.success('Email confirmed successfully! You can now sign in.')
+
       return { success: true, data: response }
-    } catch (error) {
-      console.error('Email confirmation error:', error)
-
-      // Extract meaningful error message from different error types
-      let errorMessage = 'Email confirmation failed'
-
-      if (error && typeof error === 'object') {
-        if ('message' in error && typeof error.message === 'string') {
-          errorMessage = error.message
-        } else if ('detail' in error && typeof error.detail === 'string') {
-          errorMessage = error.detail
-        }
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-
-      return {
-        success: false,
-        error: {
-          message: errorMessage,
-          originalError: error
-        }
-      }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Email confirmation failed'
+      toast.error(errorMessage)
+      throw error
     }
   }
 
@@ -155,77 +171,19 @@ export const useEmailConfirmation = () => {
     confirmEmail,
     data,
     error,
-    isLoading,
+    isLoading: isMutating,
   }
 }
 
-// Hook for OTP verification
-export const useOTPVerification = () => {
-  const { data, error, isLoading, mutate } = useSWR(null, null, {
-    revalidateOnFocus: false,
-  })
+// Hook for resending confirmation
+export const useResendConfirmation = () => {
+  const { trigger, data, error, isMutating } = useSWRMutation('/auth/resend-confirmation', resendConfirmationFetcher)
 
-  const verifyOTP = async (email: string, code: string) => {
+  const resendConfirmation = async (email: string) => {
     try {
-      // Use the email confirmation endpoint instead of the old OTP endpoint
-      const response = await authApi.confirmEmail(code)
+      const response = await trigger({ email })
 
-      // Clear pending email after successful confirmation
-      clearPendingEmail()
-
-      // Return success with user data (no tokens since this is just email confirmation)
-      // The frontend will need to redirect to login after successful confirmation
-      return { 
-        success: true, 
-        data: {
-          message: response.message,
-          user: {
-            email: response.user_email
-          },
-          confirmed_at: response.confirmed_at
-        }
-      }
-    } catch (error) {
-      console.error('Email confirmation error:', error)
-
-      // Extract meaningful error message from different error types
-      let errorMessage = 'Email confirmation failed'
-
-      if (error && typeof error === 'object') {
-        if ('message' in error && typeof error.message === 'string') {
-          errorMessage = error.message
-        } else if ('detail' in error && typeof error.detail === 'string') {
-          errorMessage = error.detail
-        }
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-
-      return {
-        success: false,
-        error: new Error(errorMessage)
-      }
-    }
-  }
-
-  return {
-    verifyOTP,
-    data,
-    error,
-    isLoading,
-  }
-}
-
-// Hook for resending OTP
-export const useResendOTP = () => {
-  const { data, error, isLoading, mutate } = useSWR(null, null, {
-    revalidateOnFocus: false,
-  })
-
-  const resendOTP = async (email: string) => {
-    try {
-      // Call the new resend confirmation endpoint
-      const response = await authApi.resendConfirmation(email)
+      toast.success('Confirmation code sent! Please check your email.')
 
       return { 
         success: true, 
@@ -235,46 +193,28 @@ export const useResendOTP = () => {
           expires_in_hours: response.expires_in_hours
         }
       }
-    } catch (error) {
-      console.error('Resend confirmation error:', error)
-
-      // Extract meaningful error message from different error types
-      let errorMessage = 'Failed to resend confirmation code'
-
-      if (error && typeof error === 'object') {
-        if ('message' in error && typeof error.message === 'string') {
-          errorMessage = error.message
-        } else if ('detail' in error && typeof error.detail === 'string') {
-          errorMessage = error.detail
-        }
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-
-      return {
-        success: false,
-        error: new Error(errorMessage)
-      }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to resend confirmation code'
+      toast.error(errorMessage)
+      throw error
     }
   }
 
   return {
-    resendOTP,
+    resendConfirmation,
     data,
     error,
-    isLoading,
+    isLoading: isMutating,
   }
 }
 
 // Hook for token refresh
 export const useTokenRefresh = () => {
-  const { data, error, isLoading, mutate } = useSWR(null, null, {
-    revalidateOnFocus: false,
-  })
+  const { trigger, data, error, isMutating } = useSWRMutation('/auth/refresh', refreshTokenFetcher)
 
   const refreshToken = async (refreshToken: string) => {
     try {
-      const response = await authApi.refreshToken(refreshToken)
+      const response = await trigger({ refreshToken })
 
       // Store new tokens
       storeTokens({
@@ -288,9 +228,14 @@ export const useTokenRefresh = () => {
         storeUserProfile(response.user)
       }
 
+      // Invalidate user cache to trigger refetch
+      await mutate(createCacheKey.user())
+
       return { success: true, data: response }
-    } catch (error) {
-      return { success: false, error }
+    } catch (error: any) {
+      // Clear tokens on refresh failure
+      clearTokens()
+      throw error
     }
   }
 
@@ -298,17 +243,39 @@ export const useTokenRefresh = () => {
     refreshToken,
     data,
     error,
-    isLoading,
+    isLoading: isMutating,
   }
 }
 
 // Hook for logout
 export const useLogout = () => {
-  const logout = () => {
-    clearTokens()
-    // Redirect to home or signin page
-    window.location.href = '/signin'
+  const logout = async () => {
+    try {
+      // Clear tokens and user data
+      clearTokens()
+      clearPendingEmail()
+      
+      // Invalidate all user-related caches
+      await mutate(
+        key => typeof key === 'string' && (key.includes('/users') || key.includes('/auth')),
+        undefined,
+        { revalidate: false }
+      )
+
+      toast.success('Logged out successfully')
+      
+      // Redirect to signin page
+      window.location.href = '/signin'
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force redirect even if there's an error
+      window.location.href = '/signin'
+    }
   }
 
   return { logout }
 }
+
+// Legacy hooks for backward compatibility (deprecated)
+export const useOTPVerification = useEmailConfirmation
+export const useResendOTP = useResendConfirmation

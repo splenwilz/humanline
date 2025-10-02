@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useState } from 'react'
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useSignup } from '@/data/hooks'
@@ -60,47 +60,32 @@ export default function SignupForm() {
         values.fullName,
       )
 
-      if (result.success) {
-        console.log('Signup successful:', result.data)
+      console.log('Signup successful:', result.data)
 
-        // Handle different response types based on email confirmation setting
-        if (result.type === 'immediate_login') {
-          // Email confirmation disabled - user is logged in immediately
-          toast.success('Account created successfully!', {
-            description: 'Welcome to Humanline! You are now logged in.',
-          })
+      // Handle different response types based on email confirmation setting
+      if (result.type === 'immediate_login') {
+        // Email confirmation disabled - user is logged in immediately
+        toast.success('Account created successfully!', {
+          description: 'Welcome to Humanline! You are now logged in.',
+        })
 
-          // Redirect to dashboard
-          router.push('/dashboard')
-        } else if (result.type === 'email_confirmation_required') {
-          // Email confirmation enabled - user needs to check email
-          toast.success('Account created successfully!', {
-            description: result.message || 'Please check your email for a confirmation link.',
-          })
+        // Redirect to dashboard
+        router.push('/dashboard')
+      } else if (result.type === 'email_confirmation_required') {
+        // Email confirmation enabled - user needs to check email
+        toast.success('Account created successfully!', {
+          description: result.message || 'Please check your email for a confirmation link.',
+        })
 
-          // Redirect to confirmation page
-          router.push('/confirm')
-        } else {
-          // Fallback for unexpected response type
-          toast.success('Account created successfully!', {
-            description: 'Please check your email for further instructions.',
-          })
-
-          router.push('/confirm')
-        }
+        // Redirect to confirmation page
+        router.push('/confirm')
       } else {
-        console.error('Signup failed:', result.error)
+        // Fallback for unexpected response type
+        toast.success('Account created successfully!', {
+          description: 'Please check your email for further instructions.',
+        })
 
-        // Handle different error types
-        if (result.error instanceof Error) {
-          toast.error('Signup failed', {
-            description: result.error.message,
-          })
-        } else {
-          toast.error('Signup failed', {
-            description: 'An unexpected error occurred. Please try again.',
-          })
-        }
+        router.push('/confirm')
       }
     } catch (error) {
       console.error('Unexpected error:', error)
@@ -213,10 +198,18 @@ export default function SignupForm() {
             </Link>
           </div>
           <Button
-            className="w-full h-14 cursor-pointer rounded-[10px] bg-[#F1F2F4] hover:bg-custom-grey-900 text-[#A0AEC0] font-medium"
+            className="w-full h-14 cursor-pointer rounded-[10px] bg-[#F1F2F4] hover:bg-custom-grey-900 text-[#A0AEC0] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
+            disabled={isLoading}
           >
-            Create Account
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              'Create Account'
+            )}
           </Button>
 
           {/* Or register with */}
