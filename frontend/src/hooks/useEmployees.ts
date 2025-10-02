@@ -31,7 +31,7 @@ function transformEmployeeToTableFormat(employee: Employee): EmployeeDetails {
     line_manager: '', // Will need to be populated from manager_id lookup
     department: employee.department,
     office: employee.office,
-    employement_status: employee.employment_status.toUpperCase(),
+    employment_status: employee.employment_status.toUpperCase(),
     account: employee.email, // Using email as account for now
   }
 }
@@ -240,11 +240,7 @@ export const useUpdateEmployee = () => {
       // Invalidate specific employee and related caches
       const keysToInvalidate = invalidateCache.employee(id)
       await Promise.all(
-        keysToInvalidate.map(key => 
-          typeof key === 'function' 
-            ? mutate(key, undefined, { revalidate: true })
-            : mutate(key, undefined, { revalidate: true })
-        )
+        keysToInvalidate.map(key => mutate(key, undefined, { revalidate: true }))
       )
 
       toast.success('Employee updated successfully!')

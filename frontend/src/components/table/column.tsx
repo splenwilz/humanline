@@ -17,7 +17,7 @@ export type EmployeeDetails = {
   line_manager: string
   department: string
   office: string
-  employement_status: string
+  employment_status: string
   account: string
 }
 
@@ -145,7 +145,7 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
     },
   },
   {
-    accessorKey: 'employement_status',
+    accessorKey: 'employment_status',
     header: ({ column }) => {
       return (
         <Button
@@ -158,7 +158,7 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
       )
     },
     cell: ({ row }) => {
-      const status = row.getValue('employement_status') as string
+      const status = row.getValue('employment_status') as string
       const statusColors = {
         ACTIVE: 'bg-green-100 text-green-800',
         'ON BOARDING': 'bg-yellow-100 text-yellow-800',
