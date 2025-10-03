@@ -1,4 +1,5 @@
 // Authentication utility functions
+import { Role } from './rbac'
 
 export interface AuthTokens {
   access_token: string
@@ -11,7 +12,9 @@ export interface UserProfile {
   id: string
   email: string
   full_name?: string
+  role: Role
   email_confirmed_at?: string
+  permissions?: string[]
   created_at: string
 }
 
@@ -25,13 +28,34 @@ const TOKEN_KEYS = {
 }
 
 // Store authentication tokens
+// Helper function to set cookie
+const setCookie = (name: string, value: string, days: number = 7) => {
+  if (typeof document === 'undefined') return // Skip on server-side
+  
+  const expires = new Date()
+  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000))
+  const secure = window.location.protocol === 'https:' ? 'Secure;' : ''
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;${secure}`
+}
+
+// Helper function to delete cookie
+const deleteCookie = (name: string) => {
+  if (typeof document === 'undefined') return // Skip on server-side
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`
+}
+
 export const storeTokens = (tokens: AuthTokens) => {
+  // Store in localStorage for client-side access
   localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.access_token)
   localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refresh_token)
-  localStorage.setItem(
-    TOKEN_KEYS.TOKEN_EXPIRES_IN,
-    tokens.expires_in.toString(),
-  )
+  
+  // Calculate and store actual expiry timestamp (not duration)
+  const expiryTimestamp = Date.now() + (tokens.expires_in * 1000)
+  localStorage.setItem(TOKEN_KEYS.TOKEN_EXPIRES_IN, expiryTimestamp.toString())
+  
+  // Store access token in cookie for middleware access
+  const expiryDays = Math.ceil(tokens.expires_in / (24 * 60 * 60)) // Convert seconds to days
+  setCookie('access_token', tokens.access_token, expiryDays)
 }
 
 // Get access token
@@ -50,9 +74,9 @@ export const isAuthenticated = (): boolean => {
   if (!token) return false
 
   // Check if token is expired
-  const expiresIn = localStorage.getItem(TOKEN_KEYS.TOKEN_EXPIRES_IN)
-  if (expiresIn) {
-    const expiryTime = parseInt(expiresIn) * 1000 // Convert to milliseconds
+  const expiryTimestamp = localStorage.getItem(TOKEN_KEYS.TOKEN_EXPIRES_IN)
+  if (expiryTimestamp) {
+    const expiryTime = parseInt(expiryTimestamp) // Already in milliseconds
     const currentTime = Date.now()
     if (currentTime > expiryTime) {
       // Token expired, clear storage
@@ -92,11 +116,15 @@ export const clearPendingEmail = () => {
 
 // Clear all authentication data
 export const clearTokens = () => {
+  // Clear localStorage
   localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN)
   localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN)
   localStorage.removeItem(TOKEN_KEYS.TOKEN_EXPIRES_IN)
   localStorage.removeItem(TOKEN_KEYS.USER_PROFILE)
   localStorage.removeItem(TOKEN_KEYS.PENDING_EMAIL)
+  
+  // Clear cookies
+  deleteCookie('access_token')
 }
 
 // JWT payload interface

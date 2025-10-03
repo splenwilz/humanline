@@ -56,12 +56,18 @@ class TokenResponse(BaseModel):
     access_token: str = Field(
         description="JWT access token for API authentication"
     )
+    refresh_token: str = Field(
+        description="JWT refresh token for obtaining new access tokens"
+    )
     token_type: str = Field(
         default="bearer",
         description="Token type (always 'bearer' for JWT)"
     )
     expires_in: int = Field(
         description="Token expiration time in seconds"
+    )
+    user: dict = Field(
+        description="User profile information"
     )
 
 
@@ -90,6 +96,15 @@ class ResendConfirmationRequest(BaseModel):
     email: EmailStr = Field(
         description="Email address to resend confirmation code to",
         example="user@example.com"
+    )
+
+
+class RefreshTokenRequest(BaseModel):
+    """Schema for refresh token requests."""
+    
+    refresh_token: str = Field(
+        description="Valid refresh token to exchange for new access token",
+        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     )
 
 

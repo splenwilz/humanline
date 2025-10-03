@@ -34,8 +34,12 @@ class Settings(BaseSettings):
         description="JWT signing algorithm - HS256 is secure and widely supported"
     )
     access_token_expire_minutes: int = Field(
-        default=30,
+        default=60,  # 1 hour for access token
         description="JWT token expiration time in minutes"
+    )
+    refresh_token_expire_days: int = Field(
+        default=30,  # 30 days for refresh token
+        description="Refresh token expiration time in days"
     )
     
     # CORS Configuration
@@ -81,7 +85,7 @@ class Settings(BaseSettings):
     # Email Confirmation Feature Toggle
     # Controls whether email confirmation is required before account activation
     require_email_confirmation: bool = Field(
-        default=True,
+        default=False,  # Disabled for testing
         description="Whether to require email confirmation before activating user accounts"
     )
     

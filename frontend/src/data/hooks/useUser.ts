@@ -18,9 +18,10 @@ export const useUser = () => {
       return getUserProfile()
     },
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false, // Disable focus revalidation to prevent re-renders
       revalidateOnReconnect: true,
       refreshInterval: 0, // Don't auto-refresh
+      dedupingInterval: 5000, // Dedupe requests for 5 seconds
       // Don't retry if user is not authenticated
       shouldRetryOnError: (error) => {
         if (error?.status === 401) return false

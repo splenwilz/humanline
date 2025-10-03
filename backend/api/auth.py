@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest, ResendConfirmationRequest, RegisterResponse
+from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, EmailConfirmationRequest, ResendConfirmationRequest, RegisterResponse, RefreshTokenRequest
 from services.auth_service import AuthService
 
 
@@ -265,4 +265,60 @@ async def resend_confirmation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to resend confirmation email due to a server error. Please try again."
+        )
+
+
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    summary="Refresh Access Token",
+    description="Exchange a valid refresh token for a new access token"
+)
+async def refresh_token(
+    refresh_data: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
+    """
+    Generate new access token using valid refresh token.
+    
+    This endpoint:
+    1. Validates the refresh token format and signature
+    2. Checks if the token is actually a refresh token (not access token)
+    3. Verifies the user still exists and is active
+    4. Returns new access and refresh tokens
+    
+    Args:
+        refresh_data: Refresh token request data
+        db: Database session dependency
+        
+    Returns:
+        TokenResponse: New access and refresh tokens
+        
+    Raises:
+        HTTPException: If refresh token is invalid, expired, or user not found
+    """
+    try:
+        # Attempt to refresh the access token
+        token_response = await AuthService.refresh_access_token(db, refresh_data.refresh_token)
+        
+        if token_response:
+            return token_response
+        else:
+            # Refresh failed - token invalid, expired, or user not found
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token. Please login again.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions (don't catch our own exceptions)
+        raise
+    except Exception as e:
+        # Handle unexpected database or system errors
+        # Log the actual error for debugging but don't expose internal details
+        print(f"Token refresh error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to refresh token due to a server error. Please try again."
         )

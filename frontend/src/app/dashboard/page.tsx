@@ -1,5 +1,6 @@
-// 'use client'
+'use client'
 
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import EmployeeTable from '@/components/employees/EmployeeTable'
 import Greeting from '@/components/navigation/Greeting'
 import Navigation from '@/components/navigation/Navigation'
@@ -23,7 +24,7 @@ interface Employee {
   value: number
   percentage: string
 }
-export default function Dashboard() {
+function DashboardContent() {
   // Static data for summary cards
   const employees: Employee[] = [
     {
@@ -101,5 +102,13 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   )
 }

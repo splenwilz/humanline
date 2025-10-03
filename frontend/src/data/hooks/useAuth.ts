@@ -10,6 +10,7 @@ import {
 } from '@/lib/auth'
 import { createCacheKey, invalidateCache } from '@/lib/swr-config'
 import { toast } from 'sonner'
+import { Role } from '@/lib/rbac'
 
 // Mutation fetchers
 async function signupFetcher(_: string, { arg }: { arg: { email: string; password: string; fullName?: string } }) {
@@ -61,10 +62,18 @@ export const useSignup = () => {
         // Immediate login response - store tokens and redirect to dashboard
         storeTokens({
           access_token: response.access_token,
-          refresh_token: '', // Not provided in immediate login
+          refresh_token: response.refresh_token || '',
           expires_in: response.expires_in,
           token_type: response.token_type,
         })
+
+        // Store user profile if provided
+        if (response.user) {
+          storeUserProfile({
+            ...response.user,
+            role: response.user.role as Role
+          })
+        }
 
         // Invalidate user cache to trigger refetch
         await mutate(createCacheKey.user())
@@ -121,8 +130,14 @@ export const useSignin = () => {
         token_type: response.token_type,
       })
 
+      // Store user profile from backend response
       if (response.user) {
-        storeUserProfile(response.user)
+        storeUserProfile({
+          ...response.user,
+          role: response.user.role as Role
+        })
+      } else {
+        console.error('No user data provided by backend in signin response')
       }
 
       // Invalidate user cache to trigger refetch
@@ -225,7 +240,10 @@ export const useTokenRefresh = () => {
       })
 
       if (response.user) {
-        storeUserProfile(response.user)
+        storeUserProfile({
+          ...response.user,
+          role: response.user.role as Role
+        })
       }
 
       // Invalidate user cache to trigger refetch

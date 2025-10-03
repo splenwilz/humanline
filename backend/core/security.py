@@ -92,12 +92,45 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def verify_token(token: str) -> Optional[dict]:
+def create_refresh_token(data: dict) -> str:
+    """
+    Create a JWT refresh token.
+    
+    Args:
+        data: Payload data to encode in the token
+        
+    Returns:
+        str: Encoded JWT refresh token
+    """
+    to_encode = data.copy()
+    
+    # Set expiration time for refresh token (longer duration)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+    
+    # Add standard JWT claims
+    to_encode.update({
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+        "type": "refresh_token",  # Mark as refresh token
+    })
+    
+    # Encode token with secret key
+    encoded_jwt = jwt.encode(
+        to_encode,
+        settings.secret_key,
+        algorithm=settings.algorithm
+    )
+    
+    return encoded_jwt
+
+
+def verify_token(token: str, token_type: str = None) -> Optional[dict]:
     """
     Verify and decode a JWT token.
     
     Args:
         token: JWT token to verify
+        token_type: Expected token type ("access_token" or "refresh_token"). If None, accepts any type.
         
     Returns:
         dict: Decoded token payload if valid, None if invalid
@@ -110,8 +143,8 @@ def verify_token(token: str) -> Optional[dict]:
             algorithms=[settings.algorithm]
         )
         
-        # Validate token type
-        if payload.get("type") != "access_token":
+        # Validate token type if specified
+        if token_type and payload.get("type") != token_type:
             return None
             
         return payload

@@ -15,8 +15,18 @@ export type SignupResponse =
 // Response when email confirmation is disabled (immediate login)
 export interface SignupImmediateLoginResponse {
   access_token: string
+  refresh_token: string
   token_type: string
   expires_in: number
+  user?: {
+    id: string
+    email: string
+    full_name?: string
+    role: string
+    email_confirmed_at?: string
+    permissions?: string[]
+    created_at: string
+  }
 }
 
 // Response when email confirmation is enabled
@@ -43,7 +53,9 @@ export interface SigninResponse {
     id: string
     email: string
     full_name?: string
+    role: string
     email_confirmed_at?: string
+    permissions?: string[]
     created_at: string
   }
 }
@@ -65,7 +77,9 @@ export interface OTPVerificationResponse {
     id: string
     email: string
     full_name?: string
+    role: string
     email_confirmed_at?: string
+    permissions?: string[]
     created_at: string
   }
 }
