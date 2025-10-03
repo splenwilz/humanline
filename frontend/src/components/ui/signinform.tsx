@@ -55,17 +55,22 @@ export default function SigninForm() {
 
     try {
       const result = await signin(values.email, values.password)
-
-      if (result.success) {
-        console.log('Login successful:', result.data)
-        // Redirect to dashboard or home page
-        router.push('/dashboard') // or wherever you want to redirect after login
-      } else {
-        setError('Invalid email or password. Please try again.')
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.')
+      
+      // Check for callback URL from middleware redirect
+      const urlParams = new URLSearchParams(window.location.search)
+      const callbackUrl = urlParams.get('callbackUrl')
+      
+      // Small delay to ensure token is stored
+      setTimeout(() => {
+        router.push(callbackUrl || '/dashboard')
+      }, 100)
+      
+    } catch (err: any) {
       console.error('Login error:', err)
+      
+      // Extract error message
+      const errorMessage = err?.message || 'An error occurred. Please try again.'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

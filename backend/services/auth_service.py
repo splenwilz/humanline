@@ -12,9 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, RefreshTokenRequest
 from schemas.user import UserCreate
-from core.security import verify_password, create_access_token
+from core.security import verify_password, create_access_token, create_refresh_token, verify_token
+from core.rbac import get_permissions_for_role
 from core.config import settings
 from services.user_service import UserService
 from services.email_service import email_service
@@ -79,17 +80,107 @@ class AuthService:
         if not user:
             return None
         
-        # Create access token
+        # Create access token with real user role
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email},
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            },
             expires_delta=access_token_expires
+        )
+        
+        # Create refresh token with real user role
+        refresh_token = create_refresh_token(
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            }
         )
         
         return TokenResponse(
             access_token=access_token,
+            refresh_token=refresh_token,
             token_type="bearer",
-            expires_in=settings.access_token_expire_minutes * 60  # Convert to seconds
+            expires_in=settings.access_token_expire_minutes * 60,  # Convert to seconds
+            user={
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": f"{user.first_name} {user.last_name}".strip(),
+                "role": user.role,
+                "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
+                "created_at": user.created_at.isoformat(),
+                "permissions": get_permissions_for_role(user.role)
+            }
+        )
+    
+    @staticmethod
+    async def refresh_access_token(db: AsyncSession, refresh_token: str) -> Optional[TokenResponse]:
+        """
+        Generate new access token using valid refresh token.
+        
+        Args:
+            db: Database session
+            refresh_token: Valid refresh token
+            
+        Returns:
+            TokenResponse with new access token if successful, None otherwise
+        """
+        # Verify refresh token
+        token_data = verify_token(refresh_token, "refresh_token")
+        if not token_data:
+            return None
+        
+        # Get user from token
+        user_id = token_data.get("sub")
+        if not user_id:
+            return None
+        
+        # Verify user still exists and is active
+        user = await UserService.get_user_by_id(db, int(user_id))
+        if not user or not user.is_active:
+            return None
+        
+        # Create new access token with real user role
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            },
+            expires_delta=access_token_expires
+        )
+        
+        # Create new refresh token with real user role
+        new_refresh_token = create_refresh_token(
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            }
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=new_refresh_token,
+            token_type="bearer",
+            expires_in=settings.access_token_expire_minutes * 60,
+            user={
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": f"{user.first_name} {user.last_name}".strip(),
+                "role": user.role,
+                "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
+                "created_at": user.created_at.isoformat(),
+                "permissions": get_permissions_for_role(user.role)
+            }
         )
     
     @staticmethod
@@ -179,12 +270,27 @@ class AuthService:
                 is_verified=True          # Email considered verified
             )
             
-            # Create access token for immediate login
+            # Create access token for immediate login with real user role
             # This provides the same experience as before when confirmation is disabled
             access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
             access_token = create_access_token(
-                data={"sub": str(user.id), "email": user.email},
+                data={
+                    "sub": str(user.id), 
+                    "email": user.email, 
+                    "role": user.role,
+                    "is_verified": user.is_verified
+                },
                 expires_delta=access_token_expires
+            )
+            
+            # Create refresh token with real user role
+            refresh_token = create_refresh_token(
+                data={
+                    "sub": str(user.id), 
+                    "email": user.email, 
+                    "role": user.role,
+                    "is_verified": user.is_verified
+                }
             )
             
             # Return JWT token for immediate authentication
@@ -193,8 +299,18 @@ class AuthService:
                 "type": "immediate_login",
                 "token_response": TokenResponse(
                     access_token=access_token,
+                    refresh_token=refresh_token,
                     token_type="bearer",
-                    expires_in=settings.access_token_expire_minutes * 60
+                    expires_in=settings.access_token_expire_minutes * 60,
+                    user={
+                        "id": str(user.id),
+                        "email": user.email,
+                        "full_name": f"{user.first_name} {user.last_name}".strip(),
+                        "role": user.role,
+                        "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
+                        "created_at": user.created_at.isoformat(),
+                        "permissions": get_permissions_for_role(user.role)
+                    }
                 )
             }
     

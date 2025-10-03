@@ -60,7 +60,7 @@ export default function SignupForm() {
         values.fullName,
       )
 
-      console.log('Signup successful:', result.data)
+      // Registration successful - tokens are handled by auth service
 
       // Handle different response types based on email confirmation setting
       if (result.type === 'immediate_login') {

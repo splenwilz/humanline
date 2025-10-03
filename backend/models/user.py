@@ -82,6 +82,14 @@ class User(Base):
         comment="Whether the user's email has been verified"
     )
     
+    # Role-based access control
+    role: Mapped[str] = mapped_column(
+        String(50),
+        default="user",
+        nullable=False,
+        comment="User role for RBAC (admin, manager, user)"
+    )
+    
     # Email verification code (6-digit)
     # User-friendly verification code for email confirmation
     # Nullable because verified users don't need codes
