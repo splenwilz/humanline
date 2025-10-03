@@ -23,33 +23,22 @@ const protectedRoutes = [
   '/onboarding',
   '/employees',
   '/profile',
-  '/settings'
+  '/settings',
+  '/admin'
 ]
 
 // JWT secret for token verification
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key'
+  process.env.JWT_SECRET || 'your-super-secret-jwt-key-at-least-32-characters-long-change-this-in-production'
 )
 
 /**
- * Verify JWT token
+ * Verify JWT token with proper signature verification
  */
 async function verifyToken(token: string): Promise<any> {
   try {
-    // Temporarily decode without verification for testing
-    // TODO: Fix JWT secret mismatch between frontend and backend
-    const parts = token.split('.')
-    if (parts.length === 3) {
-      const payload = JSON.parse(atob(parts[1]))
-      console.log('Decoded JWT payload:', payload)
-      
-      // Basic validation - check if it has required fields
-      if (payload.sub && payload.email) {
-        return payload
-      }
-    }
-    
-    return null
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    return payload
   } catch (error) {
     console.error('Token verification failed:', error)
     return null
@@ -97,7 +86,7 @@ async function getAuthStatus(request: NextRequest) {
       id: payload.sub,
       email: payload.email,
       role: payload.role || 'user',
-      isEmailVerified: payload.email_verified || payload.is_verified || true // Default to true for now
+      isEmailVerified: Boolean(payload.email_verified || payload.is_verified)
     }
   }
 }

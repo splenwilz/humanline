@@ -78,7 +78,7 @@ class Settings(BaseSettings):
         description="SMTP password or app-specific password"
     )
     from_email: str = Field(
-        default="noreply@humanline.com",
+        default="humanlinehr@gmail.com",
         description="Default sender email address for system emails"
     )
     

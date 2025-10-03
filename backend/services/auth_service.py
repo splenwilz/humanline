@@ -15,6 +15,7 @@ from models.user import User
 from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, RefreshTokenRequest
 from schemas.user import UserCreate
 from core.security import verify_password, create_access_token, create_refresh_token, verify_token
+from core.rbac import get_permissions_for_role
 from core.config import settings
 from services.user_service import UserService
 from services.email_service import email_service
@@ -79,16 +80,26 @@ class AuthService:
         if not user:
             return None
         
-        # Create access token
+        # Create access token with real user role
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email, "role": "user"},
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            },
             expires_delta=access_token_expires
         )
         
-        # Create refresh token
+        # Create refresh token with real user role
         refresh_token = create_refresh_token(
-            data={"sub": str(user.id), "email": user.email, "role": "user"}
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            }
         )
         
         return TokenResponse(
@@ -100,10 +111,10 @@ class AuthService:
                 "id": str(user.id),
                 "email": user.email,
                 "full_name": f"{user.first_name} {user.last_name}".strip(),
-                "role": "user",  # TODO: Add role field to User model
+                "role": user.role,
                 "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                 "created_at": user.created_at.isoformat(),
-                "permissions": ["employees.read", "reports.read"]  # TODO: Implement proper RBAC
+                "permissions": get_permissions_for_role(user.role)
             }
         )
     
@@ -134,16 +145,26 @@ class AuthService:
         if not user or not user.is_active:
             return None
         
-        # Create new access token
+        # Create new access token with real user role
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email, "role": "user"},
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            },
             expires_delta=access_token_expires
         )
         
-        # Create new refresh token
+        # Create new refresh token with real user role
         new_refresh_token = create_refresh_token(
-            data={"sub": str(user.id), "email": user.email, "role": "user"}
+            data={
+                "sub": str(user.id), 
+                "email": user.email, 
+                "role": user.role,
+                "is_verified": user.is_verified
+            }
         )
         
         return TokenResponse(
@@ -155,10 +176,10 @@ class AuthService:
                 "id": str(user.id),
                 "email": user.email,
                 "full_name": f"{user.first_name} {user.last_name}".strip(),
-                "role": "user",  # TODO: Add role field to User model
+                "role": user.role,
                 "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                 "created_at": user.created_at.isoformat(),
-                "permissions": ["employees.read", "reports.read"]  # TODO: Implement proper RBAC
+                "permissions": get_permissions_for_role(user.role)
             }
         )
     
@@ -249,17 +270,17 @@ class AuthService:
                 is_verified=True          # Email considered verified
             )
             
-            # Create access token for immediate login
+            # Create access token for immediate login with real user role
             # This provides the same experience as before when confirmation is disabled
             access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
             access_token = create_access_token(
-                data={"sub": str(user.id), "email": user.email, "role": "user"},
+                data={"sub": str(user.id), "email": user.email, "role": user.role},
                 expires_delta=access_token_expires
             )
             
-            # Create refresh token
+            # Create refresh token with real user role
             refresh_token = create_refresh_token(
-                data={"sub": str(user.id), "email": user.email, "role": "user"}
+                data={"sub": str(user.id), "email": user.email, "role": user.role}
             )
             
             # Return JWT token for immediate authentication

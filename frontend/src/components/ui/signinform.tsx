@@ -56,14 +56,9 @@ export default function SigninForm() {
     try {
       const result = await signin(values.email, values.password)
       
-      console.log('Login successful:', result.data)
-      
       // Check for callback URL from middleware redirect
       const urlParams = new URLSearchParams(window.location.search)
       const callbackUrl = urlParams.get('callbackUrl')
-      
-      console.log('Callback URL:', callbackUrl)
-      console.log('Will redirect to:', callbackUrl || '/dashboard')
       
       // Small delay to ensure token is stored
       setTimeout(() => {
