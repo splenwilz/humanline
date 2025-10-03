@@ -274,13 +274,23 @@ class AuthService:
             # This provides the same experience as before when confirmation is disabled
             access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
             access_token = create_access_token(
-                data={"sub": str(user.id), "email": user.email, "role": user.role},
+                data={
+                    "sub": str(user.id), 
+                    "email": user.email, 
+                    "role": user.role,
+                    "is_verified": user.is_verified
+                },
                 expires_delta=access_token_expires
             )
             
             # Create refresh token with real user role
             refresh_token = create_refresh_token(
-                data={"sub": str(user.id), "email": user.email, "role": user.role}
+                data={
+                    "sub": str(user.id), 
+                    "email": user.email, 
+                    "role": user.role,
+                    "is_verified": user.is_verified
+                }
             )
             
             # Return JWT token for immediate authentication
@@ -296,10 +306,10 @@ class AuthService:
                         "id": str(user.id),
                         "email": user.email,
                         "full_name": f"{user.first_name} {user.last_name}".strip(),
-                        "role": "user",  # TODO: Add role field to User model
+                        "role": user.role,
                         "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                         "created_at": user.created_at.isoformat(),
-                        "permissions": ["employees.read", "reports.read"]  # TODO: Implement proper RBAC
+                        "permissions": get_permissions_for_role(user.role)
                     }
                 )
             }
