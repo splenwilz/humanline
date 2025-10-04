@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 # Import our models and configuration
 from core.database import Base
 from core.config import settings
-from models import user  # Import all models to register them
+from models import user, onboarding  # Import all models to register them
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

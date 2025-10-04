@@ -14,12 +14,12 @@ class LoginRequest(BaseModel):
     
     email: EmailStr = Field(
         description="User's email address",
-        example="user@example.com"
+        json_schema_extra={"example": "user@example.com"}
     )
     password: str = Field(
         min_length=1,  # Allow any length for login (validation happens server-side)
         description="User's password",
-        example="securepassword123"
+        json_schema_extra={"example": "securepassword123"}
     )
 
 
@@ -28,25 +28,25 @@ class RegisterRequest(BaseModel):
     
     email: EmailStr = Field(
         description="User's email address",
-        example="user@example.com"
+        json_schema_extra={"example": "user@example.com"}
     )
     password: str = Field(
         min_length=8,
         max_length=128,  # Reasonable maximum for security
         description="User's password (8-128 characters)",
-        example="securepassword123"
+        json_schema_extra={"example": "securepassword123"}
     )
     first_name: str = Field(
         min_length=1,
         max_length=100,
         description="User's first name",
-        example="John"
+        json_schema_extra={"example": "John"}
     )
     last_name: str = Field(
         min_length=1,
         max_length=100,
         description="User's last name",
-        example="Doe"
+        json_schema_extra={"example": "Doe"}
     )
 
 
@@ -86,7 +86,7 @@ class EmailConfirmationRequest(BaseModel):
         max_length=6,
         pattern=r'^\d{6}$',
         description="6-digit verification code from confirmation email",
-        example="123456"
+        json_schema_extra={"example": "123456"}
     )
 
 
@@ -95,7 +95,7 @@ class ResendConfirmationRequest(BaseModel):
     
     email: EmailStr = Field(
         description="Email address to resend confirmation code to",
-        example="user@example.com"
+        json_schema_extra={"example": "user@example.com"}
     )
 
 
@@ -104,7 +104,7 @@ class RefreshTokenRequest(BaseModel):
     
     refresh_token: str = Field(
         description="Valid refresh token to exchange for new access token",
-        example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        json_schema_extra={"example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
     )
 
 
@@ -113,23 +113,23 @@ class EmailConfirmationResponse(BaseModel):
     
     message: str = Field(
         description="Success message about email confirmation",
-        example="Registration successful! Please check your email for a confirmation link."
+        json_schema_extra={"example": "Registration successful! Please check your email for a confirmation link."}
     )
     email: str = Field(
         description="Email address where confirmation was sent",
-        example="user@example.com"
+        json_schema_extra={"example": "user@example.com"}
     )
     email_sent: bool = Field(
         description="Whether the confirmation email was successfully sent",
-        example=True
+        json_schema_extra={"example": True}
     )
     expires_in_hours: int = Field(
         description="Hours until the confirmation code expires",
-        example=24
+        json_schema_extra={"example": 24}
     )
     next_step: str = Field(
         description="Next step for the user",
-        example="check_email_for_confirmation_link"
+        json_schema_extra={"example": "check_email_for_confirmation_link"}
     )
 
 
