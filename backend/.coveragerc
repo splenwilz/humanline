@@ -1,0 +1,58 @@
+# Coverage configuration for onboarding system tests
+# Following best practices for Python test coverage
+
+[run]
+# Source code to measure coverage for
+source = .
+
+# Files to exclude from coverage measurement
+omit = 
+    tests/*
+    alembic/*
+    main.py
+    .venv/*
+    __pycache__/*
+    *.pyc
+    .coverage
+    htmlcov/*
+
+# Enable branch coverage for more thorough analysis
+branch = True
+
+# Parallel processing support
+parallel = True
+
+[report]
+# Minimum coverage percentage to pass
+fail_under = 90
+
+# Show missing lines in coverage report
+show_missing = True
+
+# Skip covered files in report for cleaner output
+skip_covered = False
+
+# Precision for coverage percentages
+precision = 2
+
+# Exclude lines from coverage (e.g., debug code, type checking)
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+[html]
+# HTML report configuration
+directory = htmlcov
+title = Humanline Backend Coverage Report
+
+[xml]
+# XML report for CI/CD integration
+output = coverage.xml

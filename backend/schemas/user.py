@@ -7,7 +7,7 @@ providing automatic validation and documentation generation.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import Optional
 import re
 import unicodedata
@@ -90,19 +90,19 @@ class UserBase(BaseModel):
     
     email: EmailStr = Field(
         description="User's email address",
-        example="user@example.com"
+        json_schema_extra={"example": "user@example.com"}
     )
     first_name: Optional[str] = Field(
         None,
         max_length=50,  # Consistent with validator
         description="User's first name",
-        example="John"
+        json_schema_extra={"example": "John"}
     )
     last_name: Optional[str] = Field(
         None,
         max_length=50,  # Consistent with validator
         description="User's last name", 
-        example="Doe"
+        json_schema_extra={"example": "Doe"}
     )
 
 
@@ -113,10 +113,11 @@ class UserCreate(UserBase):
         min_length=8,
         max_length=128,  # Reasonable maximum for security
         description="User's password (8-128 characters)",
-        example="securepassword123"
+        json_schema_extra={"example": "securepassword123"}
     )
     
-    @validator('first_name', 'last_name')
+    @field_validator('first_name', 'last_name')
+    @classmethod
     def validate_name_fields(cls, v):
         """
         Validate name fields using shared validation logic.
@@ -140,7 +141,8 @@ class UserUpdate(BaseModel):
         description="User's last name"
     )
     
-    @validator('first_name', 'last_name')
+    @field_validator('first_name', 'last_name')
+    @classmethod
     def validate_name_fields(cls, v):
         """
         Validate name fields using shared validation logic.
@@ -163,7 +165,4 @@ class UserResponse(UserBase):
     # Configuration for Pydantic v2
     model_config = ConfigDict(
         from_attributes=True,  # Allow creation from SQLAlchemy models
-        json_encoders={
-            datetime: lambda v: v.isoformat(),  # Consistent datetime formatting
-        }
     )

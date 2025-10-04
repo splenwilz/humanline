@@ -10,7 +10,7 @@ This module defines the User SQLAlchemy model with security considerations:
 
 from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
 
@@ -126,6 +126,10 @@ class User(Base):
         nullable=False,
         comment="Last account update timestamp"
     )
+    
+    # Relationship to Onboarding model
+    # Optional one-to-one relationship - not all users complete onboarding
+    onboarding: Mapped["Onboarding"] = relationship("Onboarding", back_populates="user", uselist=False)
     
     def __repr__(self) -> str:
         """String representation for debugging."""
