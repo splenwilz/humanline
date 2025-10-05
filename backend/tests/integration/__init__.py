@@ -7,5 +7,5 @@ Integration tests verify the interaction between multiple components:
 - End-to-end request/response cycles
 - Database constraints and transactions
 
-These tests use real database connections (in-memory SQLite) but are still fast.
+These tests use real database connections (PostgreSQL test database) for consistency with production.
 """

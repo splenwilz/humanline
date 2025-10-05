@@ -41,25 +41,68 @@ class TestOnboardingStatusEndpoint:
         assert data["workspace_created"] is False
         assert data["company_domain"] is None
     
-    def test_status_with_onboarding(self, client: TestClient, test_user_with_onboarding):
+    @pytest.mark.asyncio
+    async def test_status_with_onboarding(self, client: TestClient, shared_db_session):
         """Test status for user with completed onboarding."""
-        user, onboarding = test_user_with_onboarding
+        # Create user with onboarding using the shared session
+        from schemas.user import UserCreate
+        from services.user_service import UserService
+        from models.onboarding import Onboarding
         
-        # Create auth headers for this user
+        # Create user directly using UserService
+        user_data = UserCreate(
+            email="onboarded_user@example.com",
+            password="testpassword123",
+            first_name="Onboarded",
+            last_name="User"
+        )
+        user = await UserService.create_user_with_verification(
+            shared_db_session,
+            user_data,
+            is_verified=True
+        )
+        
+        # User is already verified by create_user_with_verification
+        await shared_db_session.refresh(user)
+        
+        # Create onboarding for this user
+        onboarding = Onboarding(
+            user_id=user.id,
+            company_name="Test Company Inc",
+            company_domain="testcompany.com",
+            company_size="1-10",
+            company_industry="fintech",
+            company_roles="ceo-founder-owner",
+            your_needs="onboarding-new-employees",
+            onboarding_completed=True  # Set to True for this test
+        )
+        shared_db_session.add(onboarding)
+        await shared_db_session.commit()
+        await shared_db_session.refresh(onboarding)
+        
+        # Generate real auth token
         from schemas.auth import LoginRequest
         from services.auth_service import AuthService
-        import asyncio
+        login_data = LoginRequest(email=user.email, password="testpassword123")
+        token_response = await AuthService.login(shared_db_session, login_data)
         
-        # This is a bit complex due to async nature, but necessary for integration test
-        # In a real app, you might have a helper function for this
+        auth_headers = {
+            "Authorization": f"Bearer {token_response.access_token}",
+            "Content-Type": "application/json"
+        }
         
-        response = client.get("/api/v1/onboarding/status", headers={
-            "Authorization": "Bearer fake_token_for_integration_test"
-        })
+        # Test the endpoint with real authentication
+        response = client.get("/api/v1/onboarding/status", headers=auth_headers)
         
-        # Note: This test would need proper auth token generation
-        # For now, we'll test the endpoint structure
-        # In production tests, you'd use the auth_headers fixture with proper user
+        # Assert successful response
+        assert response.status_code == 200
+        
+        # Assert correct response data
+        response_data = response.json()
+        assert response_data["onboarding_completed"] is True
+        assert response_data["workspace_created"] is False
+        assert response_data["company_domain"] == "testcompany.com"
+        assert response_data["has_onboarding"] is True
 
 
 class TestOnboardingCreateEndpoint:
@@ -184,7 +227,8 @@ class TestOnboardingCreateEndpoint:
         assert error_data["detail"]["error_code"] == "DUPLICATE_ONBOARDING"
         assert "already completed onboarding" in error_data["detail"]["message"]
     
-    def test_create_onboarding_duplicate_domain(self, client: TestClient, auth_headers: dict):
+    @pytest.mark.asyncio
+    async def test_create_onboarding_duplicate_domain(self, client: TestClient, auth_headers: dict, shared_db_session):
         """Test domain uniqueness enforcement."""
         # This test requires two different users trying to use same domain
         # For now, we'll test the validation logic
@@ -195,8 +239,49 @@ class TestOnboardingCreateEndpoint:
         response1 = client.post("/api/v1/onboarding", json=data, headers=auth_headers)
         assert response1.status_code == 201
         
-        # TODO: Create second user and test domain conflict
-        # This would require additional test setup for multiple users
+        # Create second user to test domain conflict
+        from schemas.user import UserCreate
+        from services.user_service import UserService
+        
+        user_data2 = UserCreate(
+            email="seconduser@example.com",
+            password="testpassword123",
+            first_name="Second",
+            last_name="User"
+        )
+        user2 = await UserService.create_user_with_verification(
+            shared_db_session,
+            user_data2,
+            is_verified=True
+        )
+        await shared_db_session.refresh(user2)
+        
+        # Generate auth token for second user
+        from schemas.auth import LoginRequest
+        from services.auth_service import AuthService
+        login_data2 = LoginRequest(email=user2.email, password="testpassword123")
+        token_response2 = await AuthService.login(shared_db_session, login_data2)
+        
+        auth_headers2 = {
+            "Authorization": f"Bearer {token_response2.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        # Second user tries to use the same domain (should fail)
+        response2 = client.post("/api/v1/onboarding", json=data, headers=auth_headers2)
+        assert response2.status_code == 400
+        
+        # Verify error message indicates domain conflict
+        error_data = response2.json()
+        error_detail = error_data["detail"]
+        
+        # Handle both string and dict error formats
+        if isinstance(error_detail, dict):
+            error_message = error_detail.get("message", "").lower()
+            error_code = error_detail.get("error_code", "")
+            assert "domain" in error_message or "already exists" in error_message or error_code == "DOMAIN_TAKEN"
+        else:
+            assert "domain" in error_detail.lower() or "already exists" in error_detail.lower()
     
     def test_create_onboarding_reserved_domain(self, client: TestClient, auth_headers: dict):
         """Test reserved domain rejection."""
@@ -426,7 +511,13 @@ class TestOnboardingErrorHandling:
             headers=auth_headers
         )
         
+        # FastAPI/Starlette actually returns 422 for malformed JSON
+        # This is the current behavior, though 400 would be more semantically correct
         assert response.status_code == 422
+        
+        # Verify it's a JSON parsing error
+        error_data = response.json()
+        assert "detail" in error_data
     
     def test_missing_content_type(self, client: TestClient, auth_headers: dict):
         """Test handling of missing content type."""

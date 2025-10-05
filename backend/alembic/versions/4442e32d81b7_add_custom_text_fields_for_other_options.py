@@ -1,7 +1,7 @@
 """add_custom_text_fields_for_other_options
 
 Revision ID: 4442e32d81b7
-Revises: b19cb97a02aa
+Revises: b22706b0b1e3
 Create Date: 2025-10-03 12:58:46.836726
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '4442e32d81b7'
-down_revision: Union[str, Sequence[str], None] = 'b19cb97a02aa'
+down_revision: Union[str, Sequence[str], None] = 'b22706b0b1e3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
