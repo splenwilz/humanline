@@ -18,6 +18,7 @@ from middleware.security import SecurityMiddleware
 from middleware.profiler import ProfilingMiddleware
 from api.auth import router as auth_router
 from api.users import router as users_router
+from api.onboarding import router as onboarding_router
 
 # Configure logging
 import os
@@ -120,6 +121,7 @@ app.add_middleware(DebugToolbarMiddleware)
 # Include API routers
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
+app.include_router(onboarding_router, prefix="/api/v1")
 
 
 # Root endpoint for health check
