@@ -96,9 +96,10 @@ jobs:
             python-version: '3.11'
     
     services:
-      # PostgreSQL service for integration tests
+      # PostgreSQL service for integration tests (Linux only)
+      # Windows and macOS will use SQLite for testing
       postgres:
-        image: postgres:15
+        image: ${{ matrix.os == 'ubuntu-latest' && 'postgres:15' || '' }}
         env:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_USER: testuser
@@ -131,7 +132,9 @@ jobs:
     - name: 🗄️ Set up Test Database
       working-directory: ./backend
       env:
-        DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+        # Use PostgreSQL on Linux, SQLite on Windows/macOS
+        DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://testuser:testpassword@localhost:5432/testdb' || 'sqlite:///./test.db' }}
+        TEST_DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+asyncpg://testuser:testpassword@localhost:5432/testdb' || 'sqlite+aiosqlite:///./test.db' }}
       run: |
         # Run database migrations for integration tests
         uv run alembic upgrade head
@@ -151,7 +154,9 @@ jobs:
     - name: 🔗 Run Integration Tests
       working-directory: ./backend
       env:
-        DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+        # Use PostgreSQL on Linux, SQLite on Windows/macOS
+        DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://testuser:testpassword@localhost:5432/testdb' || 'sqlite:///./test.db' }}
+        TEST_DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+asyncpg://testuser:testpassword@localhost:5432/testdb' || 'sqlite+aiosqlite:///./test.db' }}
         ENVIRONMENT: testing
       run: |
         uv run pytest tests/integration/ \
@@ -186,6 +191,7 @@ jobs:
     needs: [code-quality]
     
     services:
+      # PostgreSQL service for performance tests (Linux only)
       postgres:
         image: postgres:15
         env:
