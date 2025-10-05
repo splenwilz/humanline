@@ -1,10 +1,10 @@
+import asyncio
 import sys
 import os
 from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 
 # Add the project root directory to Python path for imports
@@ -19,52 +19,19 @@ from models import user, onboarding  # Import all models to register them
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the database URL from our settings (convert async URL to sync for Alembic)
-# Alembic doesn't support async drivers, so we need to convert to sync versions
-sync_database_url = settings.database_url
-
-# Convert async drivers to sync drivers for Alembic compatibility
-if "postgresql+asyncpg://" in sync_database_url:
-    sync_database_url = sync_database_url.replace("postgresql+asyncpg://", "postgresql://")
-elif "sqlite+aiosqlite://" in sync_database_url:
-    sync_database_url = sync_database_url.replace("sqlite+aiosqlite://", "sqlite://")
-
-# Remove SSL parameters that cause issues with psycopg2 in Alembic
-# These parameters are valid for asyncpg but not for psycopg2
-if "ssl=require" in sync_database_url:
-    # Remove SSL parameters for local development
-    # In production, SSL should be handled at the connection level
-    sync_database_url = sync_database_url.split("?")[0]
-    
-config.set_main_option("sqlalchemy.url", sync_database_url)
+# Set the database URL from our settings
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
-# for 'autogenerate' support
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
+    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -77,26 +44,63 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+def do_run_migrations(connection: Connection) -> None:
+    """Run migrations with provided connection."""
+    context.configure(connection=connection, target_metadata=target_metadata)
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
+    with context.begin_transaction():
+        context.run_migrations()
 
-    """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+
+async def run_async_migrations() -> None:
+    """Run migrations in async mode."""
+    # Convert async URL to sync for Alembic if needed
+    database_url = settings.database_url
+    
+    # Alembic needs sync drivers, so convert async URLs
+    if "postgresql+asyncpg://" in database_url:
+        sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+    elif "sqlite+aiosqlite://" in database_url:
+        sync_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")
+    else:
+        sync_url = database_url
+    
+    # Create sync engine for Alembic
+    from sqlalchemy import create_engine
+    connectable = create_engine(sync_url)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
+        await asyncio.get_event_loop().run_in_executor(
+            None, do_run_migrations, connection
         )
 
-        with context.begin_transaction():
-            context.run_migrations()
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    # Check if we're in an async context
+    try:
+        loop = asyncio.get_running_loop()
+        # We're in an async context, run async migrations
+        asyncio.create_task(run_async_migrations())
+    except RuntimeError:
+        # No running loop, use sync approach
+        database_url = settings.database_url
+        
+        # Convert async URL to sync for Alembic
+        if "postgresql+asyncpg://" in database_url:
+            sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+        elif "sqlite+aiosqlite://" in database_url:
+            sync_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")
+        else:
+            sync_url = database_url
+        
+        from sqlalchemy import create_engine
+        connectable = create_engine(sync_url)
+
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
 
 
 if context.is_offline_mode():
