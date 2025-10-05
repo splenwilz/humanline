@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { useDomainValidation } from '@/hooks/useDomainValidation'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { cn } from '@/lib/utils'
 
@@ -23,21 +22,16 @@ export const DomainInput: React.FC<DomainInputProps> = ({
   className,
   disabled = false,
 }) => {
-  const { isValid, isChecking, message } = useDomainValidation(value)
-  const { setDomainValid } = useOnboarding()
-
-  // Sync domain validation state with context
-  useEffect(() => {
-    setDomainValid(isValid)
-  }, [isValid, setDomainValid])
+  // Use the enhanced domain availability from context
+  const { domainAvailability } = useOnboarding()
 
   const getStatusIcon = () => {
-    if (isChecking) {
+    if (domainAvailability.isChecking) {
       return <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
     }
 
     if (value.length >= 3) {
-      return isValid ? (
+      return domainAvailability.isAvailable ? (
         <CheckCircle className="h-4 w-4 text-green-500" />
       ) : (
         <XCircle className="h-4 w-4 text-red-500" />
@@ -50,9 +44,11 @@ export const DomainInput: React.FC<DomainInputProps> = ({
   const getInputStyles = () => {
     return cn(
       'pr-10 h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green',
-      isValid
+      domainAvailability.isAvailable && value.length >= 3
         ? ' focus:border-green-500'
-        : 'border-red-500 focus:border-red-500',
+        : domainAvailability.error || (!domainAvailability.isAvailable && value.length >= 3)
+        ? 'border-red-500 focus:border-red-500'
+        : '',
     )
   }
 
@@ -74,11 +70,13 @@ export const DomainInput: React.FC<DomainInputProps> = ({
         </div>
       </div>
 
-      {message && (
+      {(domainAvailability.error || (domainAvailability.fullDomain && domainAvailability.isAvailable)) && (
         <p
-          className={cn('text-sm', isValid ? 'text-green-600' : 'text-red-600')}
+          className={cn('text-sm', domainAvailability.isAvailable ? 'text-green-600' : 'text-red-600')}
         >
-          {message}
+          {domainAvailability.error || 
+           (domainAvailability.isAvailable && domainAvailability.fullDomain && 
+            `✓ ${domainAvailability.fullDomain} is available`)}
         </p>
       )}
     </div>

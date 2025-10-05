@@ -70,24 +70,33 @@ function matchesRoute(pathname: string, routes: string[]): boolean {
 async function getAuthStatus(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value
   
+  console.log('🔍 Middleware - Token exists:', !!token)
+  
   if (!token) {
     return { isAuthenticated: false, user: null }
   }
 
   const payload = await verifyToken(token)
   
+  console.log('🔍 Middleware - JWT payload:', payload)
+  
   if (!payload) {
     return { isAuthenticated: false, user: null }
   }
 
+  const user = {
+    id: payload.sub,
+    email: payload.email,
+    role: payload.role || 'user',
+    isEmailVerified: Boolean(payload.email_verified || payload.is_verified),
+    needsOnboarding: Boolean(payload.needs_onboarding)
+  }
+  
+  console.log('🔍 Middleware - Parsed user:', user)
+
   return {
     isAuthenticated: true,
-    user: {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role || 'user',
-      isEmailVerified: Boolean(payload.email_verified || payload.is_verified)
-    }
+    user
   }
 }
 
@@ -115,7 +124,15 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && matchesRoute(pathname, authRoutes)) {
-    const redirectUrl = new URL('/dashboard', request.url)
+    console.log('🔍 Middleware - Auth page redirect logic:', {
+      needsOnboarding: user?.needsOnboarding,
+      redirectTo: user?.needsOnboarding ? '/onboarding' : '/dashboard'
+    })
+    
+    // First-time users should go to onboarding, returning users to dashboard
+    const redirectUrl = user?.needsOnboarding 
+      ? new URL('/onboarding', request.url)
+      : new URL('/dashboard', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -132,6 +149,27 @@ export async function middleware(request: NextRequest) {
     if (!user?.isEmailVerified && pathname !== '/confirm') {
       const confirmUrl = new URL('/confirm', request.url)
       return NextResponse.redirect(confirmUrl)
+    }
+
+    // Handle onboarding flow for first-time users
+    if (user?.needsOnboarding && pathname !== '/onboarding') {
+      console.log('🔍 Middleware - Redirecting to onboarding:', {
+        needsOnboarding: user.needsOnboarding,
+        currentPath: pathname
+      })
+      // First-time users must complete onboarding before accessing other protected routes
+      const onboardingUrl = new URL('/onboarding', request.url)
+      return NextResponse.redirect(onboardingUrl)
+    }
+
+    // Prevent users who have completed onboarding from accessing onboarding page
+    if (!user?.needsOnboarding && pathname === '/onboarding') {
+      console.log('🔍 Middleware - Redirecting away from onboarding:', {
+        needsOnboarding: user?.needsOnboarding,
+        currentPath: pathname
+      })
+      const dashboardUrl = new URL('/dashboard', request.url)
+      return NextResponse.redirect(dashboardUrl)
     }
 
     // Role-based access control

@@ -120,7 +120,8 @@ class UserService:
         verification_code: Optional[str] = None,
         code_expiration: Optional[datetime] = None,
         is_active: bool = True,
-        is_verified: bool = True
+        is_verified: bool = True,
+        needs_onboarding: bool = True
     ) -> User:
         """
         Create a new user account with email verification support.
@@ -128,6 +129,7 @@ class UserService:
         This method extends the basic user creation to support email confirmation:
         - Allows setting verification code and expiration
         - Configurable active and verified status
+        - Tracks onboarding requirement for new users
         - Maintains all security and performance optimizations
 
         Args:
@@ -137,6 +139,7 @@ class UserService:
             code_expiration: Code expiration datetime (optional)
             is_active: Whether account should be active immediately
             is_verified: Whether email should be marked as verified
+            needs_onboarding: Whether user needs to complete onboarding
 
         Returns:
             Created user model
@@ -173,6 +176,7 @@ class UserService:
             existing_user.email_verification_expires_at = code_expiration
             existing_user.is_active = is_active
             existing_user.is_verified = is_verified
+            existing_user.needs_onboarding = needs_onboarding
             existing_user.updated_at = datetime.now(timezone.utc)
             
             # Commit the updates
@@ -202,7 +206,8 @@ class UserService:
             is_active=is_active,  # Configurable based on confirmation requirement
             is_verified=is_verified,  # Configurable based on confirmation requirement
             email_verification_code=verification_code,  # Set if confirmation required
-            email_verification_expires_at=code_expiration  # Set if confirmation required
+            email_verification_expires_at=code_expiration,  # Set if confirmation required
+            needs_onboarding=needs_onboarding  # Track onboarding requirement
         )
         
         db.add(db_user)

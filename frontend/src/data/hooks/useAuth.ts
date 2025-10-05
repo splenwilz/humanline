@@ -59,6 +59,8 @@ export const useSignup = () => {
 
       // Check response type to determine next action
       if ('access_token' in response) {
+        console.log('🔍 Signup - Immediate login response:', response)
+        
         // Immediate login response - store tokens and redirect to dashboard
         storeTokens({
           access_token: response.access_token,
@@ -69,6 +71,7 @@ export const useSignup = () => {
 
         // Store user profile if provided
         if (response.user) {
+          console.log('🔍 Signup - User profile:', response.user)
           storeUserProfile({
             ...response.user,
             role: response.user.role as Role

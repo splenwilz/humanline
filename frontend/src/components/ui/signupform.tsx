@@ -69,7 +69,7 @@ export default function SignupForm() {
           description: 'Welcome to Humanline! You are now logged in.',
         })
 
-        // Redirect to dashboard
+        // Let middleware handle routing based on needs_onboarding
         router.push('/dashboard')
       } else if (result.type === 'email_confirmation_required') {
         // Email confirmation enabled - user needs to check email

@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   Form,
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form'
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Label } from '../ui/label'
+import { Input } from '@/components/ui/input'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { Separator } from '../ui/separator'
 import { DomainInput } from '@/components/ui/domain-input'
@@ -26,34 +27,53 @@ const formSchema = z.object({
   companyIndustry: z.string().min(1, {
     message: 'Please select a company industry.',
   }),
+  customIndustry: z.string().optional(),
 })
 
 export function OnboardForm2() {
   const { formData, updateFormData, nextStep } = useOnboarding()
+  
+  // State to track if "other" is selected for industry
+  const [isCustomIndustry, setIsCustomIndustry] = useState(
+    formData.companyIndustry && 
+    !['crypto', 'ecommerce', 'fintech', 'health-tech', 'software-outsourcing'].includes(formData.companyIndustry)
+  )
 
   // 1. Define your form with initial values from context
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       companyDomain: formData.companyDomain,
-      companyIndustry: formData.companyIndustry,
+      companyIndustry: isCustomIndustry ? 'other' : formData.companyIndustry,
+      customIndustry: isCustomIndustry ? formData.companyIndustry : '',
     },
   })
 
   // Update form when context data changes
   useEffect(() => {
+    const isCustom = formData.companyIndustry && 
+      !['crypto', 'ecommerce', 'fintech', 'health-tech', 'software-outsourcing'].includes(formData.companyIndustry)
+    
+    setIsCustomIndustry(isCustom)
+    
     form.reset({
       companyDomain: formData.companyDomain,
-      companyIndustry: formData.companyIndustry,
+      companyIndustry: isCustom ? 'other' : formData.companyIndustry,
+      customIndustry: isCustom ? formData.companyIndustry : '',
     })
   }, [formData, form])
 
   // 2. Define a submit handler that saves to context
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Determine the final industry value
+    const finalIndustry = values.companyIndustry === 'other' 
+      ? values.customIndustry || 'other'
+      : values.companyIndustry
+    
     // Save to context
     updateFormData({
       companyDomain: values.companyDomain,
-      companyIndustry: values.companyIndustry,
+      companyIndustry: finalIndustry,
     })
 
     // Move to next step
@@ -63,9 +83,14 @@ export function OnboardForm2() {
   // Auto-save form data to context when values change
   useEffect(() => {
     const subscription = form.watch((values) => {
+      // Determine the final industry value for auto-save
+      const finalIndustry = values.companyIndustry === 'other' 
+        ? values.customIndustry || 'other'
+        : values.companyIndustry
+      
       updateFormData({
         companyDomain: values.companyDomain || '',
-        companyIndustry: values.companyIndustry || '',
+        companyIndustry: finalIndustry || '',
       })
     })
     return () => subscription.unsubscribe()
@@ -119,50 +144,90 @@ export function OnboardForm2() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-3 gap-y-5 gap-x-5"
-                >
-                  {companyIndustries.map((industry) => (
-                    <div
-                      key={industry.value}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        field.onChange(industry.value)
-                      }}
-                      className={`flex justify-between gap-8 p-3 py-3 border rounded-[10px] cursor-pointer transition-all ${
-                        field.value === industry.value
-                          ? 'border-custom-base-green bg-custom-base-green/5'
-                          : 'border-gray-300 hover:border-custom-base-green/50'
-                      }`}
-                    >
-                      <Label
-                        htmlFor={`r-${industry.value}`}
-                        className="cursor-pointer"
+                <div className="space-y-4">
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      setIsCustomIndustry(value === 'other')
+                      if (value !== 'other') {
+                        form.setValue('customIndustry', '')
+                      }
+                    }}
+                    className="grid grid-cols-3 gap-y-5 gap-x-5"
+                  >
+                    {companyIndustries.map((industry) => (
+                      <div
+                        key={industry.value}
                         onClick={(e) => {
                           e.preventDefault()
                           field.onChange(industry.value)
+                          setIsCustomIndustry(industry.value === 'other')
+                          if (industry.value !== 'other') {
+                            form.setValue('customIndustry', '')
+                          }
                         }}
-                      >
-                        {industry.label}
-                      </Label>
-                      <RadioGroupItem
-                        value={industry.value}
-                        id={`r-${industry.value}`}
-                        className={
+                        className={`flex justify-between gap-8 p-3 py-3 border rounded-[10px] cursor-pointer transition-all ${
                           field.value === industry.value
-                            ? 'border-custom-base-green'
-                            : ''
-                        }
-                        onClick={(e) => {
-                          e.preventDefault()
-                          field.onChange(industry.value)
-                        }}
-                      />
-                    </div>
-                  ))}
-                </RadioGroup>
+                            ? 'border-custom-base-green bg-custom-base-green/5'
+                            : 'border-gray-300 hover:border-custom-base-green/50'
+                        }`}
+                      >
+                        <Label
+                          htmlFor={`r-${industry.value}`}
+                          className="cursor-pointer"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            field.onChange(industry.value)
+                            setIsCustomIndustry(industry.value === 'other')
+                            if (industry.value !== 'other') {
+                              form.setValue('customIndustry', '')
+                            }
+                          }}
+                        >
+                          {industry.label}
+                        </Label>
+                        <RadioGroupItem
+                          value={industry.value}
+                          id={`r-${industry.value}`}
+                          className={
+                            field.value === industry.value
+                              ? 'border-custom-base-green'
+                              : ''
+                          }
+                          onClick={(e) => {
+                            e.preventDefault()
+                            field.onChange(industry.value)
+                            setIsCustomIndustry(industry.value === 'other')
+                            if (industry.value !== 'other') {
+                              form.setValue('customIndustry', '')
+                            }
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </RadioGroup>
+                  
+                  {/* Custom industry input field */}
+                  {isCustomIndustry && (
+                    <FormField
+                      control={form.control}
+                      name="customIndustry"
+                      render={({ field: customField }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...customField}
+                              placeholder="Please specify your industry"
+                              className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
