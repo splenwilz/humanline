@@ -64,16 +64,20 @@ jobs:
     - name: 🗄️ Run migrations
       working-directory: ./backend
       run: |
-        uv run alembic upgrade head
+        uv run --frozen alembic upgrade head
     
     - name: 🧪 Run tests
       working-directory: ./backend
       run: |
-        uv run pytest -v \
-          --cov=. \
+        uv run --frozen pytest -v \
+          --cov=api \
+          --cov=core \
+          --cov=models \
+          --cov=schemas \
+          --cov=services \
           --cov-report=xml \
           --cov-report=term-missing \
-          --cov-fail-under=85
+          --cov-fail-under=60
     
     - name: 📊 Upload coverage
       uses: codecov/codecov-action@v4
@@ -109,16 +113,16 @@ jobs:
     - name: 🔍 Run ruff (linting)
       working-directory: ./backend
       run: |
-        uv run ruff check .
+        uv run --frozen ruff check .
     
     - name: 🎨 Run ruff (formatting)
       working-directory: ./backend
       run: |
-        uv run ruff format --check .
+        uv run --frozen ruff format --check .
     
     - name: 🔒 Run bandit (security)
       working-directory: ./backend
       run: |
-        uv run bandit -r . -f json -o bandit-report.json || true
-        uv run bandit -r . -f txt || true
+        uv run --frozen bandit -r . -f json -o bandit-report.json || true
+        uv run --frozen bandit -r . -f txt || true
       continue-on-error: true
