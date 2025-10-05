@@ -20,8 +20,14 @@ from models import user, onboarding  # Import all models to register them
 config = context.config
 
 # Set the database URL from our settings (convert async URL to sync for Alembic)
-# Handle SSL parameters that are incompatible with psycopg2
-sync_database_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+# Alembic doesn't support async drivers, so we need to convert to sync versions
+sync_database_url = settings.database_url
+
+# Convert async drivers to sync drivers for Alembic compatibility
+if "postgresql+asyncpg://" in sync_database_url:
+    sync_database_url = sync_database_url.replace("postgresql+asyncpg://", "postgresql://")
+elif "sqlite+aiosqlite://" in sync_database_url:
+    sync_database_url = sync_database_url.replace("sqlite+aiosqlite://", "sqlite://")
 
 # Remove SSL parameters that cause issues with psycopg2 in Alembic
 # These parameters are valid for asyncpg but not for psycopg2
