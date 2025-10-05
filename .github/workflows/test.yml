@@ -88,18 +88,21 @@ jobs:
       # Set database URLs at job level for all steps
       DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://testuser:testpassword@localhost:5432/testdb' || 'sqlite:///./test.db' }}
       TEST_DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+asyncpg://testuser:testpassword@localhost:5432/testdb' || 'sqlite+aiosqlite:///./test.db' }}
+      # Required environment variables for Settings class
+      SECRET_KEY: "test-secret-key-for-ci-only-not-secure"
+      ENVIRONMENT: "testing"
     
     strategy:
       fail-fast: false # Continue testing other versions if one fails
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.12', '3.13']  # Focus on stable recent versions
         exclude:
-          # Exclude some combinations to reduce CI time
+          # Reduce CI time by testing fewer combinations
           - os: windows-latest
-            python-version: '3.11'
+            python-version: '3.13'  # Keep 3.12 on Windows
           - os: macos-latest
-            python-version: '3.11'
+            python-version: '3.13'  # Keep 3.12 on macOS
     
     services:
       # PostgreSQL service for integration tests (Linux only)
@@ -155,8 +158,6 @@ jobs:
     
     - name: 🔗 Run Integration Tests
       working-directory: ./backend
-      env:
-        ENVIRONMENT: testing
       run: |
         uv run pytest tests/integration/ \
           --verbose \
