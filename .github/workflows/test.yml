@@ -86,7 +86,8 @@ jobs:
     
     env:
       # Set database URLs at job level for all steps
-      DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql://testuser:testpassword@localhost:5432/testdb' || 'sqlite:///./test.db' }}
+      # Use async drivers for all databases (required by FastAPI + SQLAlchemy async)
+      DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+asyncpg://testuser:testpassword@localhost:5432/testdb' || 'sqlite+aiosqlite:///./test.db' }}
       TEST_DATABASE_URL: ${{ matrix.os == 'ubuntu-latest' && 'postgresql+asyncpg://testuser:testpassword@localhost:5432/testdb' || 'sqlite+aiosqlite:///./test.db' }}
       # Required environment variables for Settings class
       SECRET_KEY: "test-secret-key-for-ci-only-not-secure"
