@@ -22,7 +22,11 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp'
 import { getPendingEmail } from '@/lib/auth'
-import { useEmailConfirmation, useResendConfirmation, useSignin } from '@/data/hooks/useAuth'
+import {
+  useEmailConfirmation,
+  useResendConfirmation,
+  useSignin,
+} from '@/data/hooks/useAuth'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -233,10 +237,7 @@ export default function EmailConfirmationPage() {
           </div>
 
           <div className="space-y-3">
-            <Button
-              onClick={() => router.push('/signin')}
-              className="w-full"
-            >
+            <Button onClick={() => router.push('/signin')} className="w-full">
               Sign In Now
             </Button>
             <Button
@@ -338,39 +339,39 @@ export default function EmailConfirmationPage() {
               )}
             />
 
-                    <div className="space-y-3 mx-8">
-                      <Button
-                        type="submit"
-                        className="w-full cursor-pointer"
-                        disabled={isVerifying}
-                      >
-                        {isVerifying ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verifying...
-                          </>
-                        ) : (
-                          'Submit'
-                        )}
-                      </Button>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isResending}
-                        onClick={handleResendOTP}
-                      >
-                        {isResending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          'Resend Code'
-                        )}
-                      </Button>
-                    </div>
+            <div className="space-y-3 mx-8">
+              <Button
+                type="submit"
+                className="w-full cursor-pointer"
+                disabled={isVerifying}
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Submit'
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isResending}
+                onClick={handleResendOTP}
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Resend Code'
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </div>

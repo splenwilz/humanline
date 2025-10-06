@@ -87,7 +87,8 @@ class AuthService:
                 "sub": str(user.id), 
                 "email": user.email, 
                 "role": user.role,
-                "is_verified": user.is_verified
+                "is_verified": user.is_verified,
+                "needs_onboarding": AuthService._determine_needs_onboarding(user)
             },
             expires_delta=access_token_expires
         )
@@ -98,7 +99,8 @@ class AuthService:
                 "sub": str(user.id), 
                 "email": user.email, 
                 "role": user.role,
-                "is_verified": user.is_verified
+                "is_verified": user.is_verified,
+                "needs_onboarding": AuthService._determine_needs_onboarding(user)
             }
         )
         
@@ -114,7 +116,8 @@ class AuthService:
                 "role": user.role,
                 "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                 "created_at": user.created_at.isoformat(),
-                "permissions": get_permissions_for_role(user.role)
+                "permissions": get_permissions_for_role(user.role),
+                "needs_onboarding": AuthService._determine_needs_onboarding(user)
             }
         )
     
@@ -152,7 +155,8 @@ class AuthService:
                 "sub": str(user.id), 
                 "email": user.email, 
                 "role": user.role,
-                "is_verified": user.is_verified
+                "is_verified": user.is_verified,
+                "needs_onboarding": AuthService._determine_needs_onboarding(user)
             },
             expires_delta=access_token_expires
         )
@@ -179,7 +183,8 @@ class AuthService:
                 "role": user.role,
                 "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                 "created_at": user.created_at.isoformat(),
-                "permissions": get_permissions_for_role(user.role)
+                "permissions": get_permissions_for_role(user.role),
+                "needs_onboarding": AuthService._determine_needs_onboarding(user)
             }
         )
     
@@ -231,8 +236,9 @@ class AuthService:
                 user_data=user_data,
                 verification_code=verification_code,
                 code_expiration=code_expiration,
-                is_active=False,  # Account inactive until email confirmed
-                is_verified=False  # Email not verified yet
+                is_active=False,   # Account inactive until email confirmed
+                is_verified=False, # Email not verified yet
+                needs_onboarding=True  # New users need onboarding
             )
             
             # Send confirmation email asynchronously
@@ -267,7 +273,8 @@ class AuthService:
                 verification_code=None,  # No code needed for immediate activation
                 code_expiration=None,    # No expiration needed
                 is_active=True,           # Account active immediately
-                is_verified=True          # Email considered verified
+                is_verified=True,         # Email considered verified
+                needs_onboarding=True     # New users need onboarding
             )
             
             # Create access token for immediate login with real user role
@@ -278,7 +285,8 @@ class AuthService:
                     "sub": str(user.id), 
                     "email": user.email, 
                     "role": user.role,
-                    "is_verified": user.is_verified
+                    "is_verified": user.is_verified,
+                    "needs_onboarding": AuthService._determine_needs_onboarding(user)
                 },
                 expires_delta=access_token_expires
             )
@@ -309,7 +317,8 @@ class AuthService:
                         "role": user.role,
                         "email_confirmed_at": user.updated_at.isoformat() if user.is_verified else None,
                         "created_at": user.created_at.isoformat(),
-                        "permissions": get_permissions_for_role(user.role)
+                        "permissions": get_permissions_for_role(user.role),
+                        "needs_onboarding": AuthService._determine_needs_onboarding(user)
                     }
                 )
             }
@@ -526,4 +535,31 @@ class AuthService:
             f"Unable to generate unique verification code after {max_attempts} attempts. "
             "This may indicate high system load or insufficient entropy."
         )
+
+    @staticmethod
+    def _determine_needs_onboarding(user: User) -> bool:
+        """
+        Determine if a user needs to complete onboarding.
+        
+        This method handles the logic for both new and existing users:
+        - New users: Use the needs_onboarding field if set
+        - Existing users: Check if they have completed onboarding
+        
+        Args:
+            user: User model instance
+            
+        Returns:
+            bool: True if user needs onboarding, False otherwise
+        """
+        # For new users with the field set, use that value
+        if user.needs_onboarding is not None:
+            return user.needs_onboarding
+        
+        # For existing users (field is None), check if they have completed onboarding
+        # This handles backward compatibility with users created before this field existed
+        if hasattr(user, 'onboarding') and user.onboarding:
+            return not user.onboarding.onboarding_completed
+        
+        # Default: existing users without onboarding record need onboarding
+        return True
 

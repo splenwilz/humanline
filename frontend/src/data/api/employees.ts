@@ -57,17 +57,23 @@ export const employeeApi = {
 
   // Search employees
   async search(query: string): Promise<Employee[]> {
-    return apiClient.get<Employee[]>(`/employees/search?q=${encodeURIComponent(query)}`)
+    return apiClient.get<Employee[]>(
+      `/employees/search?q=${encodeURIComponent(query)}`,
+    )
   },
 
   // Get employees by department
   async getByDepartment(department: string): Promise<Employee[]> {
-    return apiClient.get<Employee[]>(`/employees?department=${encodeURIComponent(department)}`)
+    return apiClient.get<Employee[]>(
+      `/employees?department=${encodeURIComponent(department)}`,
+    )
   },
 
   // Get employees by status
   async getByStatus(status: string): Promise<Employee[]> {
-    return apiClient.get<Employee[]>(`/employees?status=${encodeURIComponent(status)}`)
+    return apiClient.get<Employee[]>(
+      `/employees?status=${encodeURIComponent(status)}`,
+    )
   },
 
   // Get employee statistics
@@ -81,7 +87,10 @@ export const employeeApi = {
   },
 
   // Update employee
-  async update(id: string, data: Partial<UpdateEmployeeRequest>): Promise<Employee> {
+  async update(
+    id: string,
+    data: Partial<UpdateEmployeeRequest>,
+  ): Promise<Employee> {
     return apiClient.put<Employee>(`/employees/${id}`, data)
   },
 

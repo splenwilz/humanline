@@ -1,55 +1,106 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-import { onboardingApi } from '@/data/api/onboarding'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-// Define the form data interface for frontend (camelCase)
-interface OnboardingFormData {
-  companyName: string
-  companyDomain: string
-  companySize: string
-  companyIndustry: string
-  companyRoles: string
-  yourNeeds: string
-}
+/**
+ * Enhanced Onboarding Context with comprehensive API integration
+ * Implements best practices for React context with TypeScript
+ */
 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useRef,
+} from 'react'
+import { toast } from 'sonner'
+
+// Import new API integration and types
+import {
+  useSubmitOnboarding,
+  useDomainAvailability,
+  useOnboardingValidation,
+} from '@/data/hooks/useOnboarding'
+import { domainValidation } from '@/data/api/onboarding'
+import type { OnboardingFormData, CompanySize } from '@/types/onboarding'
+
+/**
+ * Enhanced onboarding context interface with comprehensive validation and error handling
+ */
 interface OnboardingContextType {
-  // Current step
+  // Current step management
   currentStep: number
   setCurrentStep: (step: number) => void
+  totalSteps: number
 
-  // Form data
+  // Form data management with type safety
   formData: OnboardingFormData
   updateFormData: (data: Partial<OnboardingFormData>) => void
   resetFormData: () => void
 
-  // Navigation
+  // Navigation with validation
   nextStep: () => void
   prevStep: () => void
   canGoNext: () => boolean
   canGoPrev: () => boolean
+  goToStep: (step: number) => void
 
-  // Form submission
+  // Form submission with enhanced error handling
   submitCurrentStep: () => void
-
-  // Submission
-  isSubmitting: boolean
   submitForm: () => Promise<void>
+  isSubmitting: boolean
 
-  // Domain validation
-  isDomainValid: boolean
-  setDomainValid: (isValid: boolean) => void
+  // Real-time validation and feedback
+  validation: {
+    errors: Record<string, string>
+    validateField: (field: keyof OnboardingFormData, value: string) => boolean
+    validateAll: () => boolean
+    clearError: (field: keyof OnboardingFormData) => void
+    hasErrors: boolean
+    isValid: boolean
+  }
+
+  // Domain availability checking
+  domainAvailability: {
+    isChecking: boolean
+    isAvailable: boolean
+    error: string | null
+    fullDomain: string | null
+    checkNow: () => void
+  }
+
+  // Step-specific validation helpers
+  getStepValidation: (step: number) => {
+    isValid: boolean
+    errors: string[]
+    requiredFields: string[]
+  }
+
+  // Progress tracking
+  completedSteps: Set<number>
+  markStepCompleted: (step: number) => void
+
+  // Form validation registration (cleaner than global window)
+  registerFormValidation: (step: number, validator: () => Promise<boolean>) => void
+  unregisterFormValidation: (step: number) => void
 }
 
+/**
+ * Initial form data with proper typing
+ */
 const initialFormData: OnboardingFormData = {
   companyName: '',
   companyDomain: '',
-  companySize: '',
+  companySize: '1-10' as CompanySize, // Default to smallest size
   companyIndustry: '',
   companyRoles: '',
   yourNeeds: '',
 }
+
+/**
+ * Configuration constants
+ */
+const TOTAL_STEPS = 4
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(
   undefined,
@@ -70,170 +121,291 @@ interface OnboardingProviderProps {
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   children,
 }) => {
+  // State management
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingFormData>(initialFormData)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDomainValid, setIsDomainValid] = useState(true)
-  const router = useRouter()
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  
+  // Form validation registry (cleaner than global window)
+  const formValidators = useRef<Map<number, () => Promise<boolean>>>(new Map())
 
-  const updateFormData = (data: Partial<OnboardingFormData>) => {
-    setFormData((prev) => ({ ...prev, ...data }))
-  }
+  // Router for navigation (used in hooks)
+  // const router = useRouter() // Removed - not used directly in context
 
-  const resetFormData = () => {
+  // Enhanced hooks for API integration
+  const { submitOnboarding, isLoading: isSubmitting } = useSubmitOnboarding()
+  const validation = useOnboardingValidation(formData)
+  const domainAvailability = useDomainAvailability(formData.companyDomain, 500)
+
+  // Form data management with validation
+  const updateFormData = useCallback(
+    (data: Partial<OnboardingFormData>) => {
+      setFormData((prev) => {
+        const newData = { ...prev, ...data }
+
+        // Auto-validate changed fields
+        Object.keys(data).forEach((key) => {
+          validation.validateField(
+            key as keyof OnboardingFormData,
+            newData[key as keyof OnboardingFormData],
+          )
+        })
+
+        return newData
+      })
+    },
+    [validation],
+  )
+
+  const resetFormData = useCallback(() => {
     setFormData(initialFormData)
     setCurrentStep(1)
-  }
+    setCompletedSteps(new Set())
+  }, [])
 
-  const nextStep = () => {
-    if (currentStep < 4) {
+  // Navigation with validation
+  const nextStep = useCallback(() => {
+    if (currentStep < TOTAL_STEPS) {
+      setCompletedSteps((prev) => new Set(prev).add(currentStep))
       setCurrentStep((prev) => prev + 1)
     }
-  }
+  }, [currentStep])
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1)
     }
-  }
+  }, [currentStep])
 
-  const canGoNext = () => {
-    // Add validation logic for each step
-    switch (currentStep) {
-      case 1:
-        return (
-          formData.companyName.trim() !== '' &&
-          formData.companyDomain.trim() !== '' &&
-          formData.companySize.trim() !== '' &&
-          isDomainValid
-        )
-      case 2:
-        // Add step 2 validation
-        const step2Valid =
-          formData.companyDomain.trim() !== '' &&
-          formData.companyIndustry.trim() !== '' &&
-          isDomainValid
-
-        return step2Valid
-      case 3:
-        const step3Valid = formData.companyRoles.trim() !== ''
-
-        return step3Valid
-      case 4:
-        const step4Valid = formData.yourNeeds.trim() !== ''
-        return step4Valid
-      default:
-        return false
+  const goToStep = useCallback((step: number) => {
+    if (step >= 1 && step <= TOTAL_STEPS) {
+      setCurrentStep(step)
     }
-  }
+  }, [])
 
-  const canGoPrev = () => {
+  // Step validation logic with comprehensive checks
+  const getStepValidation = useCallback(
+    (step: number) => {
+      const errors: string[] = []
+      let isValid = true
+      let requiredFields: string[] = []
+
+      switch (step) {
+        case 1:
+          requiredFields = ['companyName', 'companySize']
+
+          if (!formData.companyName.trim()) {
+            errors.push('Company name is required')
+            isValid = false
+          }
+          if (!formData.companySize.trim()) {
+            errors.push('Company size is required')
+            isValid = false
+          }
+          break
+
+        case 2:
+          requiredFields = ['companyDomain', 'companyIndustry']
+
+          if (!formData.companyDomain.trim()) {
+            errors.push('Company domain is required')
+            isValid = false
+          } else {
+            const domainValidationResult = domainValidation.validateFormat(
+              formData.companyDomain,
+            )
+            if (!domainValidationResult.isValid) {
+              errors.push(
+                domainValidationResult.error || 'Invalid domain format',
+              )
+              isValid = false
+            }
+          }
+
+          // Only flag unavailability when the check has actually completed
+          if (
+            domainAvailability.availability !== null &&
+            !domainAvailability.isAvailable &&
+            formData.companyDomain.trim()
+          ) {
+            errors.push('Domain is not available')
+            isValid = false
+          }
+
+          if (!formData.companyIndustry.trim()) {
+            errors.push('Company industry is required')
+            isValid = false
+          }
+          break
+
+        case 3:
+          requiredFields = ['companyRoles']
+
+          if (!formData.companyRoles.trim()) {
+            errors.push('Your role is required')
+            isValid = false
+          }
+          break
+
+        case 4:
+          requiredFields = ['yourNeeds']
+
+          if (!formData.yourNeeds.trim()) {
+            errors.push('Your needs selection is required')
+            isValid = false
+          }
+          break
+      }
+
+      return { isValid, errors, requiredFields }
+    },
+    [formData, domainAvailability],
+  )
+
+  const canGoNext = useCallback(() => {
+    const stepValidation = getStepValidation(currentStep)
+    return stepValidation.isValid && !domainAvailability.isChecking
+  }, [currentStep, getStepValidation, domainAvailability.isChecking])
+
+  const canGoPrev = useCallback(() => {
     return currentStep > 1
-  }
+  }, [currentStep])
 
-  const submitCurrentStep = () => {
-    if (currentStep === 4) {
-      // For step 4, log all the data and then move to next step
-      console.log('🎉 All Form Data Captured:', {
-        formData,
-      })
-    }
-    nextStep()
-  }
-
-  const submitForm = async () => {
-    setIsSubmitting(true)
+  // Enhanced form submission with comprehensive validation
+  const submitForm = useCallback(async () => {
     try {
-      console.log('Submitting complete form data:', formData)
+      // Final validation before submission
+      const allStepsValid = Array.from(
+        { length: TOTAL_STEPS },
+        (_, i) => i + 1,
+      ).every((step) => getStepValidation(step).isValid)
 
-      // Additional validation before submission
-      if (!formData.companyDomain || formData.companyDomain.length < 3) {
-        toast.error('Invalid Domain', {
-          description: 'Please enter a valid company domain',
+      if (!allStepsValid) {
+        toast.error('Validation Error', {
+          description: 'Please complete all required fields before submitting.',
         })
         return
       }
 
-      // Transform camelCase to snake_case for API
-      const apiData = {
-        company_name: formData.companyName,
-        company_domain: formData.companyDomain,
-        company_size: formData.companySize,
-        company_industry: formData.companyIndustry,
-        company_roles: formData.companyRoles,
-        your_needs: formData.yourNeeds,
+      // Check domain availability one more time
+      if (
+        domainAvailability.availability !== null &&
+        !domainAvailability.isAvailable
+      ) {
+        toast.error('Domain Not Available', {
+          description: 'Please choose a different company domain.',
+        })
+        return
       }
 
-      const response = await onboardingApi.post(apiData)
-
-      // Show success toast
-      toast.success('Onboarding completed!', {
-        description: 'Welcome to Humanline! Your workspace is being set up.',
-      })
-
-      console.log('Form submitted successfully!', response)
+      // Submit using the enhanced hook
+      await submitOnboarding(formData)
 
       // Reset form after successful submission
       resetFormData()
-
-      // Navigate to dashboard
-      router.push('/dashboard')
     } catch (error) {
-      console.error('Error submitting form:', error)
-
-      let errorMessage = 'Failed to submit onboarding form. Please try again.'
-
-      if (error instanceof Error) {
-        const errorMsg = error.message.toLowerCase()
-
-        if (
-          errorMsg.includes('company domain already exists') ||
-          errorMsg.includes('duplicate key value violates unique constraint') ||
-          errorMsg.includes('already exists')
-        ) {
-          errorMessage =
-            'This company domain is already taken. Please choose a different one.'
-        } else if (errorMsg.includes('already completed onboarding')) {
-          errorMessage = 'You have already completed onboarding.'
-        } else if (
-          errorMsg.includes('invalid or expired') ||
-          errorMsg.includes('unauthorized')
-        ) {
-          errorMessage = 'Your session has expired. Please sign in again.'
-          // Redirect to signin
-          setTimeout(() => {
-            router.push('/signin')
-          }, 2000)
-        } else if (errorMsg.includes('validation failed')) {
-          errorMessage = 'Please check your form data and try again.'
-        }
-      }
-
-      toast.error('Submission Failed', {
-        description: errorMessage,
-      })
-
-      throw error
-    } finally {
-      setIsSubmitting(false)
+      // Error handling is done in the hook
+      console.error('Form submission error:', error)
     }
-  }
+  }, [
+    formData,
+    getStepValidation,
+    domainAvailability,
+    submitOnboarding,
+    resetFormData,
+  ])
 
+  // Step completion with validation
+  const submitCurrentStep = useCallback(async () => {
+    // First, trigger form-specific validation if available
+    let formValidationPassed = true
+    
+    const validator = formValidators.current.get(currentStep)
+    if (validator) {
+      formValidationPassed = await validator()
+    }
+
+    if (!formValidationPassed) {
+      toast.error('Validation Error', { 
+        description: 'Please fill in all required fields correctly.' 
+      })
+      return
+    }
+
+    // Then run context validation
+    const stepValidation = getStepValidation(currentStep)
+
+    if (!stepValidation.isValid) {
+      // Show validation errors
+      stepValidation.errors.forEach((error) => {
+        toast.error('Validation Error', { description: error })
+      })
+      return
+    }
+
+    if (currentStep === TOTAL_STEPS) {
+      // Final step - submit the form
+      submitForm()
+    } else {
+      // Move to next step
+      nextStep()
+    }
+  }, [currentStep, getStepValidation, nextStep, submitForm])
+
+  // Mark step as completed
+  const markStepCompleted = useCallback((step: number) => {
+    setCompletedSteps((prev) => new Set(prev).add(step))
+  }, [])
+
+  // Form validation registration (cleaner than global window)
+  const registerFormValidation = useCallback((step: number, validator: () => Promise<boolean>) => {
+    formValidators.current.set(step, validator)
+  }, [])
+
+  const unregisterFormValidation = useCallback((step: number) => {
+    formValidators.current.delete(step)
+  }, [])
+
+  // Context value with comprehensive API integration
   const value: OnboardingContextType = {
+    // Step management
     currentStep,
     setCurrentStep,
+    totalSteps: TOTAL_STEPS,
+
+    // Form data management
     formData,
     updateFormData,
     resetFormData,
+
+    // Navigation
     nextStep,
     prevStep,
     canGoNext,
     canGoPrev,
+    goToStep,
+
+    // Form submission
     submitCurrentStep,
-    isSubmitting,
     submitForm,
-    isDomainValid,
-    setDomainValid: setIsDomainValid,
+    isSubmitting,
+
+    // Validation
+    validation,
+
+    // Domain availability
+    domainAvailability,
+
+    // Step validation helpers
+    getStepValidation,
+
+    // Progress tracking
+    completedSteps,
+    markStepCompleted,
+
+    // Form validation registration
+    registerFormValidation,
+    unregisterFormValidation,
   }
 
   return (

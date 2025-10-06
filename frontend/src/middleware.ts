@@ -5,18 +5,14 @@ import { jwtVerify } from 'jose'
 const publicRoutes = [
   '/',
   '/signin',
-  '/signup', 
+  '/signup',
   '/confirm',
   '/api/health',
   '/forgot-password',
-  '/reset-password'
+  '/reset-password',
 ]
 
-const authRoutes = [
-  '/signin',
-  '/signup',
-  '/confirm'
-]
+const authRoutes = ['/signin', '/signup', '/confirm']
 
 const protectedRoutes = [
   '/dashboard',
@@ -24,21 +20,37 @@ const protectedRoutes = [
   '/employees',
   '/profile',
   '/settings',
-  '/admin'
+  '/admin',
 ]
 
 // JWT secret for token verification
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-at-least-32-characters-long-change-this-in-production'
+  process.env.JWT_SECRET ||
+    'your-super-secret-jwt-key-at-least-32-characters-long-change-this-in-production',
 )
+
+/**
+ * JWT payload interface for type safety
+ */
+interface JWTPayload {
+  sub: string
+  email: string
+  role?: string
+  email_verified?: boolean
+  is_verified?: boolean
+  needs_onboarding?: boolean
+  exp: number
+  iat: number
+  type?: string
+}
 
 /**
  * Verify JWT token with proper signature verification
  */
-async function verifyToken(token: string): Promise<any> {
+async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload
+    return payload as unknown as JWTPayload
   } catch (error) {
     console.error('Token verification failed:', error)
     return null
@@ -49,16 +61,16 @@ async function verifyToken(token: string): Promise<any> {
  * Check if route matches any pattern in the array
  */
 function matchesRoute(pathname: string, routes: string[]): boolean {
-  return routes.some(route => {
+  return routes.some((route) => {
     // Exact match
     if (route === pathname) return true
-    
+
     // Wildcard match (e.g., /dashboard matches /dashboard/*)
     if (route.endsWith('*')) {
       const baseRoute = route.slice(0, -1)
       return pathname.startsWith(baseRoute)
     }
-    
+
     // Prefix match for nested routes
     return pathname.startsWith(route + '/')
   })
@@ -69,25 +81,34 @@ function matchesRoute(pathname: string, routes: string[]): boolean {
  */
 async function getAuthStatus(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value
-  
+
+  console.log('🔍 Middleware - Token exists:', !!token)
+
   if (!token) {
     return { isAuthenticated: false, user: null }
   }
 
   const payload = await verifyToken(token)
-  
+
+  console.log('🔍 Middleware - JWT payload:', payload)
+
   if (!payload) {
     return { isAuthenticated: false, user: null }
   }
 
+  const user = {
+    id: payload.sub,
+    email: payload.email,
+    role: payload.role || 'user',
+    isEmailVerified: Boolean(payload.email_verified || payload.is_verified),
+    needsOnboarding: Boolean(payload.needs_onboarding),
+  }
+
+  console.log('🔍 Middleware - Parsed user:', user)
+
   return {
     isAuthenticated: true,
-    user: {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role || 'user',
-      isEmailVerified: Boolean(payload.email_verified || payload.is_verified)
-    }
+    user,
   }
 }
 
@@ -96,7 +117,7 @@ async function getAuthStatus(request: NextRequest) {
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
+
   // Skip middleware for static files and API routes (except protected ones)
   if (
     pathname.startsWith('/_next/') ||
@@ -107,7 +128,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const { isAuthenticated, user } = await getAuthStatus(request)
-  
+
   // Handle public routes
   if (matchesRoute(pathname, publicRoutes)) {
     return NextResponse.next()
@@ -115,7 +136,15 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (isAuthenticated && matchesRoute(pathname, authRoutes)) {
-    const redirectUrl = new URL('/dashboard', request.url)
+    console.log('🔍 Middleware - Auth page redirect logic:', {
+      needsOnboarding: user?.needsOnboarding,
+      redirectTo: user?.needsOnboarding ? '/onboarding' : '/dashboard',
+    })
+
+    // First-time users should go to onboarding, returning users to dashboard
+    const redirectUrl = user?.needsOnboarding
+      ? new URL('/onboarding', request.url)
+      : new URL('/dashboard', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -134,6 +163,27 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(confirmUrl)
     }
 
+    // Handle onboarding flow for first-time users
+    if (user?.needsOnboarding && pathname !== '/onboarding') {
+      console.log('🔍 Middleware - Redirecting to onboarding:', {
+        needsOnboarding: user.needsOnboarding,
+        currentPath: pathname,
+      })
+      // First-time users must complete onboarding before accessing other protected routes
+      const onboardingUrl = new URL('/onboarding', request.url)
+      return NextResponse.redirect(onboardingUrl)
+    }
+
+    // Prevent users who have completed onboarding from accessing onboarding page
+    if (!user?.needsOnboarding && pathname === '/onboarding') {
+      console.log('🔍 Middleware - Redirecting away from onboarding:', {
+        needsOnboarding: user?.needsOnboarding,
+        currentPath: pathname,
+      })
+      const dashboardUrl = new URL('/dashboard', request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
+
     // Role-based access control
     if (pathname.startsWith('/admin') && user?.role !== 'admin') {
       const unauthorizedUrl = new URL('/dashboard', request.url)
@@ -145,7 +195,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('x-user-id', user?.id || '')
     response.headers.set('x-user-email', user?.email || '')
     response.headers.set('x-user-role', user?.role || '')
-    
+
     return response
   }
 

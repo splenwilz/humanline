@@ -18,7 +18,7 @@ export function ProtectedRoute({
   requiredRole,
   requiredPermissions = [],
   fallback,
-  redirectTo = '/signin'
+  redirectTo = '/signin',
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useUser()
   const router = useRouter()
@@ -37,7 +37,11 @@ export function ProtectedRoute({
       }
 
       // Check role requirements
-      if (requiredRole && user?.role !== requiredRole && user?.role !== 'admin') {
+      if (
+        requiredRole &&
+        user?.role !== requiredRole &&
+        user?.role !== 'admin'
+      ) {
         router.push('/dashboard') // Redirect to default authorized page
         return
       }
@@ -45,8 +49,9 @@ export function ProtectedRoute({
       // Check permission requirements
       if (requiredPermissions.length > 0) {
         const userPermissions = user?.permissions || []
-        const hasAllPermissions = requiredPermissions.every(permission =>
-          userPermissions.includes(permission) || user?.role === 'admin'
+        const hasAllPermissions = requiredPermissions.every(
+          (permission) =>
+            userPermissions.includes(permission) || user?.role === 'admin',
         )
 
         if (!hasAllPermissions) {
@@ -55,7 +60,7 @@ export function ProtectedRoute({
         }
       }
     }
-    
+
     if (!isLoading) {
       setIsChecking(false)
     }
@@ -88,8 +93,9 @@ export function ProtectedRoute({
   // Check permission access
   if (requiredPermissions.length > 0) {
     const userPermissions = user?.permissions || []
-    const hasAllPermissions = requiredPermissions.every(permission =>
-      userPermissions.includes(permission) || user?.role === 'admin'
+    const hasAllPermissions = requiredPermissions.every(
+      (permission) =>
+        userPermissions.includes(permission) || user?.role === 'admin',
     )
 
     if (!hasAllPermissions) {
@@ -104,7 +110,7 @@ export function ProtectedRoute({
 // Higher-order component version
 export function withProtectedRoute<P extends object>(
   Component: React.ComponentType<P>,
-  options?: Omit<ProtectedRouteProps, 'children'>
+  options?: Omit<ProtectedRouteProps, 'children'>,
 ) {
   return function ProtectedComponent(props: P) {
     return (
@@ -128,11 +134,11 @@ export function usePermissions() {
   }
 
   const hasAnyPermission = (permissions: string[]) => {
-    return permissions.some(permission => hasPermission(permission))
+    return permissions.some((permission) => hasPermission(permission))
   }
 
   const hasAllPermissions = (permissions: string[]) => {
-    return permissions.every(permission => hasPermission(permission))
+    return permissions.every((permission) => hasPermission(permission))
   }
 
   return {
@@ -143,6 +149,6 @@ export function usePermissions() {
     hasAllPermissions,
     isAdmin: user?.role === 'admin',
     isManager: user?.role === 'manager',
-    isUser: user?.role === 'user'
+    isUser: user?.role === 'user',
   }
 }

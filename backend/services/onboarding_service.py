@@ -85,6 +85,16 @@ class OnboardingService:
             # Add to session and commit transaction
             # Database handles constraint validation and rollback on error
             db.add(onboarding)
+            
+            # Update user to mark onboarding as completed
+            # This prevents the user from being redirected to onboarding again
+            user_query = select(User).where(User.id == user_id)
+            user_result = await db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            
+            if user:
+                user.needs_onboarding = False
+            
             await db.commit()
             await db.refresh(onboarding)  # Get updated fields (id, timestamps)
             

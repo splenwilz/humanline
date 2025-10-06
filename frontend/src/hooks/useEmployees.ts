@@ -3,21 +3,36 @@
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { mutate } from 'swr'
-import { employeeApi, type Employee, type EmployeeStats, type CreateEmployeeRequest, type UpdateEmployeeRequest } from '@/data/api/employees'
+import {
+  employeeApi,
+  type Employee,
+  type EmployeeStats,
+  type CreateEmployeeRequest,
+  type UpdateEmployeeRequest,
+} from '@/data/api/employees'
 import { type EmployeeDetails } from '@/components/table/column'
 import { createCacheKey, invalidateCache } from '@/lib/swr-config'
 import { toast } from 'sonner'
 
 // Mutation fetchers
-async function createEmployeeFetcher(_: string, { arg }: { arg: CreateEmployeeRequest }) {
+async function createEmployeeFetcher(
+  _: string,
+  { arg }: { arg: CreateEmployeeRequest },
+) {
   return employeeApi.create(arg)
 }
 
-async function updateEmployeeFetcher(_: string, { arg }: { arg: { id: string; data: Partial<UpdateEmployeeRequest> } }) {
+async function updateEmployeeFetcher(
+  _: string,
+  { arg }: { arg: { id: string; data: Partial<UpdateEmployeeRequest> } },
+) {
   return employeeApi.update(arg.id, arg.data)
 }
 
-async function deleteEmployeeFetcher(_: string, { arg }: { arg: { id: string } }) {
+async function deleteEmployeeFetcher(
+  _: string,
+  { arg }: { arg: { id: string } },
+) {
   return employeeApi.delete(arg.id)
 }
 
@@ -42,15 +57,11 @@ export const useEmployees = () => {
     data: employees,
     error,
     isLoading,
-    mutate: refetch
-  } = useSWR(
-    createCacheKey.employees(),
-    () => employeeApi.getAll(),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
-  )
+    mutate: refetch,
+  } = useSWR(createCacheKey.employees(), () => employeeApi.getAll(), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+  })
 
   return {
     employees: employees ? employees.map(transformEmployeeToTableFormat) : [],
@@ -66,14 +77,14 @@ export const useEmployee = (id: string | null) => {
     data: employee,
     error,
     isLoading,
-    mutate: refetch
+    mutate: refetch,
   } = useSWR(
     id ? createCacheKey.employee(id) : null,
     id ? () => employeeApi.getById(id) : null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-    }
+    },
   )
 
   return {
@@ -90,14 +101,14 @@ export const useEmployeeSearch = () => {
     data: employees,
     error,
     isLoading,
-    mutate: performSearch
+    mutate: performSearch,
   } = useSWR(
     null, // Will be set dynamically
     null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   )
 
   const search = async (query: string) => {
@@ -109,9 +120,11 @@ export const useEmployeeSearch = () => {
     try {
       const cacheKey = createCacheKey.employeeSearch(query)
       const results = await mutate(cacheKey, () => employeeApi.search(query))
-      const transformedResults = results ? results.map(transformEmployeeToTableFormat) : []
+      const transformedResults = results
+        ? results.map(transformEmployeeToTableFormat)
+        : []
       await performSearch(transformedResults, false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Employee search error:', error)
       toast.error('Search failed. Please try again.')
     }
@@ -131,15 +144,11 @@ export const useEmployeeStats = () => {
     data: stats,
     error,
     isLoading,
-    mutate: refetch
-  } = useSWR(
-    createCacheKey.employeeStats(),
-    () => employeeApi.getStats(),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
-  )
+    mutate: refetch,
+  } = useSWR(createCacheKey.employeeStats(), () => employeeApi.getStats(), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+  })
 
   return {
     stats,
@@ -155,14 +164,14 @@ export const useEmployeesByDepartment = (department: string | null) => {
     data: employees,
     error,
     isLoading,
-    mutate: refetch
+    mutate: refetch,
   } = useSWR(
     department ? createCacheKey.employeesByDepartment(department) : null,
     department ? () => employeeApi.getByDepartment(department) : null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-    }
+    },
   )
 
   return {
@@ -179,14 +188,14 @@ export const useEmployeesByStatus = (status: string | null) => {
     data: employees,
     error,
     isLoading,
-    mutate: refetch
+    mutate: refetch,
   } = useSWR(
     status ? createCacheKey.employeesByStatus(status) : null,
     status ? () => employeeApi.getByStatus(status) : null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-    }
+    },
   )
 
   return {
@@ -199,23 +208,26 @@ export const useEmployeesByStatus = (status: string | null) => {
 
 // Hook to create employee
 export const useCreateEmployee = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/employees', createEmployeeFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/employees',
+    createEmployeeFetcher,
+  )
 
   const createEmployee = async (employeeData: CreateEmployeeRequest) => {
     try {
       const newEmployee = await trigger(employeeData)
-      
+
       // Invalidate employee caches
       await mutate(
-        key => typeof key === 'string' && key.startsWith('/employees'),
+        (key) => typeof key === 'string' && key.startsWith('/employees'),
         undefined,
-        { revalidate: true }
+        { revalidate: true },
       )
 
       toast.success('Employee created successfully!')
       return { success: true, data: newEmployee }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to create employee'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create employee'
       toast.error(errorMessage)
       throw error
     }
@@ -231,22 +243,30 @@ export const useCreateEmployee = () => {
 
 // Hook to update employee
 export const useUpdateEmployee = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/employees/update', updateEmployeeFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/employees/update',
+    updateEmployeeFetcher,
+  )
 
-  const updateEmployee = async (id: string, employeeData: Partial<UpdateEmployeeRequest>) => {
+  const updateEmployee = async (
+    id: string,
+    employeeData: Partial<UpdateEmployeeRequest>,
+  ) => {
     try {
       const updatedEmployee = await trigger({ id, data: employeeData })
-      
+
       // Invalidate specific employee and related caches
       const keysToInvalidate = invalidateCache.employee(id)
       await Promise.all(
-        keysToInvalidate.map(key => mutate(key, undefined, { revalidate: true }))
+        keysToInvalidate.map((key) =>
+          mutate(key, undefined, { revalidate: true }),
+        ),
       )
 
       toast.success('Employee updated successfully!')
       return { success: true, data: updatedEmployee }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to update employee'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update employee'
       toast.error(errorMessage)
       throw error
     }
@@ -262,23 +282,26 @@ export const useUpdateEmployee = () => {
 
 // Hook to delete employee
 export const useDeleteEmployee = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/employees/delete', deleteEmployeeFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/employees/delete',
+    deleteEmployeeFetcher,
+  )
 
   const deleteEmployee = async (id: string) => {
     try {
       await trigger({ id })
-      
+
       // Invalidate employee caches
       await mutate(
-        key => typeof key === 'string' && key.startsWith('/employees'),
+        (key) => typeof key === 'string' && key.startsWith('/employees'),
         undefined,
-        { revalidate: true }
+        { revalidate: true },
       )
 
       toast.success('Employee deleted successfully!')
       return { success: true }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to delete employee'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete employee'
       toast.error(errorMessage)
       throw error
     }

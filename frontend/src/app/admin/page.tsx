@@ -1,8 +1,17 @@
 'use client'
 
-import { ProtectedRoute, usePermissions } from '@/components/auth/ProtectedRoute'
+import {
+  ProtectedRoute,
+  usePermissions,
+} from '@/components/auth/ProtectedRoute'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Shield, Users, Settings, BarChart3 } from 'lucide-react'
 
@@ -14,7 +23,9 @@ function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-gray-600">Administrative controls and system management</p>
+          <p className="text-gray-600">
+            Administrative controls and system management
+          </p>
         </div>
         <Badge variant="destructive" className="flex items-center gap-2">
           <Shield className="h-4 w-4" />
@@ -34,10 +45,7 @@ function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              className="w-full" 
-              disabled={!hasPermission('users.write')}
-            >
+            <Button className="w-full" disabled={!hasPermission('users.write')}>
               Manage Users
             </Button>
           </CardContent>
@@ -54,8 +62,8 @@ function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               disabled={!hasPermission('settings.write')}
             >
               System Settings
@@ -69,13 +77,11 @@ function AdminDashboard() {
               <BarChart3 className="h-5 w-5" />
               Analytics
             </CardTitle>
-            <CardDescription>
-              View system analytics and reports
-            </CardDescription>
+            <CardDescription>View system analytics and reports</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               disabled={!hasPermission('reports.read')}
             >
               View Analytics
@@ -91,16 +97,26 @@ function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <p><strong>Email:</strong> {user?.email}</p>
-            <p><strong>Role:</strong> <Badge>{user?.role}</Badge></p>
-            <p><strong>Is Admin:</strong> {isAdmin ? '✅ Yes' : '❌ No'}</p>
-            <p><strong>Permissions:</strong></p>
+            <p>
+              <strong>Email:</strong> {user?.email}
+            </p>
+            <p>
+              <strong>Role:</strong> <Badge>{user?.role}</Badge>
+            </p>
+            <p>
+              <strong>Is Admin:</strong> {isAdmin ? '✅ Yes' : '❌ No'}
+            </p>
+            <p>
+              <strong>Permissions:</strong>
+            </p>
             <div className="flex flex-wrap gap-2 mt-2">
-              {user?.permissions?.map(permission => (
+              {user?.permissions?.map((permission) => (
                 <Badge key={permission} variant="outline">
                   {permission}
                 </Badge>
-              )) || <span className="text-gray-500">No specific permissions</span>}
+              )) || (
+                <span className="text-gray-500">No specific permissions</span>
+              )}
             </div>
           </div>
         </CardContent>

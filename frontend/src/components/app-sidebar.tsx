@@ -168,7 +168,6 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-    
   return (
     <Sidebar variant="inset" {...props} className="bg-white border">
       <SidebarHeader className="bg-white">

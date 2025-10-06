@@ -31,9 +31,9 @@ const TOKEN_KEYS = {
 // Helper function to set cookie
 const setCookie = (name: string, value: string, days: number = 7) => {
   if (typeof document === 'undefined') return // Skip on server-side
-  
+
   const expires = new Date()
-  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000))
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
   const secure = window.location.protocol === 'https:' ? 'Secure;' : ''
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;${secure}`
 }
@@ -48,11 +48,11 @@ export const storeTokens = (tokens: AuthTokens) => {
   // Store in localStorage for client-side access
   localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.access_token)
   localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refresh_token)
-  
+
   // Calculate and store actual expiry timestamp (not duration)
-  const expiryTimestamp = Date.now() + (tokens.expires_in * 1000)
+  const expiryTimestamp = Date.now() + tokens.expires_in * 1000
   localStorage.setItem(TOKEN_KEYS.TOKEN_EXPIRES_IN, expiryTimestamp.toString())
-  
+
   // Store access token in cookie for middleware access
   const expiryDays = Math.ceil(tokens.expires_in / (24 * 60 * 60)) // Convert seconds to days
   setCookie('access_token', tokens.access_token, expiryDays)
@@ -122,7 +122,7 @@ export const clearTokens = () => {
   localStorage.removeItem(TOKEN_KEYS.TOKEN_EXPIRES_IN)
   localStorage.removeItem(TOKEN_KEYS.USER_PROFILE)
   localStorage.removeItem(TOKEN_KEYS.PENDING_EMAIL)
-  
+
   // Clear cookies
   deleteCookie('access_token')
 }

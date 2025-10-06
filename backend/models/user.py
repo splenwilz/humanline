@@ -110,6 +110,17 @@ class User(Base):
         comment="Email verification code expiration timestamp"
     )
     
+    # First-time signup tracking for onboarding flow
+    # This flag indicates if the user needs to complete onboarding
+    # Set to True on registration, False after onboarding completion
+    # Nullable to handle existing users gracefully
+    needs_onboarding: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=True,
+        comment="Whether the user needs to complete onboarding process"
+    )
+    
     # Audit timestamps
     # timezone.utc ensures consistent timezone handling
     created_at: Mapped[datetime] = mapped_column(

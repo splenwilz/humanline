@@ -8,8 +8,8 @@ export interface SignupRequest {
 }
 
 // Union type for signup response - can be either immediate login or email confirmation
-export type SignupResponse = 
-  | SignupImmediateLoginResponse 
+export type SignupResponse =
+  | SignupImmediateLoginResponse
   | SignupEmailConfirmationResponse
 
 // Response when email confirmation is disabled (immediate login)
@@ -26,6 +26,7 @@ export interface SignupImmediateLoginResponse {
     email_confirmed_at?: string
     permissions?: string[]
     created_at: string
+    needs_onboarding?: boolean
   }
 }
 
@@ -57,6 +58,7 @@ export interface SigninResponse {
     email_confirmed_at?: string
     permissions?: string[]
     created_at: string
+    needs_onboarding?: boolean
   }
 }
 
@@ -81,5 +83,6 @@ export interface OTPVerificationResponse {
     email_confirmed_at?: string
     permissions?: string[]
     created_at: string
+    needs_onboarding?: boolean
   }
 }

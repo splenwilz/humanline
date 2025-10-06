@@ -26,7 +26,7 @@ export const useUser = () => {
       shouldRetryOnError: (error) => {
         if (error?.status === 401) return false
         return true
-      }
+      },
     },
   )
 
