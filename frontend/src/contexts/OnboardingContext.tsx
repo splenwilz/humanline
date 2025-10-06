@@ -259,7 +259,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
       return { isValid, errors, requiredFields }
     },
-    [formData, domainAvailability.isAvailable],
+    [formData, domainAvailability],
   )
 
   const canGoNext = useCallback(() => {
