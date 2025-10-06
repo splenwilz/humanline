@@ -57,7 +57,9 @@ export function OnboardForm3() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       companyRoles: isCustomRole ? 'other' : formData.companyRoles,
-      customRole: isCustomRole ? formData.companyRoles : '',
+      customRole: isCustomRole && formData.companyRoles !== 'other' 
+        ? formData.companyRoles 
+        : '',
     },
   })
 
@@ -77,7 +79,9 @@ export function OnboardForm3() {
 
     const nextValues = {
       companyRoles: isCustom ? 'other' : formData.companyRoles,
-      customRole: isCustom ? formData.companyRoles : '',
+      customRole: isCustom && formData.companyRoles !== 'other' 
+        ? formData.companyRoles 
+        : '',
     }
 
     // Only reset if values actually changed to prevent feedback loop
@@ -125,6 +129,21 @@ export function OnboardForm3() {
     })
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
+
+  // Expose form validation to parent components
+  useEffect(() => {
+    // Store form validation function globally so context can access it
+    const globalWindow = window as typeof window & {
+      validateForm3?: () => Promise<boolean>
+    }
+    globalWindow.validateForm3 = () => {
+      return form.trigger() // This triggers Zod validation
+    }
+    
+    return () => {
+      delete globalWindow.validateForm3
+    }
+  }, [form])
 
   const companyRoles = [
     { value: 'ceo-founder-owner ', label: 'CEO/Founder/Owner' },

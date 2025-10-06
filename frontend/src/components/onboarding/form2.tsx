@@ -10,7 +10,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
@@ -62,7 +61,9 @@ export function OnboardForm2() {
     defaultValues: {
       companyDomain: formData.companyDomain,
       companyIndustry: isCustomIndustry ? 'other' : formData.companyIndustry,
-      customIndustry: isCustomIndustry ? formData.companyIndustry : '',
+      customIndustry: isCustomIndustry && formData.companyIndustry !== 'other' 
+        ? formData.companyIndustry 
+        : '',
     },
   })
 
@@ -83,7 +84,9 @@ export function OnboardForm2() {
     const nextValues = {
       companyDomain: formData.companyDomain,
       companyIndustry: isCustom ? 'other' : formData.companyIndustry,
-      customIndustry: isCustom ? formData.companyIndustry : '',
+      customIndustry: isCustom && formData.companyIndustry !== 'other' 
+        ? formData.companyIndustry 
+        : '',
     }
 
     // Only reset if values actually changed to prevent feedback loop
@@ -133,6 +136,21 @@ export function OnboardForm2() {
     })
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
+
+  // Expose form validation to parent components
+  useEffect(() => {
+    // Store form validation function globally so context can access it
+    const globalWindow = window as typeof window & {
+      validateForm2?: () => Promise<boolean>
+    }
+    globalWindow.validateForm2 = () => {
+      return form.trigger() // This triggers Zod validation
+    }
+    
+    return () => {
+      delete globalWindow.validateForm2
+    }
+  }, [form])
 
   const companyIndustries = [
     { value: 'crypto', label: 'Crypto' },

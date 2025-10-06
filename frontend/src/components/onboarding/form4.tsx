@@ -57,7 +57,9 @@ export function OnboardForm4() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       yourNeeds: isCustomNeeds ? 'other' : formData.yourNeeds,
-      customNeeds: isCustomNeeds ? formData.yourNeeds : '',
+      customNeeds: isCustomNeeds && formData.yourNeeds !== 'other' 
+        ? formData.yourNeeds 
+        : '',
     },
   })
 
@@ -77,7 +79,9 @@ export function OnboardForm4() {
 
     const nextValues = {
       yourNeeds: isCustom ? 'other' : formData.yourNeeds,
-      customNeeds: isCustom ? formData.yourNeeds : '',
+      customNeeds: isCustom && formData.yourNeeds !== 'other' 
+        ? formData.yourNeeds 
+        : '',
     }
 
     // Only reset if values actually changed to prevent feedback loop
@@ -122,6 +126,21 @@ export function OnboardForm4() {
     })
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
+
+  // Expose form validation to parent components
+  useEffect(() => {
+    // Store form validation function globally so context can access it
+    const globalWindow = window as typeof window & {
+      validateForm4?: () => Promise<boolean>
+    }
+    globalWindow.validateForm4 = () => {
+      return form.trigger() // This triggers Zod validation
+    }
+    
+    return () => {
+      delete globalWindow.validateForm4
+    }
+  }, [form])
 
   const yourNeeds = [
     {

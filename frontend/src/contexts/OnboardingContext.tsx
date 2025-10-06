@@ -12,7 +12,6 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 // Import new API integration and types
@@ -123,7 +122,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
 
   // Router for navigation (used in hooks)
-  const router = useRouter()
+  // const router = useRouter() // Removed - not used directly in context
 
   // Enhanced hooks for API integration
   const { submitOnboarding, isLoading: isSubmitting } = useSubmitOnboarding()
@@ -304,7 +303,32 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   ])
 
   // Step completion with validation
-  const submitCurrentStep = useCallback(() => {
+  const submitCurrentStep = useCallback(async () => {
+    // First, trigger form-specific validation if available
+    let formValidationPassed = true
+    
+    const globalWindow = window as typeof window & {
+      validateForm2?: () => Promise<boolean>
+      validateForm3?: () => Promise<boolean>
+      validateForm4?: () => Promise<boolean>
+    }
+    
+    if (currentStep === 2 && globalWindow.validateForm2) {
+      formValidationPassed = await globalWindow.validateForm2()
+    } else if (currentStep === 3 && globalWindow.validateForm3) {
+      formValidationPassed = await globalWindow.validateForm3()
+    } else if (currentStep === 4 && globalWindow.validateForm4) {
+      formValidationPassed = await globalWindow.validateForm4()
+    }
+
+    if (!formValidationPassed) {
+      toast.error('Validation Error', { 
+        description: 'Please fill in all required fields correctly.' 
+      })
+      return
+    }
+
+    // Then run context validation
     const stepValidation = getStepValidation(currentStep)
 
     if (!stepValidation.isValid) {

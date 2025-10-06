@@ -10,7 +10,7 @@ import { OnboardForm3 } from '@/components/onboarding/form3'
 import { OnboardForm4 } from '@/components/onboarding/form4'
 
 const OnboardingContent = () => {
-  const { currentStep, nextStep, prevStep, canGoNext, canGoPrev, submitForm } =
+  const { currentStep, prevStep, canGoNext, canGoPrev, submitCurrentStep } =
     useOnboarding()
 
   const renderStepIndicator = () => {
@@ -129,7 +129,7 @@ const OnboardingContent = () => {
 
                 {currentStep < 5 && (
                   <Button
-                    onClick={currentStep === 4 ? submitForm : nextStep}
+                    onClick={submitCurrentStep}
                     disabled={!canGoNext()}
                     className="cursor-pointer w-48 h-12"
                   >
