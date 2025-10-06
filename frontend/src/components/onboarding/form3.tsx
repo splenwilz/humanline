@@ -24,7 +24,18 @@ const formSchema = z.object({
     message: 'Please select a company roles.',
   }),
   customRole: z.string().optional(),
-})
+}).refine(
+  (values) => {
+    if (values.companyRoles === 'other' && !values.customRole?.trim()) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Please specify your role.',
+    path: ['customRole'],
+  }
+)
 
 export function OnboardForm3() {
   const { formData, updateFormData, nextStep } = useOnboarding()

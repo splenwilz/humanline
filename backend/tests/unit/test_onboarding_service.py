@@ -79,6 +79,9 @@ class TestOnboardingServiceCreate:
         mock_db.add.assert_called_once()
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once()
+        
+        # Verify user's needs_onboarding flag was updated
+        assert mock_user.needs_onboarding is False
     
     @pytest.mark.asyncio
     async def test_create_onboarding_duplicate_user(self):

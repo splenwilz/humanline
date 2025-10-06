@@ -28,7 +28,18 @@ const formSchema = z.object({
     message: 'Please select a company industry.',
   }),
   customIndustry: z.string().optional(),
-})
+}).refine(
+  (values) => {
+    if (values.companyIndustry === 'other' && !values.customIndustry?.trim()) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Please specify your industry.',
+    path: ['customIndustry'],
+  }
+)
 
 export function OnboardForm2() {
   const { formData, updateFormData, nextStep } = useOnboarding()

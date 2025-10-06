@@ -24,7 +24,18 @@ const formSchema = z.object({
     message: 'Please select a your needs.',
   }),
   customNeeds: z.string().optional(),
-})
+}).refine(
+  (values) => {
+    if (values.yourNeeds === 'other' && !values.customNeeds?.trim()) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Please describe your specific needs.',
+    path: ['customNeeds'],
+  }
+)
 
 export function OnboardForm4() {
   const { formData, updateFormData } = useOnboarding()
