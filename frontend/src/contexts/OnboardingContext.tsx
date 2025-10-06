@@ -310,7 +310,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   }, [
     formData,
     getStepValidation,
-    domainAvailability.isAvailable,
+    domainAvailability,
     submitOnboarding,
     resetFormData,
   ])
