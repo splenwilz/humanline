@@ -28,11 +28,17 @@ const formSchema = z.object({
 
 export function OnboardForm4() {
   const { formData, updateFormData } = useOnboarding()
-  
+
   // State to track if "other" is selected for needs
   const [isCustomNeeds, setIsCustomNeeds] = useState(
-    formData.yourNeeds && 
-    !['onboarding-new-employees ', 'online-time-tracking', 'performance-management', 'employee-engagement', 'Recruitment'].includes(formData.yourNeeds)
+    formData.yourNeeds &&
+      ![
+        'onboarding-new-employees ',
+        'online-time-tracking',
+        'performance-management',
+        'employee-engagement',
+        'Recruitment',
+      ].includes(formData.yourNeeds),
   )
 
   // 1. Define your form with initial values from context
@@ -46,24 +52,44 @@ export function OnboardForm4() {
 
   // Update form when context data changes
   useEffect(() => {
-    const isCustom = formData.yourNeeds && 
-      !['onboarding-new-employees ', 'online-time-tracking', 'performance-management', 'employee-engagement', 'Recruitment'].includes(formData.yourNeeds)
-    
+    const isCustom =
+      formData.yourNeeds &&
+      ![
+        'onboarding-new-employees ',
+        'online-time-tracking',
+        'performance-management',
+        'employee-engagement',
+        'Recruitment',
+      ].includes(formData.yourNeeds)
+
     setIsCustomNeeds(isCustom)
-    
-    form.reset({
+
+    const nextValues = {
       yourNeeds: isCustom ? 'other' : formData.yourNeeds,
       customNeeds: isCustom ? formData.yourNeeds : '',
-    })
+    }
+
+    // Only reset if values actually changed to prevent feedback loop
+    const currentValues = form.getValues()
+    const hasChanged = Object.keys(nextValues).some(
+      (key) =>
+        currentValues[key as keyof typeof currentValues] !==
+        nextValues[key as keyof typeof nextValues],
+    )
+
+    if (hasChanged) {
+      form.reset(nextValues)
+    }
   }, [formData, form])
 
   // 2. Define a submit handler that saves to context
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Determine the final needs value
-    const finalNeeds = values.yourNeeds === 'other' 
-      ? values.customNeeds || 'other'
-      : values.yourNeeds
-    
+    const finalNeeds =
+      values.yourNeeds === 'other'
+        ? values.customNeeds || 'other'
+        : values.yourNeeds
+
     // Save to context
     updateFormData({
       yourNeeds: finalNeeds,
@@ -74,10 +100,11 @@ export function OnboardForm4() {
   useEffect(() => {
     const subscription = form.watch((values) => {
       // Determine the final needs value for auto-save
-      const finalNeeds = values.yourNeeds === 'other' 
-        ? values.customNeeds || 'other'
-        : values.yourNeeds
-      
+      const finalNeeds =
+        values.yourNeeds === 'other'
+          ? values.customNeeds || 'other'
+          : values.yourNeeds
+
       updateFormData({
         yourNeeds: finalNeeds || '',
       })
@@ -119,8 +146,7 @@ export function OnboardForm4() {
     {
       value: 'other',
       label: 'Other',
-      description:
-        'I have specific needs that are not listed above.',
+      description: 'I have specific needs that are not listed above.',
     },
   ]
 
@@ -214,7 +240,7 @@ export function OnboardForm4() {
                       </div>
                     ))}
                   </RadioGroup>
-                  
+
                   {/* Custom needs input field */}
                   {isCustomNeeds && (
                     <FormField

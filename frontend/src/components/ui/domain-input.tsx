@@ -46,9 +46,10 @@ export const DomainInput: React.FC<DomainInputProps> = ({
       'pr-10 h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green',
       domainAvailability.isAvailable && value.length >= 3
         ? ' focus:border-green-500'
-        : domainAvailability.error || (!domainAvailability.isAvailable && value.length >= 3)
-        ? 'border-red-500 focus:border-red-500'
-        : '',
+        : domainAvailability.error ||
+            (!domainAvailability.isAvailable && value.length >= 3)
+          ? 'border-red-500 focus:border-red-500'
+          : '',
     )
   }
 
@@ -70,13 +71,18 @@ export const DomainInput: React.FC<DomainInputProps> = ({
         </div>
       </div>
 
-      {(domainAvailability.error || (domainAvailability.fullDomain && domainAvailability.isAvailable)) && (
+      {(domainAvailability.error ||
+        (domainAvailability.fullDomain && domainAvailability.isAvailable)) && (
         <p
-          className={cn('text-sm', domainAvailability.isAvailable ? 'text-green-600' : 'text-red-600')}
+          className={cn(
+            'text-sm',
+            domainAvailability.isAvailable ? 'text-green-600' : 'text-red-600',
+          )}
         >
-          {domainAvailability.error || 
-           (domainAvailability.isAvailable && domainAvailability.fullDomain && 
-            `✓ ${domainAvailability.fullDomain} is available`)}
+          {domainAvailability.error ||
+            (domainAvailability.isAvailable &&
+              domainAvailability.fullDomain &&
+              `✓ ${domainAvailability.fullDomain} is available`)}
         </p>
       )}
     </div>

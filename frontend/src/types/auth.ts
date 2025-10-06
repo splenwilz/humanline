@@ -8,8 +8,8 @@ export interface SignupRequest {
 }
 
 // Union type for signup response - can be either immediate login or email confirmation
-export type SignupResponse = 
-  | SignupImmediateLoginResponse 
+export type SignupResponse =
+  | SignupImmediateLoginResponse
   | SignupEmailConfirmationResponse
 
 // Response when email confirmation is disabled (immediate login)

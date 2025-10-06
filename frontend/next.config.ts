@@ -7,10 +7,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, '..'),
   },
-  
+
   // Docker support
   output: 'standalone',
-  
+
   // API rewrite for backend communication
   async rewrites() {
     return [

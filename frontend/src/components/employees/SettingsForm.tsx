@@ -60,7 +60,12 @@ export default function SettingsForm() {
                 className="h-6 w-6 p-0 text-custom-grey-400 hover:text-custom-grey-600"
                 onClick={() => setIsEditingTimezone(true)}
               >
-                <Image src="/icons/edit.svg" alt="edit" width={18} height={18} />
+                <Image
+                  src="/icons/edit.svg"
+                  alt="edit"
+                  width={18}
+                  height={18}
+                />
               </Button>
             </div>
           </div>
@@ -100,7 +105,6 @@ export default function SettingsForm() {
                     <span className="text-sm text-custom-grey-900">
                       {timezone}
                     </span>
-                   
                   </div>
                 )}
               </div>
@@ -113,9 +117,9 @@ export default function SettingsForm() {
       <Card className="p-6 border border-custom-grey-200 rounded-2xl shadow-none">
         <div className="space-y-6">
           <div className="flex flex-row gap-3 justify-between w-full">
-          <h3 className="text-lg font-semibold text-custom-grey-900">
-            Privacy
-          </h3>
+            <h3 className="text-lg font-semibold text-custom-grey-900">
+              Privacy
+            </h3>
 
             <div className="flex items-center gap-2">
               <Button
@@ -124,7 +128,12 @@ export default function SettingsForm() {
                 className="h-6 w-6 p-0 text-custom-grey-400 hover:text-custom-grey-600"
                 onClick={() => setIsEditingBirthday(true)}
               >
-                <Image src="/icons/edit.svg" alt="edit" width={18} height={18} />
+                <Image
+                  src="/icons/edit.svg"
+                  alt="edit"
+                  width={18}
+                  height={18}
+                />
               </Button>
             </div>
           </div>
@@ -172,7 +181,6 @@ export default function SettingsForm() {
                     <span className="text-sm text-custom-grey-900">
                       {birthdayVisibility}
                     </span>
-                   
                   </div>
                 )}
               </div>

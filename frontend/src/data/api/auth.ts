@@ -22,9 +22,9 @@ export const authApi = {
 
   // Confirm email address using 6-digit verification code
   async confirmEmail(code: string): Promise<{
-    message: string;
-    user_email: string;
-    confirmed_at: string;
+    message: string
+    user_email: string
+    confirmed_at: string
   }> {
     // Send code in request body for better security (prevents logging in URLs)
     return apiClient.post('/auth/confirm-email', { code })
@@ -32,9 +32,9 @@ export const authApi = {
 
   // Resend email confirmation code to unverified user
   async resendConfirmation(email: string): Promise<{
-    message: string;
-    email: string;
-    expires_in_hours: number;
+    message: string
+    email: string
+    expires_in_hours: number
   }> {
     return apiClient.post('/auth/resend-confirmation', { email })
   },

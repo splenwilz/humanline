@@ -10,7 +10,7 @@ import {
   OnboardingStatus,
   DomainAvailabilityResponse,
   OnboardingApiError,
-  CompanySize
+  CompanySize,
 } from '@/types/onboarding'
 import { apiClient } from './client'
 import { ApiError, ValidationError } from './types'
@@ -38,33 +38,57 @@ export const domainValidation = {
 
     // Check minimum and maximum length constraints
     if (cleanDomain.length < 3) {
-      return { isValid: false, error: 'Domain must be at least 3 characters long' }
+      return {
+        isValid: false,
+        error: 'Domain must be at least 3 characters long',
+      }
     }
     if (cleanDomain.length > 50) {
-      return { isValid: false, error: 'Domain must be no more than 50 characters long' }
+      return {
+        isValid: false,
+        error: 'Domain must be no more than 50 characters long',
+      }
     }
 
     // Validate format with regex - must start and end with alphanumeric
     if (cleanDomain.length > 1) {
       if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(cleanDomain)) {
-        return { 
-          isValid: false, 
-          error: 'Domain must contain only letters, numbers, and hyphens. Cannot start or end with hyphen.' 
+        return {
+          isValid: false,
+          error:
+            'Domain must contain only letters, numbers, and hyphens. Cannot start or end with hyphen.',
         }
       }
     } else if (!/^[a-z0-9]$/.test(cleanDomain)) {
-      return { isValid: false, error: 'Single character domain must be alphanumeric' }
+      return {
+        isValid: false,
+        error: 'Single character domain must be alphanumeric',
+      }
     }
 
     // Check for consecutive hyphens
     if (cleanDomain.includes('--')) {
-      return { isValid: false, error: 'Domain cannot contain consecutive hyphens' }
+      return {
+        isValid: false,
+        error: 'Domain cannot contain consecutive hyphens',
+      }
     }
 
     // Check against reserved domains
-    const reservedDomains = new Set(['www', 'api', 'admin', 'app', 'mail', 'ftp', 'blog'])
+    const reservedDomains = new Set([
+      'www',
+      'api',
+      'admin',
+      'app',
+      'mail',
+      'ftp',
+      'blog',
+    ])
     if (reservedDomains.has(cleanDomain)) {
-      return { isValid: false, error: `Domain "${cleanDomain}" is reserved and cannot be used` }
+      return {
+        isValid: false,
+        error: `Domain "${cleanDomain}" is reserved and cannot be used`,
+      }
     }
 
     return { isValid: true }
@@ -75,7 +99,7 @@ export const domainValidation = {
    */
   normalize: (domain: string): string => {
     return domain.toLowerCase().trim()
-  }
+  },
 }
 
 /**
@@ -85,7 +109,14 @@ export const companySizeValidation = {
   /**
    * Valid company size options matching backend validation
    */
-  validSizes: ['1-10', '11-50', '51-100', '101-200', '201-500', '500+'] as const,
+  validSizes: [
+    '1-10',
+    '11-50',
+    '51-100',
+    '101-200',
+    '201-500',
+    '500+',
+  ] as const,
 
   /**
    * Validate company size selection
@@ -96,14 +127,14 @@ export const companySizeValidation = {
     }
 
     if (!companySizeValidation.validSizes.includes(size as CompanySize)) {
-      return { 
-        isValid: false, 
-        error: `Invalid company size. Must be one of: ${companySizeValidation.validSizes.join(', ')}` 
+      return {
+        isValid: false,
+        error: `Invalid company size. Must be one of: ${companySizeValidation.validSizes.join(', ')}`,
       }
     }
 
     return { isValid: true }
-  }
+  },
 }
 
 /**
@@ -119,7 +150,9 @@ export const onboardingApi = {
       // Client-side validation before API call to provide immediate feedback
       const domainCheck = domainValidation.validateFormat(data.company_domain)
       if (!domainCheck.isValid) {
-        throw new ValidationError(domainCheck.error!, { field: 'company_domain' })
+        throw new ValidationError(domainCheck.error!, {
+          field: 'company_domain',
+        })
       }
 
       const sizeCheck = companySizeValidation.validate(data.company_size)
@@ -130,13 +163,15 @@ export const onboardingApi = {
       // Normalize domain before sending to backend
       const normalizedData = {
         ...data,
-        company_domain: domainValidation.normalize(data.company_domain)
+        company_domain: domainValidation.normalize(data.company_domain),
       }
 
       // Make API request with normalized data
-      const response = await apiClient.post<OnboardingResponse>('/onboarding', normalizedData)
+      const response = await apiClient.post<OnboardingResponse>(
+        '/onboarding',
+        normalizedData,
+      )
       return response
-
     } catch (error) {
       // Enhanced error handling with specific error types
       if (error instanceof ValidationError) {
@@ -146,33 +181,40 @@ export const onboardingApi = {
       if (error instanceof ApiError) {
         // Handle specific API error codes from backend
         const apiError = error as ApiError & { detail?: OnboardingApiError }
-        
+
         if (apiError.detail?.error_code === 'DUPLICATE_ONBOARDING') {
-          throw new ValidationError('You have already completed onboarding', { 
+          throw new ValidationError('You have already completed onboarding', {
             field: 'user',
-            code: 'DUPLICATE_ONBOARDING' 
+            code: 'DUPLICATE_ONBOARDING',
           })
         }
-        
+
         if (apiError.detail?.error_code === 'DOMAIN_TAKEN') {
-          throw new ValidationError('This company domain is already taken. Please choose a different one.', { 
-            field: 'company_domain',
-            code: 'DOMAIN_TAKEN' 
-          })
+          throw new ValidationError(
+            'This company domain is already taken. Please choose a different one.',
+            {
+              field: 'company_domain',
+              code: 'DOMAIN_TAKEN',
+            },
+          )
         }
 
         // Generic API error with user-friendly message
         throw new ValidationError(
-          apiError.detail?.message || 'Failed to create onboarding record. Please try again.',
-          { code: apiError.detail?.error_code || 'API_ERROR' }
+          apiError.detail?.message ||
+            'Failed to create onboarding record. Please try again.',
+          { code: apiError.detail?.error_code || 'API_ERROR' },
         )
       }
 
       // Handle unexpected errors
       console.error('Unexpected error in onboarding creation:', error)
-      throw new ValidationError('An unexpected error occurred. Please try again.', { 
-        code: 'UNKNOWN_ERROR' 
-      })
+      throw new ValidationError(
+        'An unexpected error occurred. Please try again.',
+        {
+          code: 'UNKNOWN_ERROR',
+        },
+      )
     }
   },
 
@@ -183,19 +225,18 @@ export const onboardingApi = {
     try {
       const response = await apiClient.get<OnboardingDetail>('/onboarding')
       return response
-
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         // User hasn't completed onboarding yet - this is expected
-        throw new ValidationError('No onboarding record found', { 
-          code: 'ONBOARDING_NOT_FOUND' 
+        throw new ValidationError('No onboarding record found', {
+          code: 'ONBOARDING_NOT_FOUND',
         })
       }
 
       // Handle other API errors
       console.error('Error fetching onboarding data:', error)
-      throw new ValidationError('Failed to retrieve onboarding information', { 
-        code: 'FETCH_ERROR' 
+      throw new ValidationError('Failed to retrieve onboarding information', {
+        code: 'FETCH_ERROR',
       })
     }
   },
@@ -206,17 +247,20 @@ export const onboardingApi = {
    */
   getStatus: async (): Promise<OnboardingStatus> => {
     try {
-      const response = await apiClient.get<OnboardingStatus>('/onboarding/status')
+      const response =
+        await apiClient.get<OnboardingStatus>('/onboarding/status')
       return response
-
     } catch (error) {
       // Return default status if API fails - prevents blocking user flow
-      console.warn('Failed to fetch onboarding status, returning default:', error)
+      console.warn(
+        'Failed to fetch onboarding status, returning default:',
+        error,
+      )
       return {
         has_onboarding: false,
         onboarding_completed: false,
         workspace_created: false,
-        company_domain: null
+        company_domain: null,
       }
     }
   },
@@ -225,27 +269,28 @@ export const onboardingApi = {
    * Check domain availability with debouncing support
    * Used for real-time validation during user input
    */
-  checkDomainAvailability: async (domain: string): Promise<DomainAvailabilityResponse> => {
+  checkDomainAvailability: async (
+    domain: string,
+  ): Promise<DomainAvailabilityResponse> => {
     try {
       // Client-side validation first to avoid unnecessary API calls
       const validation = domainValidation.validateFormat(domain)
       if (!validation.isValid) {
-        throw new ValidationError(validation.error!, { 
+        throw new ValidationError(validation.error!, {
           field: 'domain',
-          code: 'INVALID_DOMAIN_FORMAT' 
+          code: 'INVALID_DOMAIN_FORMAT',
         })
       }
 
       // Normalize domain before checking
       const normalizedDomain = domainValidation.normalize(domain)
-      
+
       // Make API request to check availability
       const response = await apiClient.get<DomainAvailabilityResponse>(
-        `/onboarding/check-domain/${encodeURIComponent(normalizedDomain)}`
+        `/onboarding/check-domain/${encodeURIComponent(normalizedDomain)}`,
       )
-      
-      return response
 
+      return response
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error // Re-throw validation errors
@@ -253,22 +298,25 @@ export const onboardingApi = {
 
       if (error instanceof ApiError) {
         const apiError = error as ApiError & { detail?: OnboardingApiError }
-        
+
         if (apiError.status === 422) {
           throw new ValidationError(
             apiError.detail?.message || 'Invalid domain format',
-            { field: 'domain', code: 'INVALID_DOMAIN_FORMAT' }
+            { field: 'domain', code: 'INVALID_DOMAIN_FORMAT' },
           )
         }
       }
 
       // Handle unexpected errors gracefully
       console.error('Error checking domain availability:', error)
-      throw new ValidationError('Unable to check domain availability. Please try again.', { 
-        code: 'AVAILABILITY_CHECK_ERROR' 
-      })
+      throw new ValidationError(
+        'Unable to check domain availability. Please try again.',
+        {
+          code: 'AVAILABILITY_CHECK_ERROR',
+        },
+      )
     }
-  }
+  },
 }
 
 /**
@@ -277,5 +325,5 @@ export const onboardingApi = {
  */
 export const legacyOnboardingApi = {
   post: onboardingApi.create,
-  get: onboardingApi.get
+  get: onboardingApi.get,
 }

@@ -32,11 +32,17 @@ const formSchema = z.object({
 
 export function OnboardForm2() {
   const { formData, updateFormData, nextStep } = useOnboarding()
-  
+
   // State to track if "other" is selected for industry
   const [isCustomIndustry, setIsCustomIndustry] = useState(
-    formData.companyIndustry && 
-    !['crypto', 'ecommerce', 'fintech', 'health-tech', 'software-outsourcing'].includes(formData.companyIndustry)
+    formData.companyIndustry &&
+      ![
+        'crypto',
+        'ecommerce',
+        'fintech',
+        'health-tech',
+        'software-outsourcing',
+      ].includes(formData.companyIndustry),
   )
 
   // 1. Define your form with initial values from context
@@ -51,25 +57,45 @@ export function OnboardForm2() {
 
   // Update form when context data changes
   useEffect(() => {
-    const isCustom = formData.companyIndustry && 
-      !['crypto', 'ecommerce', 'fintech', 'health-tech', 'software-outsourcing'].includes(formData.companyIndustry)
-    
+    const isCustom =
+      formData.companyIndustry &&
+      ![
+        'crypto',
+        'ecommerce',
+        'fintech',
+        'health-tech',
+        'software-outsourcing',
+      ].includes(formData.companyIndustry)
+
     setIsCustomIndustry(isCustom)
-    
-    form.reset({
+
+    const nextValues = {
       companyDomain: formData.companyDomain,
       companyIndustry: isCustom ? 'other' : formData.companyIndustry,
       customIndustry: isCustom ? formData.companyIndustry : '',
-    })
+    }
+
+    // Only reset if values actually changed to prevent feedback loop
+    const currentValues = form.getValues()
+    const hasChanged = Object.keys(nextValues).some(
+      (key) =>
+        currentValues[key as keyof typeof currentValues] !==
+        nextValues[key as keyof typeof nextValues],
+    )
+
+    if (hasChanged) {
+      form.reset(nextValues)
+    }
   }, [formData, form])
 
   // 2. Define a submit handler that saves to context
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Determine the final industry value
-    const finalIndustry = values.companyIndustry === 'other' 
-      ? values.customIndustry || 'other'
-      : values.companyIndustry
-    
+    const finalIndustry =
+      values.companyIndustry === 'other'
+        ? values.customIndustry || 'other'
+        : values.companyIndustry
+
     // Save to context
     updateFormData({
       companyDomain: values.companyDomain,
@@ -84,10 +110,11 @@ export function OnboardForm2() {
   useEffect(() => {
     const subscription = form.watch((values) => {
       // Determine the final industry value for auto-save
-      const finalIndustry = values.companyIndustry === 'other' 
-        ? values.customIndustry || 'other'
-        : values.companyIndustry
-      
+      const finalIndustry =
+        values.companyIndustry === 'other'
+          ? values.customIndustry || 'other'
+          : values.companyIndustry
+
       updateFormData({
         companyDomain: values.companyDomain || '',
         companyIndustry: finalIndustry || '',
@@ -207,7 +234,7 @@ export function OnboardForm2() {
                       </div>
                     ))}
                   </RadioGroup>
-                  
+
                   {/* Custom industry input field */}
                   {isCustomIndustry && (
                     <FormField

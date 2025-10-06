@@ -31,7 +31,17 @@ const performanceData = [
 ]
 
 // Custom dot component for the highlighted point
-const CustomDot = (props: any) => {
+interface CustomDotProps {
+  cx?: number
+  cy?: number
+  payload?: {
+    month: string
+    projectTeam: number
+    productTeam: number
+  }
+}
+
+const CustomDot = (props: CustomDotProps) => {
   const { cx, cy, payload } = props
   // Show dot on April data point
   if (payload && payload.month === 'Apr') {

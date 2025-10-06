@@ -13,17 +13,19 @@ import { toast } from 'sonner'
 import { Role } from '@/lib/rbac'
 
 // Mutation fetchers
-async function signupFetcher(_: string, { arg }: { arg: { email: string; password: string; fullName?: string } }) {
+async function signupFetcher(
+  _: string,
+  { arg }: { arg: { email: string; password: string; fullName?: string } },
+) {
   const { email, password, fullName } = arg
-  
+
   // Split full name into first and last name for backend compatibility
   const trimmedName = fullName?.trim() || ''
-  const nameParts = trimmedName.split(' ').filter(part => part.length > 0)
-  
+  const nameParts = trimmedName.split(' ').filter((part) => part.length > 0)
+
   const firstName = nameParts[0] || 'User'
-  const lastName = nameParts.length > 1 
-    ? nameParts.slice(1).join(' ') 
-    : firstName
+  const lastName =
+    nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName
 
   return authApi.signup({
     email,
@@ -33,25 +35,40 @@ async function signupFetcher(_: string, { arg }: { arg: { email: string; passwor
   })
 }
 
-async function signinFetcher(_: string, { arg }: { arg: { email: string; password: string } }) {
+async function signinFetcher(
+  _: string,
+  { arg }: { arg: { email: string; password: string } },
+) {
   return authApi.signin(arg)
 }
 
-async function confirmEmailFetcher(_: string, { arg }: { arg: { code: string } }) {
+async function confirmEmailFetcher(
+  _: string,
+  { arg }: { arg: { code: string } },
+) {
   return authApi.confirmEmail(arg.code)
 }
 
-async function resendConfirmationFetcher(_: string, { arg }: { arg: { email: string } }) {
+async function resendConfirmationFetcher(
+  _: string,
+  { arg }: { arg: { email: string } },
+) {
   return authApi.resendConfirmation(arg.email)
 }
 
-async function refreshTokenFetcher(_: string, { arg }: { arg: { refreshToken: string } }) {
+async function refreshTokenFetcher(
+  _: string,
+  { arg }: { arg: { refreshToken: string } },
+) {
   return authApi.refreshToken(arg.refreshToken)
 }
 
 // Hook for user signup
 export const useSignup = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/auth/register', signupFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/auth/register',
+    signupFetcher,
+  )
 
   const signup = async (email: string, password: string, fullName?: string) => {
     try {
@@ -60,7 +77,7 @@ export const useSignup = () => {
       // Check response type to determine next action
       if ('access_token' in response) {
         console.log('🔍 Signup - Immediate login response:', response)
-        
+
         // Immediate login response - store tokens and redirect to dashboard
         storeTokens({
           access_token: response.access_token,
@@ -74,7 +91,7 @@ export const useSignup = () => {
           console.log('🔍 Signup - User profile:', response.user)
           storeUserProfile({
             ...response.user,
-            role: response.user.role as Role
+            role: response.user.role as Role,
           })
         }
 
@@ -82,28 +99,28 @@ export const useSignup = () => {
         await mutate(createCacheKey.user())
 
         toast.success('Registration successful! Welcome to Humanline.')
-        
+
         return {
           success: true,
           data: response,
           type: 'immediate_login',
-          message: 'Registration successful! Welcome to Humanline.'
+          message: 'Registration successful! Welcome to Humanline.',
         }
       } else {
         // Email confirmation response - store pending email
         storePendingEmail(email)
 
         toast.info('Please check your email for verification code.')
-        
+
         return {
           success: true,
           data: response,
           type: 'email_confirmation_required',
-          message: response.message
+          message: response.message,
         }
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Registration failed'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed'
       toast.error(errorMessage)
       throw error
     }
@@ -119,7 +136,10 @@ export const useSignup = () => {
 
 // Hook for user signin
 export const useSignin = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/auth/login', signinFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/auth/login',
+    signinFetcher,
+  )
 
   const signin = async (email: string, password: string) => {
     try {
@@ -137,7 +157,7 @@ export const useSignin = () => {
       if (response.user) {
         storeUserProfile({
           ...response.user,
-          role: response.user.role as Role
+          role: response.user.role as Role,
         })
       } else {
         console.error('No user data provided by backend in signin response')
@@ -149,8 +169,8 @@ export const useSignin = () => {
       toast.success('Welcome back!')
 
       return { success: true, data: response }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Sign in failed'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign in failed'
       toast.error(errorMessage)
       throw error
     }
@@ -166,7 +186,10 @@ export const useSignin = () => {
 
 // Hook for email confirmation
 export const useEmailConfirmation = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/auth/confirm-email', confirmEmailFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/auth/confirm-email',
+    confirmEmailFetcher,
+  )
 
   const confirmEmail = async (code: string) => {
     try {
@@ -178,8 +201,8 @@ export const useEmailConfirmation = () => {
       toast.success('Email confirmed successfully! You can now sign in.')
 
       return { success: true, data: response }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Email confirmation failed'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Email confirmation failed'
       toast.error(errorMessage)
       throw error
     }
@@ -195,7 +218,10 @@ export const useEmailConfirmation = () => {
 
 // Hook for resending confirmation
 export const useResendConfirmation = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/auth/resend-confirmation', resendConfirmationFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/auth/resend-confirmation',
+    resendConfirmationFetcher,
+  )
 
   const resendConfirmation = async (email: string) => {
     try {
@@ -203,16 +229,18 @@ export const useResendConfirmation = () => {
 
       toast.success('Confirmation code sent! Please check your email.')
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         data: {
           message: response.message,
           email: response.email,
-          expires_in_hours: response.expires_in_hours
-        }
+          expires_in_hours: response.expires_in_hours,
+        },
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to resend confirmation code'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to resend confirmation code'
       toast.error(errorMessage)
       throw error
     }
@@ -228,7 +256,10 @@ export const useResendConfirmation = () => {
 
 // Hook for token refresh
 export const useTokenRefresh = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation('/auth/refresh', refreshTokenFetcher)
+  const { trigger, data, error, isMutating } = useSWRMutation(
+    '/auth/refresh',
+    refreshTokenFetcher,
+  )
 
   const refreshToken = async (refreshToken: string) => {
     try {
@@ -245,7 +276,7 @@ export const useTokenRefresh = () => {
       if (response.user) {
         storeUserProfile({
           ...response.user,
-          role: response.user.role as Role
+          role: response.user.role as Role,
         })
       }
 
@@ -253,7 +284,7 @@ export const useTokenRefresh = () => {
       await mutate(createCacheKey.user())
 
       return { success: true, data: response }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Clear tokens on refresh failure
       clearTokens()
       throw error
@@ -275,16 +306,18 @@ export const useLogout = () => {
       // Clear tokens and user data
       clearTokens()
       clearPendingEmail()
-      
+
       // Invalidate all user-related caches
       await mutate(
-        key => typeof key === 'string' && (key.includes('/users') || key.includes('/auth')),
+        (key) =>
+          typeof key === 'string' &&
+          (key.includes('/users') || key.includes('/auth')),
         undefined,
-        { revalidate: false }
+        { revalidate: false },
       )
 
       toast.success('Logged out successfully')
-      
+
       // Redirect to signin page
       window.location.href = '/signin'
     } catch (error) {

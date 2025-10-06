@@ -12,7 +12,13 @@ import { domainValidation } from '@/data/api/onboarding'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react'
 
@@ -23,22 +29,16 @@ import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react'
 export const DomainValidationExample: React.FC = () => {
   // State for domain input
   const [domain, setDomain] = useState('')
-  
+
   // Real-time domain availability checking with debouncing
-  const {
-    availability,
-    isChecking,
-    error,
-    isAvailable,
-    fullDomain,
-    checkNow
-  } = useDomainAvailability(domain, 500) // 500ms debounce
+  const { availability, isChecking, error, isAvailable, fullDomain, checkNow } =
+    useDomainAvailability(domain, 500) // 500ms debounce
 
   // Handle domain input change with immediate client-side validation
   const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setDomain(value)
-    
+
     // Client-side validation feedback
     if (value.length >= 3) {
       const validation = domainValidation.validateFormat(value)
@@ -46,7 +46,7 @@ export const DomainValidationExample: React.FC = () => {
         // Show validation error as toast for immediate feedback
         toast.error('Domain Format Error', {
           description: validation.error,
-          duration: 3000
+          duration: 3000,
         })
       }
     }
@@ -58,51 +58,53 @@ export const DomainValidationExample: React.FC = () => {
       toast.error('Please enter a domain to check')
       return
     }
-    
+
     checkNow()
   }
 
   // Get validation status for UI feedback
   const getValidationStatus = () => {
     if (!domain.trim()) return null
-    
+
     // Client-side validation first
     const validation = domainValidation.validateFormat(domain)
     if (!validation.isValid) {
       return {
         type: 'error' as const,
         message: validation.error || 'Invalid format',
-        icon: <XCircle className="h-4 w-4 text-red-500" />
+        icon: <XCircle className="h-4 w-4 text-red-500" />,
       }
     }
-    
+
     // API validation status
     if (isChecking) {
       return {
         type: 'loading' as const,
         message: 'Checking availability...',
-        icon: <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        icon: <Loader2 className="h-4 w-4 animate-spin text-blue-500" />,
       }
     }
-    
+
     if (error) {
       return {
         type: 'error' as const,
         message: error,
-        icon: <AlertCircle className="h-4 w-4 text-yellow-500" />
+        icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
       }
     }
-    
+
     if (availability) {
       return {
         type: isAvailable ? 'success' : 'error',
         message: availability.message,
-        icon: isAvailable 
-          ? <CheckCircle className="h-4 w-4 text-green-500" />
-          : <XCircle className="h-4 w-4 text-red-500" />
+        icon: isAvailable ? (
+          <CheckCircle className="h-4 w-4 text-green-500" />
+        ) : (
+          <XCircle className="h-4 w-4 text-red-500" />
+        ),
       }
     }
-    
+
     return null
   }
 
@@ -116,7 +118,7 @@ export const DomainValidationExample: React.FC = () => {
           Real-time domain validation with comprehensive error handling
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Domain Input with Real-time Validation */}
         <div className="space-y-2">
@@ -129,8 +131,11 @@ export const DomainValidationExample: React.FC = () => {
               value={domain}
               onChange={handleDomainChange}
               className={`pr-10 ${
-                status?.type === 'error' ? 'border-red-500' : 
-                status?.type === 'success' ? 'border-green-500' : ''
+                status?.type === 'error'
+                  ? 'border-red-500'
+                  : status?.type === 'success'
+                    ? 'border-green-500'
+                    : ''
               }`}
             />
             {/* Status Icon */}
@@ -140,14 +145,18 @@ export const DomainValidationExample: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           {/* Validation Message */}
           {status && (
-            <div className={`text-sm flex items-center gap-2 ${
-              status.type === 'error' ? 'text-red-600' : 
-              status.type === 'success' ? 'text-green-600' : 
-              'text-blue-600'
-            }`}>
+            <div
+              className={`text-sm flex items-center gap-2 ${
+                status.type === 'error'
+                  ? 'text-red-600'
+                  : status.type === 'success'
+                    ? 'text-green-600'
+                    : 'text-blue-600'
+              }`}
+            >
               {status.icon}
               {status.message}
             </div>
@@ -175,7 +184,7 @@ export const DomainValidationExample: React.FC = () => {
         )}
 
         {/* Manual Check Button */}
-        <Button 
+        <Button
           onClick={handleCheckDomain}
           disabled={isChecking || !domain.trim()}
           className="w-full"

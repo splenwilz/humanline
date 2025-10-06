@@ -45,7 +45,13 @@ class TestOnboardingServiceCreate:
         mock_existing_domain = MagicMock()
         mock_existing_domain.scalar_one_or_none.return_value = None
         
-        mock_db.execute.side_effect = [mock_existing_onboarding, mock_existing_domain]
+        # Mock user query for needs_onboarding update
+        mock_user = MagicMock()
+        mock_user.needs_onboarding = True  # Initial state
+        mock_user_result = MagicMock()
+        mock_user_result.scalar_one_or_none.return_value = mock_user
+        
+        mock_db.execute.side_effect = [mock_existing_onboarding, mock_existing_domain, mock_user_result]
         
         # Mock the refresh method to simulate database ID assignment
         def mock_refresh(obj):

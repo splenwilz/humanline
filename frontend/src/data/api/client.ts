@@ -34,7 +34,7 @@ class ApiClient {
   private async processQueue(token: string | null) {
     const pending = [...this.requestQueue]
     this.requestQueue = []
-    
+
     for (const callback of pending) {
       await callback()
     }
@@ -178,13 +178,17 @@ class ApiClient {
             // Try to refresh token and retry once
             if (retryCount === 0 && isRefreshTokenValid()) {
               console.log('401 error, attempting token refresh and retry...')
-              
+
               // If currently refreshing, queue this request
               if (this.isRefreshing) {
                 return new Promise<T>((resolve, reject) => {
                   this.requestQueue.push(async () => {
                     try {
-                      const result = await this.request<T>(endpoint, options, retryCount + 1)
+                      const result = await this.request<T>(
+                        endpoint,
+                        options,
+                        retryCount + 1,
+                      )
                       resolve(result)
                     } catch (error) {
                       reject(error)

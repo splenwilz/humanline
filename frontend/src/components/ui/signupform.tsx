@@ -74,7 +74,9 @@ export default function SignupForm() {
       } else if (result.type === 'email_confirmation_required') {
         // Email confirmation enabled - user needs to check email
         toast.success('Account created successfully!', {
-          description: result.message || 'Please check your email for a confirmation link.',
+          description:
+            result.message ||
+            'Please check your email for a confirmation link.',
         })
 
         // Redirect to confirmation page

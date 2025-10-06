@@ -28,11 +28,17 @@ const formSchema = z.object({
 
 export function OnboardForm3() {
   const { formData, updateFormData, nextStep } = useOnboarding()
-  
+
   // State to track if "other" is selected for role
   const [isCustomRole, setIsCustomRole] = useState(
-    formData.companyRoles && 
-    !['ceo-founder-owner ', 'hr-manager', 'hr-staff', 'it-tech-manager', 'it-tech-staff'].includes(formData.companyRoles)
+    formData.companyRoles &&
+      ![
+        'ceo-founder-owner ',
+        'hr-manager',
+        'hr-staff',
+        'it-tech-manager',
+        'it-tech-staff',
+      ].includes(formData.companyRoles),
   )
 
   // 1. Define your form with initial values from context
@@ -46,24 +52,44 @@ export function OnboardForm3() {
 
   // Update form when context data changes
   useEffect(() => {
-    const isCustom = formData.companyRoles && 
-      !['ceo-founder-owner ', 'hr-manager', 'hr-staff', 'it-tech-manager', 'it-tech-staff'].includes(formData.companyRoles)
-    
+    const isCustom =
+      formData.companyRoles &&
+      ![
+        'ceo-founder-owner ',
+        'hr-manager',
+        'hr-staff',
+        'it-tech-manager',
+        'it-tech-staff',
+      ].includes(formData.companyRoles)
+
     setIsCustomRole(isCustom)
-    
-    form.reset({
+
+    const nextValues = {
       companyRoles: isCustom ? 'other' : formData.companyRoles,
       customRole: isCustom ? formData.companyRoles : '',
-    })
+    }
+
+    // Only reset if values actually changed to prevent feedback loop
+    const currentValues = form.getValues()
+    const hasChanged = Object.keys(nextValues).some(
+      (key) =>
+        currentValues[key as keyof typeof currentValues] !==
+        nextValues[key as keyof typeof nextValues],
+    )
+
+    if (hasChanged) {
+      form.reset(nextValues)
+    }
   }, [formData, form])
 
   // 2. Define a submit handler that saves to context
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Determine the final role value
-    const finalRole = values.companyRoles === 'other' 
-      ? values.customRole || 'other'
-      : values.companyRoles
-    
+    const finalRole =
+      values.companyRoles === 'other'
+        ? values.customRole || 'other'
+        : values.companyRoles
+
     // Save to context
     updateFormData({
       companyRoles: finalRole,
@@ -77,10 +103,11 @@ export function OnboardForm3() {
   useEffect(() => {
     const subscription = form.watch((values) => {
       // Determine the final role value for auto-save
-      const finalRole = values.companyRoles === 'other' 
-        ? values.customRole || 'other'
-        : values.companyRoles
-      
+      const finalRole =
+        values.companyRoles === 'other'
+          ? values.customRole || 'other'
+          : values.companyRoles
+
       updateFormData({
         companyRoles: finalRole || '',
       })
@@ -182,7 +209,7 @@ export function OnboardForm3() {
                       </div>
                     ))}
                   </RadioGroup>
-                  
+
                   {/* Custom role input field */}
                   {isCustomRole && (
                     <FormField

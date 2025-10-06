@@ -34,7 +34,13 @@ export interface OnboardingResponse {
 }
 
 // Company size options for validation
-export type CompanySize = '1-10' | '11-50' | '51-100' | '101-200' | '201-500' | '500+'
+export type CompanySize =
+  | '1-10'
+  | '11-50'
+  | '51-100'
+  | '101-200'
+  | '201-500'
+  | '500+'
 
 // Frontend form data interface (camelCase for React components)
 export interface OnboardingFormData {
