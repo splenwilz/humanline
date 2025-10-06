@@ -222,7 +222,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
             }
           }
 
+          // Only flag unavailability when the check has actually completed
           if (
+            domainAvailability.availability !== null &&
             !domainAvailability.isAvailable &&
             formData.companyDomain.trim()
           ) {
