@@ -288,7 +288,10 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
       }
 
       // Check domain availability one more time
-      if (!domainAvailability.isAvailable) {
+      if (
+        domainAvailability.availability !== null &&
+        !domainAvailability.isAvailable
+      ) {
         toast.error('Domain Not Available', {
           description: 'Please choose a different company domain.',
         })
