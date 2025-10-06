@@ -38,13 +38,13 @@ const formSchema = z.object({
 )
 
 export function OnboardForm3() {
-  const { formData, updateFormData, nextStep } = useOnboarding()
+  const { formData, updateFormData, nextStep, registerFormValidation, unregisterFormValidation } = useOnboarding()
 
   // State to track if "other" is selected for role
   const [isCustomRole, setIsCustomRole] = useState(
     formData.companyRoles &&
       ![
-        'ceo-founder-owner ',
+        'ceo-founder-owner',
         'hr-manager',
         'hr-staff',
         'it-tech-manager',
@@ -68,7 +68,7 @@ export function OnboardForm3() {
     const isCustom =
       formData.companyRoles &&
       ![
-        'ceo-founder-owner ',
+        'ceo-founder-owner',
         'hr-manager',
         'hr-staff',
         'it-tech-manager',
@@ -130,23 +130,18 @@ export function OnboardForm3() {
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
 
-  // Expose form validation to parent components
+  // Register form validation with context (cleaner than global window)
   useEffect(() => {
-    // Store form validation function globally so context can access it
-    const globalWindow = window as typeof window & {
-      validateForm3?: () => Promise<boolean>
-    }
-    globalWindow.validateForm3 = () => {
-      return form.trigger() // This triggers Zod validation
-    }
+    const validator = () => form.trigger() // This triggers Zod validation
+    registerFormValidation(3, validator)
     
     return () => {
-      delete globalWindow.validateForm3
+      unregisterFormValidation(3)
     }
-  }, [form])
+  }, [form, registerFormValidation, unregisterFormValidation])
 
   const companyRoles = [
-    { value: 'ceo-founder-owner ', label: 'CEO/Founder/Owner' },
+    { value: 'ceo-founder-owner', label: 'CEO/Founder/Owner' },
     { value: 'hr-manager', label: 'HR Manager' },
     { value: 'hr-staff', label: 'HR Staff' },
     { value: 'it-tech-manager', label: 'IT Tech Manager' },

@@ -41,7 +41,7 @@ const formSchema = z.object({
 )
 
 export function OnboardForm2() {
-  const { formData, updateFormData, nextStep } = useOnboarding()
+  const { formData, updateFormData, nextStep, registerFormValidation, unregisterFormValidation } = useOnboarding()
 
   // State to track if "other" is selected for industry
   const [isCustomIndustry, setIsCustomIndustry] = useState(
@@ -137,20 +137,15 @@ export function OnboardForm2() {
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
 
-  // Expose form validation to parent components
+  // Register form validation with context (cleaner than global window)
   useEffect(() => {
-    // Store form validation function globally so context can access it
-    const globalWindow = window as typeof window & {
-      validateForm2?: () => Promise<boolean>
-    }
-    globalWindow.validateForm2 = () => {
-      return form.trigger() // This triggers Zod validation
-    }
+    const validator = () => form.trigger() // This triggers Zod validation
+    registerFormValidation(2, validator)
     
     return () => {
-      delete globalWindow.validateForm2
+      unregisterFormValidation(2)
     }
-  }, [form])
+  }, [form, registerFormValidation, unregisterFormValidation])
 
   const companyIndustries = [
     { value: 'crypto', label: 'Crypto' },

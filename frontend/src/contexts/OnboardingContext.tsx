@@ -11,6 +11,7 @@ import React, {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from 'react'
 import { toast } from 'sonner'
 
@@ -78,6 +79,10 @@ interface OnboardingContextType {
   // Progress tracking
   completedSteps: Set<number>
   markStepCompleted: (step: number) => void
+
+  // Form validation registration (cleaner than global window)
+  registerFormValidation: (step: number, validator: () => Promise<boolean>) => void
+  unregisterFormValidation: (step: number) => void
 }
 
 /**
@@ -120,6 +125,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingFormData>(initialFormData)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
+  
+  // Form validation registry (cleaner than global window)
+  const formValidators = useRef<Map<number, () => Promise<boolean>>>(new Map())
 
   // Router for navigation (used in hooks)
   // const router = useRouter() // Removed - not used directly in context
@@ -307,18 +315,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     // First, trigger form-specific validation if available
     let formValidationPassed = true
     
-    const globalWindow = window as typeof window & {
-      validateForm2?: () => Promise<boolean>
-      validateForm3?: () => Promise<boolean>
-      validateForm4?: () => Promise<boolean>
-    }
-    
-    if (currentStep === 2 && globalWindow.validateForm2) {
-      formValidationPassed = await globalWindow.validateForm2()
-    } else if (currentStep === 3 && globalWindow.validateForm3) {
-      formValidationPassed = await globalWindow.validateForm3()
-    } else if (currentStep === 4 && globalWindow.validateForm4) {
-      formValidationPassed = await globalWindow.validateForm4()
+    const validator = formValidators.current.get(currentStep)
+    if (validator) {
+      formValidationPassed = await validator()
     }
 
     if (!formValidationPassed) {
@@ -351,6 +350,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   // Mark step as completed
   const markStepCompleted = useCallback((step: number) => {
     setCompletedSteps((prev) => new Set(prev).add(step))
+  }, [])
+
+  // Form validation registration (cleaner than global window)
+  const registerFormValidation = useCallback((step: number, validator: () => Promise<boolean>) => {
+    formValidators.current.set(step, validator)
+  }, [])
+
+  const unregisterFormValidation = useCallback((step: number) => {
+    formValidators.current.delete(step)
   }, [])
 
   // Context value with comprehensive API integration
@@ -389,6 +397,10 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     // Progress tracking
     completedSteps,
     markStepCompleted,
+
+    // Form validation registration
+    registerFormValidation,
+    unregisterFormValidation,
   }
 
   return (

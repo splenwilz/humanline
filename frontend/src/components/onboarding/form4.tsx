@@ -38,13 +38,13 @@ const formSchema = z.object({
 )
 
 export function OnboardForm4() {
-  const { formData, updateFormData } = useOnboarding()
+  const { formData, updateFormData, registerFormValidation, unregisterFormValidation } = useOnboarding()
 
   // State to track if "other" is selected for needs
   const [isCustomNeeds, setIsCustomNeeds] = useState(
     formData.yourNeeds &&
       ![
-        'onboarding-new-employees ',
+        'onboarding-new-employees',
         'online-time-tracking',
         'performance-management',
         'employee-engagement',
@@ -68,7 +68,7 @@ export function OnboardForm4() {
     const isCustom =
       formData.yourNeeds &&
       ![
-        'onboarding-new-employees ',
+        'onboarding-new-employees',
         'online-time-tracking',
         'performance-management',
         'employee-engagement',
@@ -127,24 +127,19 @@ export function OnboardForm4() {
     return () => subscription.unsubscribe()
   }, [form, updateFormData])
 
-  // Expose form validation to parent components
+  // Register form validation with context (cleaner than global window)
   useEffect(() => {
-    // Store form validation function globally so context can access it
-    const globalWindow = window as typeof window & {
-      validateForm4?: () => Promise<boolean>
-    }
-    globalWindow.validateForm4 = () => {
-      return form.trigger() // This triggers Zod validation
-    }
+    const validator = () => form.trigger() // This triggers Zod validation
+    registerFormValidation(4, validator)
     
     return () => {
-      delete globalWindow.validateForm4
+      unregisterFormValidation(4)
     }
-  }, [form])
+  }, [form, registerFormValidation, unregisterFormValidation])
 
   const yourNeeds = [
     {
-      value: 'onboarding-new-employees ',
+      value: 'onboarding-new-employees',
       label: 'Onboarding new employees',
       description:
         'I want to onboard a lot of new employees in a consistent and systematic way.',
