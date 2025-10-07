@@ -16,7 +16,7 @@ class EmployeeRequest(BaseModel):
     @classmethod
     def validate_names(cls, v):
         """Validate names contain only letters and common characters."""
-        if not re.match(r"^[a-zA-Z\s\-']+$", v.strip()):
+        if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", v.strip()):
             raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
         return v.strip().title()
 
@@ -79,14 +79,18 @@ class EmployeePersonalDetailsRequest(BaseModel):
     @field_validator('gender')
     @classmethod
     def validate_gender(cls, v):
-        if v and v not in ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']:
+        if v is None or v == "":
+            return None
+        if v not in ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']:
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
         return v
 
     @field_validator('marital_status')
     @classmethod
     def validate_marital_status(cls, v):
-        if v and v not in ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'SEPARATED']:
+        if v is None or v == "":
+            return None
+        if v not in ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'SEPARATED']:
             raise ValueError("Marital status must be one of: SINGLE, MARRIED, DIVORCED, WIDOWED, SEPARATED")
         return v
 
@@ -260,7 +264,7 @@ class EmployeeFullRequest(BaseModel):
     @classmethod
     def validate_names(cls, v):
         """Validate names contain only letters and common characters."""
-        if not re.match(r"^[a-zA-Z\s\-']+$", v.strip()):
+        if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", v.strip()):
             raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
         return v.strip().title()
 
