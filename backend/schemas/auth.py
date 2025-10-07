@@ -14,12 +14,12 @@ class LoginRequest(BaseModel):
     
     email: EmailStr = Field(
         description="User's email address",
-        json_schema_extra={"example": "user@example.com"}
+        json_schema_extra={"example": "knowaloud@gmail.com"}
     )
     password: str = Field(
         min_length=1,  # Allow any length for login (validation happens server-side)
         description="User's password",
-        json_schema_extra={"example": "securepassword123"}
+        json_schema_extra={"example": "67945731797"}
     )
 
 

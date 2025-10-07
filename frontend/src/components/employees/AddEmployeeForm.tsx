@@ -145,12 +145,12 @@ export function AddEmployeeForm() {
             </FormItem>
           )}
         />
-        <Button
+        {/* <Button
           type="submit"
           className="bg-custom-grey-900 text-white cursor-pointer"
         >
           Add Employee
-        </Button>
+        </Button> */}
       </form>
     </Form>
   )

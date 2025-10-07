@@ -142,6 +142,11 @@ class User(Base):
     # Optional one-to-one relationship - not all users complete onboarding
     onboarding: Mapped["Onboarding"] = relationship("Onboarding", back_populates="user", uselist=False)
     
+    # Relationship to Employee model
+    # One-to-many relationship - a user can have multiple employee records
+    # This allows tracking employee history, role changes, etc.
+    employees: Mapped[list["Employee"]] = relationship("Employee", back_populates="user", uselist=True)
+    
     def __repr__(self) -> str:
         """String representation for debugging."""
         return f"<User(id={self.id}, email='{self.email}', active={self.is_active})>"
