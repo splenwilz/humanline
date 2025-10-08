@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 import re
-from utils.security import mask_tax_id, mask_social_insurance, mask_address
+from utils.security import mask_tax_id, mask_social_insurance, mask_address, mask_sensitive_string
 
 
 class EmployeeRequest(BaseModel):
@@ -196,17 +196,42 @@ class EmployeeJobTimelineResponse(BaseModel):
 # Bank Info Schemas
 class EmployeeBankInfoRequest(BaseModel):
     """Request schema for creating/updating employee bank info."""
-    bank_name: str = Field(..., max_length=255, description="Bank name.")
-    account_number: str = Field(..., max_length=50, description="Bank account number.")
-    routing_number: str = Field(..., max_length=20, description="Bank routing number.")
-    account_type: str = Field(..., max_length=50, description="Account type.")
-    account_holder_name: str = Field(..., max_length=255, description="Account holder name.")
-    account_holder_type: str = Field(..., max_length=50, description="Account holder type.")
-    is_primary: bool = Field(True, description="Whether this is the primary account.")
-    is_active: bool = Field(True, description="Whether this bank account is active.")
+    bank_name: Optional[str] = Field(None, max_length=255, description="Bank name.")
+    account_number: Optional[str] = Field(None, max_length=50, description="Bank account number.")
+    routing_number: Optional[str] = Field(None, max_length=20, description="Bank routing number.")
+    account_type: Optional[str] = Field(None, max_length=50, description="Account type.")
+    account_holder_name: Optional[str] = Field(None, max_length=255, description="Account holder name.")
+    account_holder_type: Optional[str] = Field(None, max_length=50, description="Account holder type.")
+    is_primary: Optional[bool] = Field(None, description="Whether this is the primary account.")
+    is_active: Optional[bool] = Field(None, description="Whether this bank account is active.")
+    
+    @field_validator('account_type')
+    @classmethod
+    def validate_account_type(cls, v):
+        if v is not None and v != "":
+            valid_types = ['CHECKING', 'SAVINGS', 'MONEY_MARKET', 'CD', 'IRA', 'OTHER']
+            if v not in valid_types:
+                raise ValueError(f"account_type must be one of {valid_types}")
+        return v
+    
+    @field_validator('account_holder_type')
+    @classmethod
+    def validate_account_holder_type(cls, v):
+        if v is not None and v != "":
+            valid_types = ['INDIVIDUAL', 'JOINT', 'BUSINESS', 'TRUST', 'OTHER']
+            if v not in valid_types:
+                raise ValueError(f"account_holder_type must be one of {valid_types}")
+        return v
+    
+    @field_validator('bank_name', 'account_number', 'routing_number', 'account_holder_name')
+    @classmethod
+    def validate_non_empty_strings(cls, v):
+        if v is not None and v == "":
+            raise ValueError("Field cannot be empty")
+        return v
 
 class EmployeeBankInfoResponse(BaseModel):
-    """Response schema for employee bank info."""
+    """Response schema for employee bank info (with sensitive data)."""
     id: int = Field(..., description="The ID of the bank info record.")
     employee_id: int = Field(..., description="The ID of the employee.")
     bank_name: str = Field(..., description="Bank name.")
@@ -219,6 +244,40 @@ class EmployeeBankInfoResponse(BaseModel):
     is_active: bool = Field(..., description="Whether this bank account is active.")
     created_at: datetime = Field(..., description="When the record was created.")
     updated_at: datetime = Field(..., description="When the record was last updated.")
+
+
+class EmployeeBankInfoPublicResponse(BaseModel):
+    """Public response schema for employee bank info (sensitive data masked)."""
+    id: int = Field(..., description="The ID of the bank info record.")
+    employee_id: int = Field(..., description="The ID of the employee.")
+    bank_name: str = Field(..., description="Bank name.")
+    account_number: str = Field(..., description="Bank account number (masked).")
+    routing_number: str = Field(..., description="Bank routing number (masked).")
+    account_type: str = Field(..., description="Account type.")
+    account_holder_name: str = Field(..., description="Account holder name.")
+    account_holder_type: str = Field(..., description="Account holder type.")
+    is_primary: bool = Field(..., description="Whether this is the primary account.")
+    is_active: bool = Field(..., description="Whether this bank account is active.")
+    created_at: datetime = Field(..., description="When the record was created.")
+    updated_at: datetime = Field(..., description="When the record was last updated.")
+
+    @classmethod
+    def from_full_response(cls, full_response: 'EmployeeBankInfoResponse') -> 'EmployeeBankInfoPublicResponse':
+        """Create a public response from a full response with sensitive data masked."""
+        return cls(
+            id=full_response.id,
+            employee_id=full_response.employee_id,
+            bank_name=full_response.bank_name,
+            account_number=mask_sensitive_string(full_response.account_number, visible_chars=4),
+            routing_number=mask_sensitive_string(full_response.routing_number, visible_chars=4),
+            account_type=full_response.account_type,
+            account_holder_name=full_response.account_holder_name,
+            account_holder_type=full_response.account_holder_type,
+            is_primary=full_response.is_primary,
+            is_active=full_response.is_active,
+            created_at=full_response.created_at,
+            updated_at=full_response.updated_at
+        )
 
 # Dependent Schemas
 class EmployeeDependentRequest(BaseModel):
@@ -264,15 +323,15 @@ class EmployeeDependentResponse(BaseModel):
 # Document Schemas
 class EmployeeDocumentRequest(BaseModel):
     """Request schema for creating/updating employee document."""
-    document_type: str = Field(..., max_length=50, description="Type of document.")
-    file_name: str = Field(..., max_length=255, description="Name of the file.")
-    file_path: str = Field(..., max_length=500, description="Path to the file.")
-    file_size: int = Field(..., description="Size of the file in bytes.")
-    mime_type: str = Field(..., max_length=100, description="MIME type of the file.")
-    is_active: bool = Field(True, description="Whether this document is active.")
+    document_type: Optional[str] = Field(None, max_length=50, description="Type of document.")
+    file_name: Optional[str] = Field(None, max_length=255, description="Name of the file.")
+    file_path: Optional[str] = Field(None, max_length=500, description="Path to the file.")
+    file_size: Optional[int] = Field(None, description="Size of the file in bytes.")
+    mime_type: Optional[str] = Field(None, max_length=100, description="MIME type of the file.")
+    is_active: Optional[bool] = Field(None, description="Whether this document is active.")
 
 class EmployeeDocumentResponse(BaseModel):
-    """Response schema for employee document."""
+    """Response schema for employee document (with sensitive data)."""
     id: int = Field(..., description="The ID of the document record.")
     employee_id: int = Field(..., description="The ID of the employee.")
     document_type: str = Field(..., description="Type of document.")
@@ -285,6 +344,40 @@ class EmployeeDocumentResponse(BaseModel):
     is_active: bool = Field(..., description="Whether this document is active.")
     created_at: datetime = Field(..., description="When the record was created.")
     updated_at: datetime = Field(..., description="When the record was last updated.")
+
+
+class EmployeeDocumentPublicResponse(BaseModel):
+    """Public response schema for employee document (sensitive data masked)."""
+    id: int = Field(..., description="The ID of the document record.")
+    employee_id: int = Field(..., description="The ID of the employee.")
+    document_type: str = Field(..., description="Type of document.")
+    file_name: str = Field(..., description="Name of the file.")
+    file_path: str = Field(..., description="Path to the file (masked).")
+    file_size: int = Field(..., description="Size of the file in bytes.")
+    mime_type: str = Field(..., description="MIME type of the file.")
+    upload_date: datetime = Field(..., description="When the document was uploaded.")
+    uploaded_by_user_id: int = Field(..., description="ID of the user who uploaded the document.")
+    is_active: bool = Field(..., description="Whether this document is active.")
+    created_at: datetime = Field(..., description="When the record was created.")
+    updated_at: datetime = Field(..., description="When the record was last updated.")
+
+    @classmethod
+    def from_full_response(cls, full_response: 'EmployeeDocumentResponse') -> 'EmployeeDocumentPublicResponse':
+        """Create a public response from a full response with sensitive data masked."""
+        return cls(
+            id=full_response.id,
+            employee_id=full_response.employee_id,
+            document_type=full_response.document_type,
+            file_name=full_response.file_name,
+            file_path=mask_sensitive_string(full_response.file_path, visible_chars=4),
+            file_size=full_response.file_size,
+            mime_type=full_response.mime_type,
+            upload_date=full_response.upload_date,
+            uploaded_by_user_id=full_response.uploaded_by_user_id,
+            is_active=full_response.is_active,
+            created_at=full_response.created_at,
+            updated_at=full_response.updated_at
+        )
 
 # Comprehensive Employee Request/Response
 class EmployeeFullRequest(BaseModel):
@@ -346,7 +439,7 @@ class EmployeeFullResponse(BaseModel):
     
     # Related data
     personal_details: Optional[EmployeePersonalDetailsPublicResponse] = Field(None, description="Personal details (sensitive data masked).")
-    bank_info: Optional[EmployeeBankInfoResponse] = Field(None, description="Bank information.")
+    bank_info: Optional[EmployeeBankInfoPublicResponse] = Field(None, description="Bank information (sensitive data masked).")
     job_timeline: List[EmployeeJobTimelineResponse] = Field(default_factory=list, description="Job timeline.")
     dependents: List[EmployeeDependentResponse] = Field(default_factory=list, description="Dependents.")
-    documents: List[EmployeeDocumentResponse] = Field(default_factory=list, description="Documents.")
+    documents: List[EmployeeDocumentPublicResponse] = Field(default_factory=list, description="Documents (sensitive data masked).")

@@ -9,9 +9,9 @@ from schemas.employee import (
     EmployeeRequest, EmployeeResponse, EmployeeFullResponse, EmployeeFullRequest,
     EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse, EmployeePersonalDetailsPublicResponse,
     EmployeeJobTimelineRequest, EmployeeJobTimelineResponse,
-    EmployeeBankInfoRequest, EmployeeBankInfoResponse,
+    EmployeeBankInfoRequest, EmployeeBankInfoResponse, EmployeeBankInfoPublicResponse,
     EmployeeDependentRequest, EmployeeDependentResponse,
-    EmployeeDocumentRequest, EmployeeDocumentResponse
+    EmployeeDocumentRequest, EmployeeDocumentResponse, EmployeeDocumentPublicResponse
 )
 from models.employee import (
     Employee, EmployeePersonalDetails, EmployeeJobTimeline,
@@ -130,7 +130,8 @@ class EmployeeService:
         
         bank_info = None
         if employee.bank_info:
-            bank_info = EmployeeBankInfoResponse(
+            # Create full response first, then convert to public response with masked data
+            full_bank_info = EmployeeBankInfoResponse(
                 id=employee.bank_info.id,
                 employee_id=employee.bank_info.employee_id,
                 bank_name=employee.bank_info.bank_name,
@@ -144,6 +145,7 @@ class EmployeeService:
                 created_at=employee.bank_info.created_at,
                 updated_at=employee.bank_info.updated_at
             )
+            bank_info = EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
         
         job_timeline = [
             EmployeeJobTimelineResponse(
@@ -183,8 +185,10 @@ class EmployeeService:
             ) for dep in employee.dependents
         ]
         
-        documents = [
-            EmployeeDocumentResponse(
+        documents = []
+        for doc in employee.documents:
+            # Create full response first, then convert to public response with masked data
+            full_document = EmployeeDocumentResponse(
                 id=doc.id,
                 employee_id=doc.employee_id,
                 document_type=doc.document_type,
@@ -197,8 +201,8 @@ class EmployeeService:
                 is_active=doc.is_active,
                 created_at=doc.created_at,
                 updated_at=doc.updated_at
-            ) for doc in employee.documents
-        ]
+            )
+            documents.append(EmployeeDocumentPublicResponse.from_full_response(full_document))
         
         return EmployeeFullResponse(
             id=employee.id,
@@ -303,6 +307,289 @@ class EmployeeService:
             await db.rollback()
             raise ValueError("Personal details already exist for this employee")
         except Exception as e:
+            raise e
+
+    @staticmethod
+    async def get_personal_details(
+        db: AsyncSession, 
+        employee_id: int, 
+        current_user: User
+    ) -> Optional[EmployeePersonalDetailsResponse]:
+        """
+        Get personal details for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            current_user: Current authenticated user
+            
+        Returns:
+            EmployeePersonalDetailsResponse if found, None otherwise
+        """
+        # Verify employee belongs to current user and get personal details
+        result = await db.execute(
+            select(EmployeePersonalDetails)
+            .join(Employee)
+            .where(
+                and_(
+                    EmployeePersonalDetails.employee_id == employee_id,
+                    Employee.user_id == current_user.id
+                )
+            )
+        )
+        personal_details = result.scalar_one_or_none()
+        
+        if not personal_details:
+            return None
+        
+        # Create full response first, then convert to public response with masked data
+        full_personal_details = EmployeePersonalDetailsResponse(
+            id=personal_details.id,
+            employee_id=personal_details.employee_id,
+            gender=personal_details.gender,
+            date_of_birth=personal_details.date_of_birth,
+            nationality=personal_details.nationality,
+            health_care_provider=personal_details.health_care_provider,
+            marital_status=personal_details.marital_status,
+            personal_tax_id=personal_details.personal_tax_id,
+            social_insurance_number=personal_details.social_insurance_number,
+            primary_address=personal_details.primary_address,
+            city=personal_details.city,
+            state=personal_details.state,
+            country=personal_details.country,
+            postal_code=personal_details.postal_code,
+            created_at=personal_details.created_at,
+            updated_at=personal_details.updated_at
+        )
+        return EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
+
+    @staticmethod
+    async def update_personal_details(
+        db: AsyncSession, 
+        employee_id: int, 
+        personal_data: EmployeePersonalDetailsRequest, 
+        current_user: User
+    ) -> EmployeePersonalDetailsResponse:
+        """
+        Update personal details for an employee (full replacement).
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            personal_data: New personal details data
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeePersonalDetailsResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing personal details
+            result = await db.execute(
+                select(EmployeePersonalDetails).where(
+                    EmployeePersonalDetails.employee_id == employee_id
+                )
+            )
+            existing_personal = result.scalar_one_or_none()
+            
+            if existing_personal:
+                # Update existing record
+                existing_personal.gender = personal_data.gender
+                existing_personal.date_of_birth = personal_data.date_of_birth
+                existing_personal.nationality = personal_data.nationality
+                existing_personal.health_care_provider = personal_data.health_care_provider
+                existing_personal.marital_status = personal_data.marital_status
+                existing_personal.personal_tax_id = personal_data.personal_tax_id
+                existing_personal.social_insurance_number = personal_data.social_insurance_number
+                existing_personal.primary_address = personal_data.primary_address
+                existing_personal.city = personal_data.city
+                existing_personal.state = personal_data.state
+                existing_personal.country = personal_data.country
+                existing_personal.postal_code = personal_data.postal_code
+                existing_personal.updated_at = datetime.now(timezone.utc)
+                
+                await db.commit()
+                await db.refresh(existing_personal)
+                personal_details = existing_personal
+            else:
+                # Create new record
+                personal_details = EmployeePersonalDetails(
+                    employee_id=employee_id,
+                    gender=personal_data.gender,
+                    date_of_birth=personal_data.date_of_birth,
+                    nationality=personal_data.nationality,
+                    health_care_provider=personal_data.health_care_provider,
+                    marital_status=personal_data.marital_status,
+                    personal_tax_id=personal_data.personal_tax_id,
+                    social_insurance_number=personal_data.social_insurance_number,
+                    primary_address=personal_data.primary_address,
+                    city=personal_data.city,
+                    state=personal_data.state,
+                    country=personal_data.country,
+                    postal_code=personal_data.postal_code
+                )
+                db.add(personal_details)
+                await db.commit()
+                await db.refresh(personal_details)
+            
+            # Create full response first, then convert to public response with masked data
+            full_personal_details = EmployeePersonalDetailsResponse(
+                id=personal_details.id,
+                employee_id=personal_details.employee_id,
+                gender=personal_details.gender,
+                date_of_birth=personal_details.date_of_birth,
+                nationality=personal_details.nationality,
+                health_care_provider=personal_details.health_care_provider,
+                marital_status=personal_details.marital_status,
+                personal_tax_id=personal_details.personal_tax_id,
+                social_insurance_number=personal_details.social_insurance_number,
+                primary_address=personal_details.primary_address,
+                city=personal_details.city,
+                state=personal_details.state,
+                country=personal_details.country,
+                postal_code=personal_details.postal_code,
+                created_at=personal_details.created_at,
+                updated_at=personal_details.updated_at
+            )
+            return EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
+            
+        except IntegrityError as e:
+            await db.rollback()
+            raise ValueError("Personal details update failed")
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def partial_update_personal_details(
+        db: AsyncSession, 
+        employee_id: int, 
+        personal_data: EmployeePersonalDetailsRequest, 
+        current_user: User
+    ) -> EmployeePersonalDetailsResponse:
+        """
+        Partially update personal details for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            personal_data: Partial personal details data (only provided fields will be updated)
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeePersonalDetailsResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing personal details
+            result = await db.execute(
+                select(EmployeePersonalDetails).where(
+                    EmployeePersonalDetails.employee_id == employee_id
+                )
+            )
+            existing_personal = result.scalar_one_or_none()
+            
+            if not existing_personal:
+                raise ValueError("Personal details not found for this employee")
+            
+            # Update only provided fields
+            update_data = personal_data.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                if hasattr(existing_personal, field):
+                    setattr(existing_personal, field, value)
+            
+            existing_personal.updated_at = datetime.now(timezone.utc)
+            
+            await db.commit()
+            await db.refresh(existing_personal)
+            
+            # Create full response first, then convert to public response with masked data
+            full_personal_details = EmployeePersonalDetailsResponse(
+                id=existing_personal.id,
+                employee_id=existing_personal.employee_id,
+                gender=existing_personal.gender,
+                date_of_birth=existing_personal.date_of_birth,
+                nationality=existing_personal.nationality,
+                health_care_provider=existing_personal.health_care_provider,
+                marital_status=existing_personal.marital_status,
+                personal_tax_id=existing_personal.personal_tax_id,
+                social_insurance_number=existing_personal.social_insurance_number,
+                primary_address=existing_personal.primary_address,
+                city=existing_personal.city,
+                state=existing_personal.state,
+                country=existing_personal.country,
+                postal_code=existing_personal.postal_code,
+                created_at=existing_personal.created_at,
+                updated_at=existing_personal.updated_at
+            )
+            return EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
+            
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def delete_personal_details(
+        db: AsyncSession, 
+        employee_id: int, 
+        current_user: User
+    ) -> bool:
+        """
+        Delete personal details for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            current_user: Current authenticated user
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            return False  # Employee not found or access denied
+        
+        try:
+            # Get existing personal details
+            result = await db.execute(
+                select(EmployeePersonalDetails).where(
+                    EmployeePersonalDetails.employee_id == employee_id
+                )
+            )
+            existing_personal = result.scalar_one_or_none()
+            
+            if not existing_personal:
+                return False
+            
+            # Delete the personal details record
+            await db.delete(existing_personal)
+            await db.commit()
+            
+            return True
+            
+        except Exception as e:
+            await db.rollback()
             raise e
 
     # ==================== JOB TIMELINE ====================
@@ -438,6 +725,269 @@ class EmployeeService:
         except Exception as e:
             raise e
 
+    @staticmethod
+    async def get_bank_info(
+        db: AsyncSession, 
+        employee_id: int, 
+        current_user: User
+    ) -> Optional[EmployeeBankInfoResponse]:
+        """
+        Get bank information for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            current_user: Current authenticated user
+            
+        Returns:
+            EmployeeBankInfoResponse if found, None otherwise
+        """
+        # Verify employee belongs to current user and get bank info
+        result = await db.execute(
+            select(EmployeeBankInfo)
+            .join(Employee)
+            .where(
+                and_(
+                    EmployeeBankInfo.employee_id == employee_id,
+                    Employee.user_id == current_user.id
+                )
+            )
+        )
+        bank_info = result.scalar_one_or_none()
+        
+        if not bank_info:
+            return None
+        
+        # Create full response first, then convert to public response with masked data
+        full_bank_info = EmployeeBankInfoResponse(
+            id=bank_info.id,
+            employee_id=bank_info.employee_id,
+            bank_name=bank_info.bank_name,
+            account_number=bank_info.account_number,
+            routing_number=bank_info.routing_number,
+            account_type=bank_info.account_type,
+            account_holder_name=bank_info.account_holder_name,
+            account_holder_type=bank_info.account_holder_type,
+            is_primary=bank_info.is_primary,
+            is_active=bank_info.is_active,
+            created_at=bank_info.created_at,
+            updated_at=bank_info.updated_at
+        )
+        return EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
+
+    @staticmethod
+    async def update_bank_info(
+        db: AsyncSession, 
+        employee_id: int, 
+        bank_data: EmployeeBankInfoRequest, 
+        current_user: User
+    ) -> EmployeeBankInfoResponse:
+        """
+        Update bank information for an employee (full replacement).
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            bank_data: New bank information data
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeeBankInfoResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing bank info
+            result = await db.execute(
+                select(EmployeeBankInfo).where(
+                    EmployeeBankInfo.employee_id == employee_id
+                )
+            )
+            existing_bank = result.scalar_one_or_none()
+            
+            if existing_bank:
+                # Update existing record
+                existing_bank.bank_name = bank_data.bank_name
+                existing_bank.account_number = bank_data.account_number
+                existing_bank.routing_number = bank_data.routing_number
+                existing_bank.account_type = bank_data.account_type
+                existing_bank.account_holder_name = bank_data.account_holder_name
+                existing_bank.account_holder_type = bank_data.account_holder_type
+                existing_bank.is_primary = bank_data.is_primary
+                existing_bank.is_active = bank_data.is_active
+                existing_bank.updated_at = datetime.now(timezone.utc)
+                
+                await db.commit()
+                await db.refresh(existing_bank)
+                bank_info = existing_bank
+            else:
+                # Create new record
+                bank_info = EmployeeBankInfo(
+                    employee_id=employee_id,
+                    bank_name=bank_data.bank_name,
+                    account_number=bank_data.account_number,
+                    routing_number=bank_data.routing_number,
+                    account_type=bank_data.account_type,
+                    account_holder_name=bank_data.account_holder_name,
+                    account_holder_type=bank_data.account_holder_type,
+                    is_primary=bank_data.is_primary,
+                    is_active=bank_data.is_active
+                )
+                db.add(bank_info)
+                await db.commit()
+                await db.refresh(bank_info)
+            
+            # Create full response first, then convert to public response with masked data
+            full_bank_info = EmployeeBankInfoResponse(
+                id=bank_info.id,
+                employee_id=bank_info.employee_id,
+                bank_name=bank_info.bank_name,
+                account_number=bank_info.account_number,
+                routing_number=bank_info.routing_number,
+                account_type=bank_info.account_type,
+                account_holder_name=bank_info.account_holder_name,
+                account_holder_type=bank_info.account_holder_type,
+                is_primary=bank_info.is_primary,
+                is_active=bank_info.is_active,
+                created_at=bank_info.created_at,
+                updated_at=bank_info.updated_at
+            )
+            return EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
+            
+        except IntegrityError as e:
+            await db.rollback()
+            raise ValueError("Bank information update failed")
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def partial_update_bank_info(
+        db: AsyncSession, 
+        employee_id: int, 
+        bank_data: EmployeeBankInfoRequest, 
+        current_user: User
+    ) -> EmployeeBankInfoResponse:
+        """
+        Partially update bank information for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            bank_data: Partial bank information data (only provided fields will be updated)
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeeBankInfoResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing bank info
+            result = await db.execute(
+                select(EmployeeBankInfo).where(
+                    EmployeeBankInfo.employee_id == employee_id
+                )
+            )
+            existing_bank = result.scalar_one_or_none()
+            
+            if not existing_bank:
+                raise ValueError("Bank information not found for this employee")
+            
+            # Update only provided fields
+            update_data = bank_data.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                if hasattr(existing_bank, field):
+                    setattr(existing_bank, field, value)
+            
+            existing_bank.updated_at = datetime.now(timezone.utc)
+            
+            await db.commit()
+            await db.refresh(existing_bank)
+            
+            # Create full response first, then convert to public response with masked data
+            full_bank_info = EmployeeBankInfoResponse(
+                id=existing_bank.id,
+                employee_id=existing_bank.employee_id,
+                bank_name=existing_bank.bank_name,
+                account_number=existing_bank.account_number,
+                routing_number=existing_bank.routing_number,
+                account_type=existing_bank.account_type,
+                account_holder_name=existing_bank.account_holder_name,
+                account_holder_type=existing_bank.account_holder_type,
+                is_primary=existing_bank.is_primary,
+                is_active=existing_bank.is_active,
+                created_at=existing_bank.created_at,
+                updated_at=existing_bank.updated_at
+            )
+            return EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
+            
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def delete_bank_info(
+        db: AsyncSession, 
+        employee_id: int, 
+        current_user: User
+    ) -> bool:
+        """
+        Delete bank information for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            current_user: Current authenticated user
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing bank info
+            result = await db.execute(
+                select(EmployeeBankInfo).where(
+                    EmployeeBankInfo.employee_id == employee_id
+                )
+            )
+            existing_bank = result.scalar_one_or_none()
+            
+            if not existing_bank:
+                return False
+            
+            # Delete the bank info record
+            await db.delete(existing_bank)
+            await db.commit()
+            
+            return True
+            
+        except Exception as e:
+            await db.rollback()
+            raise e
+
     # ==================== DEPENDENTS ====================
     
     @staticmethod
@@ -545,6 +1095,318 @@ class EmployeeService:
                 created_at=document.created_at,
                 updated_at=document.updated_at
             )
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def get_documents(
+        db: AsyncSession, 
+        employee_id: int, 
+        current_user: User
+    ) -> List[EmployeeDocumentResponse]:
+        """
+        Get all documents for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            current_user: Current authenticated user
+            
+        Returns:
+            List of EmployeeDocumentResponse objects
+        """
+        # Verify employee belongs to current user and get documents
+        result = await db.execute(
+            select(EmployeeDocument)
+            .join(Employee)
+            .where(
+                and_(
+                    EmployeeDocument.employee_id == employee_id,
+                    Employee.user_id == current_user.id
+                )
+            )
+        )
+        documents = result.scalars().all()
+        
+        # Convert to public responses with masked sensitive data
+        document_responses = []
+        for document in documents:
+            full_document = EmployeeDocumentResponse(
+                id=document.id,
+                employee_id=document.employee_id,
+                document_type=document.document_type,
+                file_name=document.file_name,
+                file_path=document.file_path,
+                file_size=document.file_size,
+                mime_type=document.mime_type,
+                upload_date=document.upload_date,
+                uploaded_by_user_id=document.uploaded_by_user_id,
+                is_active=document.is_active,
+                created_at=document.created_at,
+                updated_at=document.updated_at
+            )
+            document_responses.append(EmployeeDocumentPublicResponse.from_full_response(full_document))
+        
+        return document_responses
+
+    @staticmethod
+    async def get_document(
+        db: AsyncSession, 
+        employee_id: int, 
+        document_id: int,
+        current_user: User
+    ) -> Optional[EmployeeDocumentResponse]:
+        """
+        Get a specific document for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            document_id: ID of the document
+            current_user: Current authenticated user
+            
+        Returns:
+            EmployeeDocumentResponse if found, None otherwise
+        """
+        # Verify employee belongs to current user and get specific document
+        result = await db.execute(
+            select(EmployeeDocument)
+            .join(Employee)
+            .where(
+                and_(
+                    EmployeeDocument.employee_id == employee_id,
+                    EmployeeDocument.id == document_id,
+                    Employee.user_id == current_user.id
+                )
+            )
+        )
+        document = result.scalar_one_or_none()
+        
+        if not document:
+            return None
+        
+        # Create full response first, then convert to public response with masked data
+        full_document = EmployeeDocumentResponse(
+            id=document.id,
+            employee_id=document.employee_id,
+            document_type=document.document_type,
+            file_name=document.file_name,
+            file_path=document.file_path,
+            file_size=document.file_size,
+            mime_type=document.mime_type,
+            upload_date=document.upload_date,
+            uploaded_by_user_id=document.uploaded_by_user_id,
+            is_active=document.is_active,
+            created_at=document.created_at,
+            updated_at=document.updated_at
+        )
+        return EmployeeDocumentPublicResponse.from_full_response(full_document)
+
+    @staticmethod
+    async def update_document(
+        db: AsyncSession, 
+        employee_id: int, 
+        document_id: int,
+        document_data: EmployeeDocumentRequest, 
+        current_user: User
+    ) -> EmployeeDocumentResponse:
+        """
+        Update document information for an employee (full replacement).
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            document_id: ID of the document
+            document_data: New document data
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeeDocumentResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing document
+            result = await db.execute(
+                select(EmployeeDocument).where(
+                    and_(
+                        EmployeeDocument.employee_id == employee_id,
+                        EmployeeDocument.id == document_id
+                    )
+                )
+            )
+            existing_document = result.scalar_one_or_none()
+            
+            if not existing_document:
+                raise ValueError("Document not found for this employee")
+            
+            # Update existing record
+            existing_document.document_type = document_data.document_type
+            existing_document.file_name = document_data.file_name
+            existing_document.file_path = document_data.file_path
+            existing_document.file_size = document_data.file_size
+            existing_document.mime_type = document_data.mime_type
+            existing_document.is_active = document_data.is_active
+            existing_document.updated_at = datetime.now(timezone.utc)
+            
+            await db.commit()
+            await db.refresh(existing_document)
+            
+            # Create full response first, then convert to public response with masked data
+            full_document = EmployeeDocumentResponse(
+                id=existing_document.id,
+                employee_id=existing_document.employee_id,
+                document_type=existing_document.document_type,
+                file_name=existing_document.file_name,
+                file_path=existing_document.file_path,
+                file_size=existing_document.file_size,
+                mime_type=existing_document.mime_type,
+                upload_date=existing_document.upload_date,
+                uploaded_by_user_id=existing_document.uploaded_by_user_id,
+                is_active=existing_document.is_active,
+                created_at=existing_document.created_at,
+                updated_at=existing_document.updated_at
+            )
+            return EmployeeDocumentPublicResponse.from_full_response(full_document)
+            
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def partial_update_document(
+        db: AsyncSession, 
+        employee_id: int, 
+        document_id: int,
+        document_data: EmployeeDocumentRequest, 
+        current_user: User
+    ) -> EmployeeDocumentResponse:
+        """
+        Partially update document information for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            document_id: ID of the document
+            document_data: Partial document data (only provided fields will be updated)
+            current_user: Current authenticated user
+            
+        Returns:
+            Updated EmployeeDocumentResponse
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing document
+            result = await db.execute(
+                select(EmployeeDocument).where(
+                    and_(
+                        EmployeeDocument.employee_id == employee_id,
+                        EmployeeDocument.id == document_id
+                    )
+                )
+            )
+            existing_document = result.scalar_one_or_none()
+            
+            if not existing_document:
+                raise ValueError("Document not found for this employee")
+            
+            # Update only provided fields
+            update_data = document_data.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                if hasattr(existing_document, field):
+                    setattr(existing_document, field, value)
+            
+            existing_document.updated_at = datetime.now(timezone.utc)
+            
+            await db.commit()
+            await db.refresh(existing_document)
+            
+            # Create full response first, then convert to public response with masked data
+            full_document = EmployeeDocumentResponse(
+                id=existing_document.id,
+                employee_id=existing_document.employee_id,
+                document_type=existing_document.document_type,
+                file_name=existing_document.file_name,
+                file_path=existing_document.file_path,
+                file_size=existing_document.file_size,
+                mime_type=existing_document.mime_type,
+                upload_date=existing_document.upload_date,
+                uploaded_by_user_id=existing_document.uploaded_by_user_id,
+                is_active=existing_document.is_active,
+                created_at=existing_document.created_at,
+                updated_at=existing_document.updated_at
+            )
+            return EmployeeDocumentPublicResponse.from_full_response(full_document)
+            
+        except Exception as e:
+            await db.rollback()
+            raise e
+
+    @staticmethod
+    async def delete_document(
+        db: AsyncSession, 
+        employee_id: int, 
+        document_id: int,
+        current_user: User
+    ) -> bool:
+        """
+        Delete a specific document for an employee.
+        
+        Args:
+            db: Database session
+            employee_id: ID of the employee
+            document_id: ID of the document
+            current_user: Current authenticated user
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        # Verify employee belongs to current user
+        employee = await db.execute(
+            select(Employee).where(
+                and_(Employee.id == employee_id, Employee.user_id == current_user.id)
+            )
+        )
+        if not employee.scalar_one_or_none():
+            raise ValueError("Employee not found or access denied")
+        
+        try:
+            # Get existing document
+            result = await db.execute(
+                select(EmployeeDocument).where(
+                    and_(
+                        EmployeeDocument.employee_id == employee_id,
+                        EmployeeDocument.id == document_id
+                    )
+                )
+            )
+            existing_document = result.scalar_one_or_none()
+            
+            if not existing_document:
+                return False
+            
+            # Delete the document record
+            await db.delete(existing_document)
+            await db.commit()
+            
+            return True
+            
         except Exception as e:
             await db.rollback()
             raise e
@@ -702,7 +1564,8 @@ class EmployeeService:
             
             bank_info_response = None
             if bank_info:
-                bank_info_response = EmployeeBankInfoResponse(
+                # Create full response first, then convert to public response with masked data
+                full_bank_info = EmployeeBankInfoResponse(
                     id=bank_info.id,
                     employee_id=bank_info.employee_id,
                     bank_name=bank_info.bank_name,
@@ -716,6 +1579,7 @@ class EmployeeService:
                     created_at=bank_info.created_at,
                     updated_at=bank_info.updated_at
                 )
+                bank_info_response = EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
             
             job_timeline_response = [
                 EmployeeJobTimelineResponse(
@@ -756,19 +1620,21 @@ class EmployeeService:
             ]
             
             documents_response = [
-                EmployeeDocumentResponse(
-                    id=doc.id,
-                    employee_id=doc.employee_id,
-                    document_type=doc.document_type,
-                    file_name=doc.file_name,
-                    file_path=doc.file_path,
-                    file_size=doc.file_size,
-                    mime_type=doc.mime_type,
-                    upload_date=doc.upload_date,
-                    uploaded_by_user_id=doc.uploaded_by_user_id,
-                    is_active=doc.is_active,
-                    created_at=doc.created_at,
-                    updated_at=doc.updated_at
+                EmployeeDocumentPublicResponse.from_full_response(
+                    EmployeeDocumentResponse(
+                        id=doc.id,
+                        employee_id=doc.employee_id,
+                        document_type=doc.document_type,
+                        file_name=doc.file_name,
+                        file_path=doc.file_path,
+                        file_size=doc.file_size,
+                        mime_type=doc.mime_type,
+                        upload_date=doc.upload_date,
+                        uploaded_by_user_id=doc.uploaded_by_user_id,
+                        is_active=doc.is_active,
+                        created_at=doc.created_at,
+                        updated_at=doc.updated_at
+                    )
                 ) for doc in documents
             ]
             
@@ -962,7 +1828,7 @@ class EmployeeService:
             for doc in documents:
                 await db.refresh(doc)
             
-            # Build response (same as create_employee_full)
+            # Build response using the created objects
             personal_details_response = None
             if personal_details:
                 # Create full response first, then convert to public response with masked data
@@ -988,7 +1854,8 @@ class EmployeeService:
             
             bank_info_response = None
             if bank_info:
-                bank_info_response = EmployeeBankInfoResponse(
+                # Create full response first, then convert to public response with masked data
+                full_bank_info = EmployeeBankInfoResponse(
                     id=bank_info.id,
                     employee_id=bank_info.employee_id,
                     bank_name=bank_info.bank_name,
@@ -1002,6 +1869,7 @@ class EmployeeService:
                     created_at=bank_info.created_at,
                     updated_at=bank_info.updated_at
                 )
+                bank_info_response = EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
             
             job_timeline_response = [
                 EmployeeJobTimelineResponse(
@@ -1042,19 +1910,21 @@ class EmployeeService:
             ]
             
             documents_response = [
-                EmployeeDocumentResponse(
-                    id=doc.id,
-                    employee_id=doc.employee_id,
-                    document_type=doc.document_type,
-                    file_name=doc.file_name,
-                    file_path=doc.file_path,
-                    file_size=doc.file_size,
-                    mime_type=doc.mime_type,
-                    upload_date=doc.upload_date,
-                    uploaded_by_user_id=doc.uploaded_by_user_id,
-                    is_active=doc.is_active,
-                    created_at=doc.created_at,
-                    updated_at=doc.updated_at
+                EmployeeDocumentPublicResponse.from_full_response(
+                    EmployeeDocumentResponse(
+                        id=doc.id,
+                        employee_id=doc.employee_id,
+                        document_type=doc.document_type,
+                        file_name=doc.file_name,
+                        file_path=doc.file_path,
+                        file_size=doc.file_size,
+                        mime_type=doc.mime_type,
+                        upload_date=doc.upload_date,
+                        uploaded_by_user_id=doc.uploaded_by_user_id,
+                        is_active=doc.is_active,
+                        created_at=doc.created_at,
+                        updated_at=doc.updated_at
+                    )
                 ) for doc in documents
             ]
             
