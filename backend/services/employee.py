@@ -254,7 +254,7 @@ class EmployeeService:
         employee_id: int, 
         personal_data: EmployeePersonalDetailsRequest, 
         current_user: User
-    ) -> EmployeePersonalDetailsResponse:
+    ) -> EmployeePersonalDetailsPublicResponse:
         """Create personal details for an employee."""
         # Verify employee belongs to current user
         employee = await db.execute(
@@ -314,7 +314,7 @@ class EmployeeService:
         db: AsyncSession, 
         employee_id: int, 
         current_user: User
-    ) -> Optional[EmployeePersonalDetailsResponse]:
+    ) -> Optional[EmployeePersonalDetailsPublicResponse]:
         """
         Get personal details for an employee.
         
@@ -369,7 +369,7 @@ class EmployeeService:
         employee_id: int, 
         personal_data: EmployeePersonalDetailsRequest, 
         current_user: User
-    ) -> EmployeePersonalDetailsResponse:
+    ) -> EmployeePersonalDetailsPublicResponse:
         """
         Update personal details for an employee (full replacement).
         
@@ -474,7 +474,7 @@ class EmployeeService:
         employee_id: int, 
         personal_data: EmployeePersonalDetailsRequest, 
         current_user: User
-    ) -> EmployeePersonalDetailsResponse:
+    ) -> EmployeePersonalDetailsPublicResponse:
         """
         Partially update personal details for an employee.
         
@@ -678,7 +678,7 @@ class EmployeeService:
         employee_id: int, 
         bank_data: EmployeeBankInfoRequest, 
         current_user: User
-    ) -> EmployeeBankInfoResponse:
+    ) -> EmployeeBankInfoPublicResponse:
         """Create bank info for an employee."""
         # Verify employee belongs to current user
         employee = await db.execute(
@@ -730,7 +730,7 @@ class EmployeeService:
         db: AsyncSession, 
         employee_id: int, 
         current_user: User
-    ) -> Optional[EmployeeBankInfoResponse]:
+    ) -> Optional[EmployeeBankInfoPublicResponse]:
         """
         Get bank information for an employee.
         
@@ -781,7 +781,7 @@ class EmployeeService:
         employee_id: int, 
         bank_data: EmployeeBankInfoRequest, 
         current_user: User
-    ) -> EmployeeBankInfoResponse:
+    ) -> EmployeeBankInfoPublicResponse:
         """
         Update bank information for an employee (full replacement).
         
@@ -874,7 +874,7 @@ class EmployeeService:
         employee_id: int, 
         bank_data: EmployeeBankInfoRequest, 
         current_user: User
-    ) -> EmployeeBankInfoResponse:
+    ) -> EmployeeBankInfoPublicResponse:
         """
         Partially update bank information for an employee.
         
@@ -1055,7 +1055,7 @@ class EmployeeService:
         employee_id: int, 
         document_data: EmployeeDocumentRequest, 
         current_user: User
-    ) -> EmployeeDocumentResponse:
+    ) -> EmployeeDocumentPublicResponse:
         """Create a document for an employee."""
         # Verify employee belongs to current user
         employee = await db.execute(
@@ -1104,7 +1104,7 @@ class EmployeeService:
         db: AsyncSession, 
         employee_id: int, 
         current_user: User
-    ) -> List[EmployeeDocumentResponse]:
+    ) -> List[EmployeeDocumentPublicResponse]:
         """
         Get all documents for an employee.
         
@@ -1156,7 +1156,7 @@ class EmployeeService:
         employee_id: int, 
         document_id: int,
         current_user: User
-    ) -> Optional[EmployeeDocumentResponse]:
+    ) -> Optional[EmployeeDocumentPublicResponse]:
         """
         Get a specific document for an employee.
         
@@ -1210,7 +1210,7 @@ class EmployeeService:
         document_id: int,
         document_data: EmployeeDocumentRequest, 
         current_user: User
-    ) -> EmployeeDocumentResponse:
+    ) -> EmployeeDocumentPublicResponse:
         """
         Update document information for an employee (full replacement).
         
@@ -1288,7 +1288,7 @@ class EmployeeService:
         document_id: int,
         document_data: EmployeeDocumentRequest, 
         current_user: User
-    ) -> EmployeeDocumentResponse:
+    ) -> EmployeeDocumentPublicResponse:
         """
         Partially update document information for an employee.
         

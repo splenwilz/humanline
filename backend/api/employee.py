@@ -6,7 +6,7 @@ from core.dependencies import get_current_active_user
 from models.employee import Employee
 from schemas.employee import (
     EmployeeRequest, EmployeeResponse, EmployeeFullResponse, EmployeeFullRequest,
-    EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse,
+    EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse, EmployeePersonalDetailsPublicResponse,
     EmployeeJobTimelineRequest, EmployeeJobTimelineResponse,
     EmployeeBankInfoRequest, EmployeeBankInfoResponse, EmployeeBankInfoPublicResponse,
     EmployeeDependentRequest, EmployeeDependentResponse,
@@ -143,45 +143,6 @@ async def get_employee_full(
             detail=str(e)
         )
 
-# ==================== PERSONAL DETAILS ENDPOINTS ====================
-
-@router.post(
-    "/{employee_id}/personal",
-    response_model=EmployeePersonalDetailsResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Add Personal Details",
-    description="Add personal details for an employee"
-)
-async def create_personal_details(
-    employee_id: int,
-    personal_data: EmployeePersonalDetailsRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
-) -> EmployeePersonalDetailsResponse:
-    """
-    Add personal details for an employee.
-    
-    - **gender**: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
-    - **date_of_birth**: Employee's date of birth
-    - **nationality**: Employee's nationality
-    - **marital_status**: SINGLE, MARRIED, DIVORCED, WIDOWED, SEPARATED
-    - **personal_tax_id**: Personal tax identification number
-    - **social_insurance_number**: Social insurance number
-    - **primary_address**: Primary residential address
-    - **city**, **state**, **country**, **postal_code**: Address components
-    """
-    try:
-        return await EmployeeService.create_personal_details(db, employee_id, personal_data, current_user)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
 
 # ==================== JOB TIMELINE ENDPOINTS ====================
 
@@ -224,45 +185,6 @@ async def create_job_timeline(
             detail=str(e)
         )
 
-# ==================== BANK INFO ENDPOINTS ====================
-
-@router.post(
-    "/{employee_id}/bank",
-    response_model=EmployeeBankInfoResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Add Bank Information",
-    description="Add banking information for an employee"
-)
-async def create_bank_info(
-    employee_id: int,
-    bank_data: EmployeeBankInfoRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
-) -> EmployeeBankInfoResponse:
-    """
-    Add banking information for an employee.
-    
-    - **bank_name**: Name of the bank
-    - **account_number**: Bank account number
-    - **routing_number**: Bank routing number
-    - **account_type**: Type of account (e.g., CHECKING, SAVINGS)
-    - **account_holder_name**: Name on the account
-    - **account_holder_type**: Type of account holder
-    - **is_primary**: Whether this is the primary account for payroll
-    - **is_active**: Whether this bank account is active
-    """
-    try:
-        return await EmployeeService.create_bank_info(db, employee_id, bank_data, current_user)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
 
 # ==================== DEPENDENT ENDPOINTS ====================
 
@@ -309,7 +231,7 @@ async def create_dependent(
 
 @router.post(
     "/{employee_id}/document",
-    response_model=EmployeeDocumentResponse,
+    response_model=EmployeeDocumentPublicResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload Document",
     description="Upload a document for an employee",
@@ -320,7 +242,7 @@ async def create_document(
     document_data: EmployeeDocumentRequest,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
-) -> EmployeeDocumentResponse:
+) -> EmployeeDocumentPublicResponse:
     """
     Upload a document for an employee.
     
@@ -446,7 +368,7 @@ async def update_employee_full(
 
 @router.post(
     "/{employee_id}/personal",
-    response_model=EmployeePersonalDetailsResponse,
+    response_model=EmployeePersonalDetailsPublicResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create Employee Personal Details",
     description="Create personal details for a specific employee",
@@ -457,7 +379,7 @@ async def create_employee_personal_details(
     personal_data: EmployeePersonalDetailsRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeePersonalDetailsResponse:
+) -> EmployeePersonalDetailsPublicResponse:
     """
     Create personal details for an employee.
     
@@ -496,7 +418,7 @@ async def create_employee_personal_details(
 
 @router.get(
     "/{employee_id}/personal",
-    response_model=EmployeePersonalDetailsResponse,
+    response_model=EmployeePersonalDetailsPublicResponse,
     summary="Get Employee Personal Details",
     description="Retrieve personal details for a specific employee",
     tags=["Employee Personal Details"]
@@ -505,7 +427,7 @@ async def get_employee_personal_details(
     employee_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeePersonalDetailsResponse:
+) -> EmployeePersonalDetailsPublicResponse:
     """
     Get personal details for an employee.
     
@@ -537,7 +459,7 @@ async def get_employee_personal_details(
 
 @router.put(
     "/{employee_id}/personal",
-    response_model=EmployeePersonalDetailsResponse,
+    response_model=EmployeePersonalDetailsPublicResponse,
     summary="Update Employee Personal Details",
     description="Replace all personal details for a specific employee",
     tags=["Employee Personal Details"]
@@ -547,7 +469,7 @@ async def update_employee_personal_details(
     personal_data: EmployeePersonalDetailsRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeePersonalDetailsResponse:
+) -> EmployeePersonalDetailsPublicResponse:
     """
     Update personal details for an employee (full replacement).
     
@@ -582,7 +504,7 @@ async def update_employee_personal_details(
 
 @router.patch(
     "/{employee_id}/personal",
-    response_model=EmployeePersonalDetailsResponse,
+    response_model=EmployeePersonalDetailsPublicResponse,
     summary="Partially Update Employee Personal Details",
     description="Update specific fields in employee personal details",
     tags=["Employee Personal Details"]
@@ -592,7 +514,7 @@ async def partial_update_employee_personal_details(
     personal_data: EmployeePersonalDetailsRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeePersonalDetailsResponse:
+) -> EmployeePersonalDetailsPublicResponse:
     """
     Partially update personal details for an employee.
     
@@ -684,7 +606,7 @@ async def delete_employee_personal_details(
 
 @router.post(
     "/{employee_id}/bank",
-    response_model=EmployeeBankInfoResponse,
+    response_model=EmployeeBankInfoPublicResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create Employee Bank Information",
     description="Create bank information for a specific employee",
@@ -695,7 +617,7 @@ async def create_employee_bank_info(
     bank_data: EmployeeBankInfoRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeBankInfoResponse:
+) -> EmployeeBankInfoPublicResponse:
     """
     Create bank information for an employee.
     
@@ -730,7 +652,7 @@ async def create_employee_bank_info(
 
 @router.get(
     "/{employee_id}/bank",
-    response_model=EmployeeBankInfoResponse,
+    response_model=EmployeeBankInfoPublicResponse,
     summary="Get Employee Bank Information",
     description="Retrieve bank information for a specific employee",
     tags=["Employee Bank Information"]
@@ -739,7 +661,7 @@ async def get_employee_bank_info(
     employee_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeBankInfoResponse:
+) -> EmployeeBankInfoPublicResponse:
     """
     Get bank information for an employee.
     
@@ -771,7 +693,7 @@ async def get_employee_bank_info(
 
 @router.put(
     "/{employee_id}/bank",
-    response_model=EmployeeBankInfoResponse,
+    response_model=EmployeeBankInfoPublicResponse,
     summary="Update Employee Bank Information",
     description="Replace all bank information for a specific employee",
     tags=["Employee Bank Information"]
@@ -781,7 +703,7 @@ async def update_employee_bank_info(
     bank_data: EmployeeBankInfoRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeBankInfoResponse:
+) -> EmployeeBankInfoPublicResponse:
     """
     Update bank information for an employee (full replacement).
     
@@ -816,7 +738,7 @@ async def update_employee_bank_info(
 
 @router.patch(
     "/{employee_id}/bank",
-    response_model=EmployeeBankInfoResponse,
+    response_model=EmployeeBankInfoPublicResponse,
     summary="Partially Update Employee Bank Information",
     description="Update specific fields in employee bank information",
     tags=["Employee Bank Information"]
@@ -826,7 +748,7 @@ async def partial_update_employee_bank_info(
     bank_data: EmployeeBankInfoRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeBankInfoResponse:
+) -> EmployeeBankInfoPublicResponse:
     """
     Partially update bank information for an employee.
     
@@ -919,7 +841,7 @@ async def delete_employee_bank_info(
 
 @router.post(
     "/{employee_id}/documents",
-    response_model=EmployeeDocumentResponse,
+    response_model=EmployeeDocumentPublicResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create Employee Document",
     description="Create a document record for a specific employee",
@@ -930,7 +852,7 @@ async def create_employee_document(
     document_data: EmployeeDocumentRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeDocumentResponse:
+) -> EmployeeDocumentPublicResponse:
     """
     Create a document record for an employee.
     
@@ -962,7 +884,7 @@ async def create_employee_document(
 
 @router.get(
     "/{employee_id}/documents",
-    response_model=List[EmployeeDocumentResponse],
+    response_model=List[EmployeeDocumentPublicResponse],
     summary="Get Employee Documents",
     description="Retrieve all documents for a specific employee",
     tags=["Employee Documents"]
@@ -971,7 +893,7 @@ async def get_employee_documents(
     employee_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> List[EmployeeDocumentResponse]:
+) -> List[EmployeeDocumentPublicResponse]:
     """
     Get all documents for an employee.
     
@@ -997,7 +919,7 @@ async def get_employee_documents(
 
 @router.get(
     "/{employee_id}/documents/{document_id}",
-    response_model=EmployeeDocumentResponse,
+    response_model=EmployeeDocumentPublicResponse,
     summary="Get Employee Document by ID",
     description="Retrieve a specific document for an employee",
     tags=["Employee Documents"]
@@ -1007,7 +929,7 @@ async def get_employee_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeDocumentResponse:
+) -> EmployeeDocumentPublicResponse:
     """
     Get a specific document for an employee.
     
@@ -1039,7 +961,7 @@ async def get_employee_document(
 
 @router.put(
     "/{employee_id}/documents/{document_id}",
-    response_model=EmployeeDocumentResponse,
+    response_model=EmployeeDocumentPublicResponse,
     summary="Update Employee Document",
     description="Replace all document information for a specific document",
     tags=["Employee Documents"]
@@ -1050,7 +972,7 @@ async def update_employee_document(
     document_data: EmployeeDocumentRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeDocumentResponse:
+) -> EmployeeDocumentPublicResponse:
     """
     Update document information for an employee (full replacement).
     
@@ -1085,7 +1007,7 @@ async def update_employee_document(
 
 @router.patch(
     "/{employee_id}/documents/{document_id}",
-    response_model=EmployeeDocumentResponse,
+    response_model=EmployeeDocumentPublicResponse,
     summary="Partially Update Employee Document",
     description="Update specific fields in employee document",
     tags=["Employee Documents"]
@@ -1096,7 +1018,7 @@ async def partial_update_employee_document(
     document_data: EmployeeDocumentRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> EmployeeDocumentResponse:
+) -> EmployeeDocumentPublicResponse:
     """
     Partially update document information for an employee.
     
