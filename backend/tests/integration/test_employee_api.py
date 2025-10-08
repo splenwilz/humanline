@@ -70,7 +70,7 @@ class EmployeeDataFactory:
             "job_title": "Software Engineer",
             "position_type": "Individual Contributor",
             "employment_type": "FULL_TIME",
-            "line_manager_id": 123,
+            "line_manager_id": None,
             "department": "Engineering",
             "office": "New York",
             "is_current": True
@@ -414,7 +414,7 @@ class TestEmployeeBankInfoEndpoints:
         assert response_data["id"] > 0
         assert response_data["employee_id"] == employee_id
         assert response_data["bank_name"] == "Chase Bank"
-        assert response_data["account_number"] == "1234567890"
+        assert response_data["account_number"] == "******7890"
         assert response_data["is_primary"] is True
         assert response_data["is_active"] is True
         assert "created_at" in response_data
@@ -786,3 +786,82 @@ class TestEmployeeEndToEnd:
         # Second user should not be able to access first user's employee full details
         full_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers2)
         assert full_response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_line_manager_id_tenant_isolation(self, client: TestClient, auth_headers: dict, shared_db_session):
+        """Test that line_manager_id validation enforces tenant isolation."""
+        # Create employee for first user
+        data1 = EmployeeDataFactory.valid_employee_data("user1@tenant1.com")
+        response1 = client.post("/api/v1/employee", json=data1, headers=auth_headers)
+        assert response1.status_code == 201
+        employee1_id = response1.json()["id"]
+        
+        # Create second user
+        from schemas.user import UserCreate
+        from services.user_service import UserService
+        
+        user_data2 = UserCreate(
+            email="user2@tenant2.com",
+            password="testpassword123",
+            first_name="User",
+            last_name="Two"
+        )
+        user2 = await UserService.create_user_with_verification(
+            shared_db_session,
+            user_data2,
+            is_verified=True
+        )
+        await shared_db_session.refresh(user2)
+        
+        # Generate auth token for second user
+        from schemas.auth import LoginRequest
+        from services.auth_service import AuthService
+        login_data2 = LoginRequest(email=user2.email, password="testpassword123")
+        token_response2 = await AuthService.login(shared_db_session, login_data2)
+        
+        auth_headers2 = {
+            "Authorization": f"Bearer {token_response2.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        # Create employee for second user
+        data2 = EmployeeDataFactory.valid_employee_data("emp2@tenant2.com")
+        response2 = client.post("/api/v1/employee", json=data2, headers=auth_headers2)
+        assert response2.status_code == 201
+        employee2_id = response2.json()["id"]
+        
+        # Try to create job timeline for user2's employee with user1's employee as line_manager
+        # This should fail due to tenant isolation
+        job_data = EmployeeDataFactory.valid_job_timeline_data()
+        job_data["line_manager_id"] = employee1_id  # Cross-tenant reference
+        
+        response = client.post(
+            f"/api/v1/employee/{employee2_id}/job",
+            json=job_data,
+            headers=auth_headers2
+        )
+        assert response.status_code == 400
+        assert "line_manager_id not found or access denied" in response.json()["detail"]
+        
+        # Try to create full employee with cross-tenant line_manager_id
+        full_employee_data = EmployeeDataFactory.valid_full_employee_data("emp3@tenant2.com")
+        full_employee_data["job_timeline"][0]["line_manager_id"] = employee1_id  # Cross-tenant reference
+        
+        response = client.post(
+            "/api/v1/employee/full",
+            json=full_employee_data,
+            headers=auth_headers2
+        )
+        assert response.status_code == 400
+        assert "line_manager_id not found or access denied" in response.json()["detail"]
+        
+        # Valid case: user2 can reference their own employee as line_manager
+        job_data_valid = EmployeeDataFactory.valid_job_timeline_data()
+        job_data_valid["line_manager_id"] = employee2_id  # Same tenant
+        
+        response = client.post(
+            f"/api/v1/employee/{employee2_id}/job",
+            json=job_data_valid,
+            headers=auth_headers2
+        )
+        assert response.status_code == 201

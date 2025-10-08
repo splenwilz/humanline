@@ -285,7 +285,8 @@ class EmployeeService:
             await db.commit()
             await db.refresh(personal_details)
             
-            return EmployeePersonalDetailsResponse(
+            # Create full response first, then convert to public response with masked data
+            full_personal_details = EmployeePersonalDetailsResponse(
                 id=personal_details.id,
                 employee_id=personal_details.employee_id,
                 gender=personal_details.gender,
@@ -303,6 +304,7 @@ class EmployeeService:
                 created_at=personal_details.created_at,
                 updated_at=personal_details.updated_at
             )
+            return EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
         except IntegrityError as e:
             await db.rollback()
             raise ValueError("Personal details already exist for this employee")
@@ -612,6 +614,16 @@ class EmployeeService:
             raise ValueError("Employee not found or access denied")
         
         try:
+            # Tenant safety: ensure line_manager_id (if provided) belongs to current_user
+            if job_data.line_manager_id is not None:
+                mgr = await db.execute(
+                    select(Employee).where(
+                        and_(Employee.id == job_data.line_manager_id, Employee.user_id == current_user.id)
+                    )
+                )
+                if not mgr.scalar_one_or_none():
+                    raise ValueError("line_manager_id not found or access denied")
+            
             # If this is the current job, deactivate other current jobs
             if job_data.is_current:
                 await db.execute(
@@ -690,6 +702,12 @@ class EmployeeService:
             raise ValueError("Employee not found or access denied")
         
         try:
+            # Validate required fields for bank info create
+            required = ["bank_name", "account_number", "routing_number", "account_type", "account_holder_name", "account_holder_type"]
+            missing = [f for f in required if getattr(bank_data, f) is None or getattr(bank_data, f) == ""]
+            if missing:
+                raise ValueError(f"Missing required bank_info fields: {', '.join(missing)}")
+            
             bank_info = EmployeeBankInfo(
                 employee_id=employee_id,
                 bank_name=bank_data.bank_name,
@@ -698,14 +716,15 @@ class EmployeeService:
                 account_type=bank_data.account_type,
                 account_holder_name=bank_data.account_holder_name,
                 account_holder_type=bank_data.account_holder_type,
-                is_primary=bank_data.is_primary,
-                is_active=bank_data.is_active
+                is_primary=True if bank_data.is_primary is None else bank_data.is_primary,
+                is_active=True if bank_data.is_active is None else bank_data.is_active
             )
             db.add(bank_info)
             await db.commit()
             await db.refresh(bank_info)
             
-            return EmployeeBankInfoResponse(
+            # Create full response first, then convert to public response with masked data
+            full_bank_info = EmployeeBankInfoResponse(
                 id=bank_info.id,
                 employee_id=bank_info.employee_id,
                 bank_name=bank_info.bank_name,
@@ -719,6 +738,7 @@ class EmployeeService:
                 created_at=bank_info.created_at,
                 updated_at=bank_info.updated_at
             )
+            return EmployeeBankInfoPublicResponse.from_full_response(full_bank_info)
         except IntegrityError as e:
             await db.rollback()
             raise ValueError("Bank info already exists for this employee")
@@ -828,7 +848,12 @@ class EmployeeService:
                 await db.refresh(existing_bank)
                 bank_info = existing_bank
             else:
-                # Create new record
+                # Create new record - validate required fields
+                required = ["bank_name", "account_number", "routing_number", "account_type", "account_holder_name", "account_holder_type"]
+                missing = [f for f in required if getattr(bank_data, f) is None or getattr(bank_data, f) == ""]
+                if missing:
+                    raise ValueError(f"Missing required bank_info fields: {', '.join(missing)}")
+                
                 bank_info = EmployeeBankInfo(
                     employee_id=employee_id,
                     bank_name=bank_data.bank_name,
@@ -837,8 +862,8 @@ class EmployeeService:
                     account_type=bank_data.account_type,
                     account_holder_name=bank_data.account_holder_name,
                     account_holder_type=bank_data.account_holder_type,
-                    is_primary=bank_data.is_primary,
-                    is_active=bank_data.is_active
+                    is_primary=True if bank_data.is_primary is None else bank_data.is_primary,
+                    is_active=True if bank_data.is_active is None else bank_data.is_active
                 )
                 db.add(bank_info)
                 await db.commit()
@@ -1067,6 +1092,12 @@ class EmployeeService:
             raise ValueError("Employee not found or access denied")
         
         try:
+            # Validate required fields for document create
+            required = ["document_type", "file_name", "file_path", "file_size", "mime_type"]
+            missing = [f for f in required if getattr(document_data, f) is None or getattr(document_data, f) == ""]
+            if missing:
+                raise ValueError(f"Missing required document fields: {', '.join(missing)}")
+            
             document = EmployeeDocument(
                 employee_id=employee_id,
                 document_type=document_data.document_type,
@@ -1075,13 +1106,14 @@ class EmployeeService:
                 file_size=document_data.file_size,
                 mime_type=document_data.mime_type,
                 uploaded_by_user_id=current_user.id,
-                is_active=document_data.is_active
+                is_active=True if document_data.is_active is None else document_data.is_active
             )
             db.add(document)
             await db.commit()
             await db.refresh(document)
             
-            return EmployeeDocumentResponse(
+            # Create full response first, then convert to public response with masked data
+            full_document = EmployeeDocumentResponse(
                 id=document.id,
                 employee_id=document.employee_id,
                 document_type=document.document_type,
@@ -1095,6 +1127,7 @@ class EmployeeService:
                 created_at=document.created_at,
                 updated_at=document.updated_at
             )
+            return EmployeeDocumentPublicResponse.from_full_response(full_document)
         except Exception as e:
             await db.rollback()
             raise e
@@ -1456,6 +1489,12 @@ class EmployeeService:
             
             bank_info = None
             if employee_data.bank_info:
+                # Validate required fields for bank info create
+                required = ["bank_name", "account_number", "routing_number", "account_type", "account_holder_name", "account_holder_type"]
+                missing = [f for f in required if getattr(employee_data.bank_info, f) is None or getattr(employee_data.bank_info, f) == ""]
+                if missing:
+                    raise ValueError(f"Missing required bank_info fields: {', '.join(missing)}")
+                
                 bank_info = EmployeeBankInfo(
                     employee_id=employee.id,
                     bank_name=employee_data.bank_info.bank_name,
@@ -1464,14 +1503,24 @@ class EmployeeService:
                     account_type=employee_data.bank_info.account_type,
                     account_holder_name=employee_data.bank_info.account_holder_name,
                     account_holder_type=employee_data.bank_info.account_holder_type,
-                    is_primary=employee_data.bank_info.is_primary,
-                    is_active=employee_data.bank_info.is_active
+                    is_primary=True if employee_data.bank_info.is_primary is None else employee_data.bank_info.is_primary,
+                    is_active=True if employee_data.bank_info.is_active is None else employee_data.bank_info.is_active
                 )
                 db.add(bank_info)
             
             # Create job timeline entries
             job_timeline = []
             for job_data in employee_data.job_timeline:
+                # Tenant safety: ensure line_manager_id (if provided) belongs to current_user
+                if job_data.line_manager_id is not None:
+                    mgr = await db.execute(
+                        select(Employee).where(
+                            and_(Employee.id == job_data.line_manager_id, Employee.user_id == current_user.id)
+                        )
+                    )
+                    if not mgr.scalar_one_or_none():
+                        raise ValueError("line_manager_id not found or access denied")
+                
                 job_entry = EmployeeJobTimeline(
                     employee_id=employee.id,
                     effective_date=job_data.effective_date,
@@ -1510,6 +1559,12 @@ class EmployeeService:
             # Create documents
             documents = []
             for doc_data in employee_data.documents:
+                # Validate required fields for document create
+                required = ["document_type", "file_name", "file_path", "file_size", "mime_type"]
+                missing = [f for f in required if getattr(doc_data, f) is None or getattr(doc_data, f) == ""]
+                if missing:
+                    raise ValueError(f"Missing required document fields: {', '.join(missing)}")
+                
                 document = EmployeeDocument(
                     employee_id=employee.id,
                     document_type=doc_data.document_type,
@@ -1518,7 +1573,7 @@ class EmployeeService:
                     file_size=doc_data.file_size,
                     mime_type=doc_data.mime_type,
                     uploaded_by_user_id=current_user.id,
-                    is_active=doc_data.is_active
+                    is_active=True if doc_data.is_active is None else doc_data.is_active
                 )
                 db.add(document)
                 documents.append(document)
@@ -1746,6 +1801,12 @@ class EmployeeService:
             
             bank_info = None
             if employee_data.bank_info:
+                # Validate required fields for bank info create
+                required = ["bank_name", "account_number", "routing_number", "account_type", "account_holder_name", "account_holder_type"]
+                missing = [f for f in required if getattr(employee_data.bank_info, f) is None or getattr(employee_data.bank_info, f) == ""]
+                if missing:
+                    raise ValueError(f"Missing required bank_info fields: {', '.join(missing)}")
+                
                 bank_info = EmployeeBankInfo(
                     employee_id=employee.id,
                     bank_name=employee_data.bank_info.bank_name,
@@ -1754,14 +1815,24 @@ class EmployeeService:
                     account_type=employee_data.bank_info.account_type,
                     account_holder_name=employee_data.bank_info.account_holder_name,
                     account_holder_type=employee_data.bank_info.account_holder_type,
-                    is_primary=employee_data.bank_info.is_primary,
-                    is_active=employee_data.bank_info.is_active
+                    is_primary=True if employee_data.bank_info.is_primary is None else employee_data.bank_info.is_primary,
+                    is_active=True if employee_data.bank_info.is_active is None else employee_data.bank_info.is_active
                 )
                 db.add(bank_info)
             
             # Create job timeline entries
             job_timeline = []
             for job_data in employee_data.job_timeline:
+                # Tenant safety: ensure line_manager_id (if provided) belongs to current_user
+                if job_data.line_manager_id is not None:
+                    mgr = await db.execute(
+                        select(Employee).where(
+                            and_(Employee.id == job_data.line_manager_id, Employee.user_id == current_user.id)
+                        )
+                    )
+                    if not mgr.scalar_one_or_none():
+                        raise ValueError("line_manager_id not found or access denied")
+                
                 job_entry = EmployeeJobTimeline(
                     employee_id=employee.id,
                     effective_date=job_data.effective_date,
@@ -1800,6 +1871,12 @@ class EmployeeService:
             # Create documents
             documents = []
             for doc_data in employee_data.documents:
+                # Validate required fields for document create
+                required = ["document_type", "file_name", "file_path", "file_size", "mime_type"]
+                missing = [f for f in required if getattr(doc_data, f) is None or getattr(doc_data, f) == ""]
+                if missing:
+                    raise ValueError(f"Missing required document fields: {', '.join(missing)}")
+                
                 document = EmployeeDocument(
                     employee_id=employee.id,
                     document_type=doc_data.document_type,
@@ -1808,7 +1885,7 @@ class EmployeeService:
                     file_size=doc_data.file_size,
                     mime_type=doc_data.mime_type,
                     uploaded_by_user_id=current_user.id,
-                    is_active=doc_data.is_active
+                    is_active=True if doc_data.is_active is None else doc_data.is_active
                 )
                 db.add(document)
                 documents.append(document)
