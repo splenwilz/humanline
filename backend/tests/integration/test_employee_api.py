@@ -94,7 +94,7 @@ class EmployeeDataFactory:
     def valid_dependent_data() -> dict:
         """Create valid dependent data for testing."""
         return {
-            "name": "Jane Doe",
+                    "name": "Jane Doe",
             "relationship_type": "SPOUSE",
             "date_of_birth": "1992-05-20",
             "gender": "FEMALE",
@@ -735,7 +735,7 @@ class TestEmployeeEndToEnd:
         verify_data = verify_response.json()
         assert verify_data["first_name"] == "Updated John"
         assert verify_data["email"] == "e2e.updated@example.com"
-    
+
     @pytest.mark.asyncio
     async def test_employee_isolation_between_users(self, client: TestClient, auth_headers: dict, shared_db_session):
         """Test that employees are properly isolated between users."""

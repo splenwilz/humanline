@@ -567,7 +567,7 @@ class EmployeeService:
                 join_date=employee_data.join_date
             )
             db.add(employee)
-            await db.commit()
+            await db.flush()  # Generate ID without committing
             await db.refresh(employee)
             
             # Create related data if provided
@@ -1069,6 +1069,13 @@ class EmployeeService:
                 documents=documents_response
             )
             
+        except IntegrityError as e:
+            await db.rollback()
+            error_msg = str(e.orig).lower()
+            if 'unique constraint' in error_msg and 'email' in error_msg:
+                raise ValueError("Email already exists")
+            else:
+                raise ValueError("Employee update failed")
         except ValueError as e:
             await db.rollback()
             raise e

@@ -21,8 +21,8 @@ class Employee(Base):
     phone: Mapped[str] = mapped_column(String(255), nullable=True)
     join_date: Mapped[date] = mapped_column(Date, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user: Mapped["User"] = relationship("User", back_populates="employees")
     
@@ -64,8 +64,8 @@ class EmployeePersonalDetails(Base):
     postal_code: Mapped[str] = mapped_column(String(20), nullable=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="personal_details")
 
@@ -92,8 +92,8 @@ class EmployeeJobTimeline(Base):
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="job_timeline", foreign_keys=[employee_id])
 
@@ -117,8 +117,8 @@ class EmployeeContractTimeline(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="contract_timeline")
 
@@ -149,8 +149,8 @@ class EmployeeWorkSchedule(Base):
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="work_schedule")
 
@@ -174,8 +174,8 @@ class EmployeePayrollRecord(Base):
     payment_date: Mapped[date] = mapped_column(Date, nullable=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="payroll_records")
     payroll_items: Mapped[List["EmployeePayrollItem"]] = relationship("EmployeePayrollItem", back_populates="payroll_record")
@@ -202,8 +202,8 @@ class EmployeePayrollItem(Base):
     meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     payroll_record: Mapped["EmployeePayrollRecord"] = relationship("EmployeePayrollRecord", back_populates="payroll_items")
 
@@ -228,8 +228,8 @@ class EmployeeBankInfo(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="bank_info")
 
@@ -258,8 +258,8 @@ class EmployeeDependent(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="dependents")
 
@@ -280,13 +280,13 @@ class EmployeeDocument(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    upload_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
+    upload_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     uploaded_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="documents")
 
