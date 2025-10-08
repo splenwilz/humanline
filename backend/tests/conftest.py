@@ -18,6 +18,7 @@ from typing import AsyncGenerator, Generator
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy import text
+from datetime import date, datetime, timezone
 
 from fastapi import FastAPI
 from main import app
@@ -341,6 +342,184 @@ class OnboardingDataFactory:
         }
 
 
+# Additional employee test fixtures
+@pytest_asyncio.fixture
+async def employee_id(shared_db_session: AsyncSession, test_user: User) -> int:
+    """Create a test employee and return its ID."""
+    from models.employee import Employee
+    
+    employee = Employee(
+        user_id=test_user.id,
+        first_name="Test",
+        last_name="Employee",
+        email="test.employee@example.com",
+        phone="+1234567890",
+        join_date=date(2024, 1, 15)
+    )
+    
+    shared_db_session.add(employee)
+    await shared_db_session.commit()
+    await shared_db_session.refresh(employee)
+    
+    return employee.id
+
+@pytest_asyncio.fixture
+async def employee_with_personal_details(shared_db_session: AsyncSession, test_user: User) -> int:
+    """Create a test employee with personal details and return employee ID."""
+    from models.employee import Employee, EmployeePersonalDetails
+    
+    employee = Employee(
+        user_id=test_user.id,
+        first_name="John",
+        last_name="Smith",
+        email="john.smith@example.com",
+        phone="+1234567890",
+        join_date=date(2024, 1, 15)
+    )
+    
+    shared_db_session.add(employee)
+    await shared_db_session.flush()  # Get the employee ID
+    
+    personal_details = EmployeePersonalDetails(
+        employee_id=employee.id,
+        gender="MALE",
+        date_of_birth=date(1990, 5, 15),
+        nationality="American",
+        health_care_provider="Blue Cross",
+        marital_status="SINGLE",
+        personal_tax_id="123-45-6789",
+        social_insurance_number="987654321",
+        primary_address="123 Main St, Apt 4B",
+        city="New York",
+        state="NY",
+        country="USA",
+        postal_code="10001"
+    )
+    
+    shared_db_session.add(personal_details)
+    await shared_db_session.commit()
+    await shared_db_session.refresh(employee)
+    
+    return employee.id
+
+@pytest_asyncio.fixture
+async def employee_with_bank_info(shared_db_session: AsyncSession, test_user: User) -> int:
+    """Create a test employee with bank info and return employee ID."""
+    from models.employee import Employee, EmployeeBankInfo
+    
+    employee = Employee(
+        user_id=test_user.id,
+        first_name="Jane",
+        last_name="Doe",
+        email="jane.doe@example.com",
+        phone="+1234567890",
+        join_date=date(2024, 1, 15)
+    )
+    
+    shared_db_session.add(employee)
+    await shared_db_session.flush()  # Get the employee ID
+    
+    bank_info = EmployeeBankInfo(
+        employee_id=employee.id,
+        bank_name="Chase Bank",
+        account_number="1234567890",
+        routing_number="021000021",
+        account_type="CHECKING",
+        account_holder_name="John Smith",
+        account_holder_type="INDIVIDUAL",
+        is_primary=True,
+        is_active=True
+    )
+    
+    shared_db_session.add(bank_info)
+    await shared_db_session.commit()
+    await shared_db_session.refresh(employee)
+    
+    return employee.id
+
+@pytest_asyncio.fixture
+async def employee_with_documents(shared_db_session: AsyncSession, test_user: User) -> int:
+    """Create a test employee with documents and return employee ID."""
+    from models.employee import Employee, EmployeeDocument
+    
+    employee = Employee(
+        user_id=test_user.id,
+        first_name="Alice",
+        last_name="Johnson",
+        email="alice.johnson@example.com",
+        phone="+1234567890",
+        join_date=date(2024, 1, 15)
+    )
+    
+    shared_db_session.add(employee)
+    await shared_db_session.flush()  # Get the employee ID
+    
+    # Create multiple documents
+    documents = [
+        EmployeeDocument(
+            employee_id=employee.id,
+            document_type="CONTRACT",
+            file_name="employment_contract.pdf",
+            file_path="/uploads/contracts/emp_contract.pdf",
+            file_size=2048576,
+            mime_type="application/pdf",
+            upload_date=datetime.now(timezone.utc),
+            uploaded_by_user_id=test_user.id,
+            is_active=True
+        ),
+        EmployeeDocument(
+            employee_id=employee.id,
+            document_type="ID",
+            file_name="drivers_license.pdf",
+            file_path="/uploads/ids/drivers_license.pdf",
+            file_size=1024768,
+            mime_type="application/pdf",
+            upload_date=datetime.now(timezone.utc),
+            uploaded_by_user_id=test_user.id,
+            is_active=True
+        )
+    ]
+    
+    for document in documents:
+        shared_db_session.add(document)
+    
+    await shared_db_session.commit()
+    await shared_db_session.refresh(employee)
+    
+    return employee.id
+
+@pytest_asyncio.fixture
+async def other_user_employee(shared_db_session: AsyncSession) -> int:
+    """Create an employee belonging to a different user."""
+    from models.employee import Employee
+    from services.auth_service import AuthService
+    
+    # Create another user
+    other_user_data = RegisterRequest(
+        email="other.user@example.com",
+        password="password123",
+        first_name="Other",
+        last_name="User"
+    )
+    
+    other_user_response = await AuthService.register(shared_db_session, other_user_data)
+    
+    # Create employee for other user
+    employee = Employee(
+        user_id=other_user_response["token_response"].user["id"],
+        first_name="Other",
+        last_name="Employee",
+        email="other.employee@example.com",
+        phone="+9876543210",
+        join_date=date(2024, 2, 1)
+    )
+    
+    shared_db_session.add(employee)
+    await shared_db_session.commit()
+    await shared_db_session.refresh(employee)
+    
+    return employee.id
+
 # Export fixtures for easy importing
 __all__ = [
     "db_session",
@@ -348,5 +527,10 @@ __all__ = [
     "test_user",
     "auth_headers",
     "test_user_with_onboarding",
-    "OnboardingDataFactory"
+    "OnboardingDataFactory",
+    "employee_id",
+    "employee_with_personal_details",
+    "employee_with_bank_info", 
+    "employee_with_documents",
+    "other_user_employee"
 ]

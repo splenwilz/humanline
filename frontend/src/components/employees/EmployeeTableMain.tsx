@@ -14,10 +14,6 @@ export default function EmployeeTable() {
         <div className="flex items-center justify-center h-64">
           <div className="text-custom-grey-600">Loading employees...</div>
         </div>
-      ) : error ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-red-500">Error: {error}</div>
-        </div>
       ) : (
         <DataTable2 columns={employeeColumns} data={data} />
       )}
