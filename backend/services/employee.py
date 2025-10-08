@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from schemas.employee import (
     EmployeeRequest, EmployeeResponse, EmployeeFullResponse, EmployeeFullRequest,
-    EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse,
+    EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse, EmployeePersonalDetailsPublicResponse,
     EmployeeJobTimelineRequest, EmployeeJobTimelineResponse,
     EmployeeBankInfoRequest, EmployeeBankInfoResponse,
     EmployeeDependentRequest, EmployeeDependentResponse,
@@ -107,7 +107,8 @@ class EmployeeService:
         # Convert related data to response schemas
         personal_details = None
         if employee.personal_details:
-            personal_details = EmployeePersonalDetailsResponse(
+            # Create full response first, then convert to public response with masked data
+            full_personal_details = EmployeePersonalDetailsResponse(
                 id=employee.personal_details.id,
                 employee_id=employee.personal_details.employee_id,
                 gender=employee.personal_details.gender,
@@ -125,6 +126,7 @@ class EmployeeService:
                 created_at=employee.personal_details.created_at,
                 updated_at=employee.personal_details.updated_at
             )
+            personal_details = EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
         
         bank_info = None
         if employee.bank_info:
@@ -677,7 +679,8 @@ class EmployeeService:
             # Build response
             personal_details_response = None
             if personal_details:
-                personal_details_response = EmployeePersonalDetailsResponse(
+                # Create full response first, then convert to public response with masked data
+                full_personal_details = EmployeePersonalDetailsResponse(
                     id=personal_details.id,
                     employee_id=personal_details.employee_id,
                     gender=personal_details.gender,
@@ -695,6 +698,7 @@ class EmployeeService:
                     created_at=personal_details.created_at,
                     updated_at=personal_details.updated_at
                 )
+                personal_details_response = EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
             
             bank_info_response = None
             if bank_info:
@@ -961,7 +965,8 @@ class EmployeeService:
             # Build response (same as create_employee_full)
             personal_details_response = None
             if personal_details:
-                personal_details_response = EmployeePersonalDetailsResponse(
+                # Create full response first, then convert to public response with masked data
+                full_personal_details = EmployeePersonalDetailsResponse(
                     id=personal_details.id,
                     employee_id=personal_details.employee_id,
                     gender=personal_details.gender,
@@ -979,6 +984,7 @@ class EmployeeService:
                     created_at=personal_details.created_at,
                     updated_at=personal_details.updated_at
                 )
+                personal_details_response = EmployeePersonalDetailsPublicResponse.from_full_response(full_personal_details)
             
             bank_info_response = None
             if bank_info:

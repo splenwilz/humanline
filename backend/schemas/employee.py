@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 import re
+from utils.security import mask_tax_id, mask_social_insurance, mask_address
 
 
 class EmployeeRequest(BaseModel):
@@ -95,7 +96,7 @@ class EmployeePersonalDetailsRequest(BaseModel):
         return v
 
 class EmployeePersonalDetailsResponse(BaseModel):
-    """Response schema for employee personal details."""
+    """Response schema for employee personal details (with sensitive data)."""
     id: int = Field(..., description="The ID of the personal details record.")
     employee_id: int = Field(..., description="The ID of the employee.")
     gender: Optional[str] = Field(None, description="Employee's gender.")
@@ -112,6 +113,48 @@ class EmployeePersonalDetailsResponse(BaseModel):
     postal_code: Optional[str] = Field(None, description="Postal code.")
     created_at: datetime = Field(..., description="When the record was created.")
     updated_at: datetime = Field(..., description="When the record was last updated.")
+
+
+class EmployeePersonalDetailsPublicResponse(BaseModel):
+    """Public response schema for employee personal details (sensitive data masked)."""
+    id: int = Field(..., description="The ID of the personal details record.")
+    employee_id: int = Field(..., description="The ID of the employee.")
+    gender: Optional[str] = Field(None, description="Employee's gender.")
+    date_of_birth: Optional[date] = Field(None, description="Employee's date of birth.")
+    nationality: Optional[str] = Field(None, description="Employee's nationality.")
+    health_care_provider: Optional[str] = Field(None, description="Healthcare provider.")
+    marital_status: Optional[str] = Field(None, description="Marital status.")
+    personal_tax_id: Optional[str] = Field(None, description="Personal tax ID (masked).")
+    social_insurance_number: Optional[str] = Field(None, description="Social insurance number (masked).")
+    primary_address: Optional[str] = Field(None, description="Primary address (masked).")
+    city: Optional[str] = Field(None, description="City.")
+    state: Optional[str] = Field(None, description="State.")
+    country: Optional[str] = Field(None, description="Country.")
+    postal_code: Optional[str] = Field(None, description="Postal code.")
+    created_at: datetime = Field(..., description="When the record was created.")
+    updated_at: datetime = Field(..., description="When the record was last updated.")
+
+    @classmethod
+    def from_full_response(cls, full_response: 'EmployeePersonalDetailsResponse') -> 'EmployeePersonalDetailsPublicResponse':
+        """Create a public response from a full response with sensitive data masked."""
+        return cls(
+            id=full_response.id,
+            employee_id=full_response.employee_id,
+            gender=full_response.gender,
+            date_of_birth=full_response.date_of_birth,
+            nationality=full_response.nationality,
+            health_care_provider=full_response.health_care_provider,
+            marital_status=full_response.marital_status,
+            personal_tax_id=mask_tax_id(full_response.personal_tax_id),
+            social_insurance_number=mask_social_insurance(full_response.social_insurance_number),
+            primary_address=mask_address(full_response.primary_address),
+            city=full_response.city,
+            state=full_response.state,
+            country=full_response.country,
+            postal_code=full_response.postal_code,
+            created_at=full_response.created_at,
+            updated_at=full_response.updated_at
+        )
 
 # Job Timeline Schemas
 class EmployeeJobTimelineRequest(BaseModel):
@@ -302,7 +345,7 @@ class EmployeeFullResponse(BaseModel):
     updated_at: datetime = Field(..., description="When the employee record was last updated.")
     
     # Related data
-    personal_details: Optional[EmployeePersonalDetailsResponse] = Field(None, description="Personal details.")
+    personal_details: Optional[EmployeePersonalDetailsPublicResponse] = Field(None, description="Personal details (sensitive data masked).")
     bank_info: Optional[EmployeeBankInfoResponse] = Field(None, description="Bank information.")
     job_timeline: List[EmployeeJobTimelineResponse] = Field(default_factory=list, description="Job timeline.")
     dependents: List[EmployeeDependentResponse] = Field(default_factory=list, description="Dependents.")
