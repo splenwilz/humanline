@@ -33,27 +33,116 @@ def upgrade() -> None:
             # Index doesn't exist, continue
             pass
         op.drop_table('employee_overtime_carryover')
-    op.add_column('employee_attendance', sa.Column('payroll_record_id', sa.Integer(), nullable=True))
-    op.add_column('employee_attendance', sa.Column('period', sa.String(length=100), nullable=False))
-    op.add_column('employee_attendance', sa.Column('description', sa.String(length=500), nullable=True))
-    op.add_column('employee_attendance', sa.Column('meta_data', sa.JSON(), nullable=True))
-    op.alter_column('employee_attendance', 'expected_hours',
-               existing_type=sa.VARCHAR(length=50),
-               type_=sa.Float(),
-               existing_nullable=False,
-               postgresql_using='expected_hours::double precision')
-    op.alter_column('employee_attendance', 'actual_work_hours',
-               existing_type=sa.VARCHAR(length=50),
-               type_=sa.Float(),
-               existing_nullable=False,
-               postgresql_using='actual_work_hours::double precision')
-    op.alter_column('employee_attendance', 'period_start',
-               existing_type=sa.DATE(),
-               nullable=True)
-    op.alter_column('employee_attendance', 'period_end',
-               existing_type=sa.DATE(),
-               nullable=True)
-    op.create_foreign_key(None, 'employee_attendance', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    
+    # Create missing tables if they don't exist
+    if 'employee_attendance' not in inspector.get_table_names():
+        op.create_table('employee_attendance',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employee_id', sa.Integer(), nullable=False),
+            sa.Column('expected_hours', sa.Float(), nullable=False),
+            sa.Column('actual_work_hours', sa.Float(), nullable=False),
+            sa.Column('period_start', sa.Date(), nullable=True),
+            sa.Column('period_end', sa.Date(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+    
+    if 'employee_deficit' not in inspector.get_table_names():
+        op.create_table('employee_deficit',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employee_id', sa.Integer(), nullable=False),
+            sa.Column('deficit_amount', sa.Float(), nullable=False),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+    
+    if 'employee_overtime' not in inspector.get_table_names():
+        op.create_table('employee_overtime',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employee_id', sa.Integer(), nullable=False),
+            sa.Column('overtime_type', sa.String(length=50), nullable=True),
+            sa.Column('description', sa.String(length=500), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+    
+    if 'employee_time_off' not in inspector.get_table_names():
+        op.create_table('employee_time_off',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employee_id', sa.Integer(), nullable=False),
+            sa.Column('days_remaining', sa.Float(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+    
+    if 'employee_payroll_record' not in inspector.get_table_names():
+        op.create_table('employee_payroll_record',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('employee_id', sa.Integer(), nullable=False),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+    # Add columns only if they don't exist
+    attendance_columns_to_add = [
+        ('payroll_record_id', sa.Integer(), True),
+        ('period', sa.String(length=100), False),
+        ('description', sa.String(length=500), True),
+        ('meta_data', sa.JSON(), True)
+    ]
+    for column_name, column_type, nullable in attendance_columns_to_add:
+        try:
+            op.add_column('employee_attendance', sa.Column(column_name, column_type, nullable=nullable))
+        except Exception:
+            # Column already exists, continue
+            pass
+    # Alter columns only if they exist and need modification
+    try:
+        op.alter_column('employee_attendance', 'expected_hours',
+                   existing_type=sa.VARCHAR(length=50),
+                   type_=sa.Float(),
+                   existing_nullable=False,
+                   postgresql_using='expected_hours::double precision')
+    except Exception:
+        pass
+    
+    try:
+        op.alter_column('employee_attendance', 'actual_work_hours',
+                   existing_type=sa.VARCHAR(length=50),
+                   type_=sa.Float(),
+                   existing_nullable=False,
+                   postgresql_using='actual_work_hours::double precision')
+    except Exception:
+        pass
+    
+    try:
+        op.alter_column('employee_attendance', 'period_start',
+                   existing_type=sa.DATE(),
+                   nullable=True)
+    except Exception:
+        pass
+    
+    try:
+        op.alter_column('employee_attendance', 'period_end',
+                   existing_type=sa.DATE(),
+                   nullable=True)
+    except Exception:
+        pass
+    # Create foreign key only if it doesn't exist
+    try:
+        op.create_foreign_key(None, 'employee_attendance', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    except Exception:
+        # Foreign key already exists, continue
+        pass
     # Drop columns only if they exist
     columns_to_drop = ['late_arrivals', 'attendance_rate', 'days_present', 'days_absent', 'early_departures']
     for column in columns_to_drop:
@@ -62,21 +151,48 @@ def upgrade() -> None:
         except Exception:
             # Column doesn't exist, continue
             pass
-    op.add_column('employee_bank_info', sa.Column('branch', sa.String(length=255), nullable=True))
-    op.add_column('employee_bank_info', sa.Column('swift_bic', sa.String(length=11), nullable=True))
-    op.add_column('employee_deficit', sa.Column('payroll_record_id', sa.Integer(), nullable=True))
-    op.add_column('employee_deficit', sa.Column('deficit_hours', sa.String(length=50), nullable=True))
-    op.add_column('employee_deficit', sa.Column('currency', sa.String(length=3), nullable=False))
-    op.add_column('employee_deficit', sa.Column('period_start', sa.Date(), nullable=True))
-    op.add_column('employee_deficit', sa.Column('period_end', sa.Date(), nullable=True))
-    op.add_column('employee_deficit', sa.Column('description', sa.String(length=500), nullable=True))
-    op.add_column('employee_deficit', sa.Column('meta_data', sa.JSON(), nullable=True))
-    op.alter_column('employee_deficit', 'deficit_amount',
-               existing_type=sa.VARCHAR(length=50),
-               type_=sa.Float(),
-               existing_nullable=False,
-               postgresql_using='deficit_amount::double precision')
-    op.create_foreign_key(None, 'employee_deficit', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    # Add bank info columns only if they don't exist
+    bank_columns_to_add = [
+        ('branch', sa.String(length=255), True),
+        ('swift_bic', sa.String(length=11), True)
+    ]
+    for column_name, column_type, nullable in bank_columns_to_add:
+        try:
+            op.add_column('employee_bank_info', sa.Column(column_name, column_type, nullable=nullable))
+        except Exception:
+            # Column already exists, continue
+            pass
+    # Add deficit columns only if they don't exist
+    deficit_columns_to_add = [
+        ('payroll_record_id', sa.Integer(), True),
+        ('deficit_hours', sa.String(length=50), True),
+        ('currency', sa.String(length=3), False),
+        ('period_start', sa.Date(), True),
+        ('period_end', sa.Date(), True),
+        ('description', sa.String(length=500), True),
+        ('meta_data', sa.JSON(), True)
+    ]
+    for column_name, column_type, nullable in deficit_columns_to_add:
+        try:
+            op.add_column('employee_deficit', sa.Column(column_name, column_type, nullable=nullable))
+        except Exception:
+            # Column already exists, continue
+            pass
+    # Alter deficit amount column only if it exists
+    try:
+        op.alter_column('employee_deficit', 'deficit_amount',
+                   existing_type=sa.VARCHAR(length=50),
+                   type_=sa.Float(),
+                   existing_nullable=False,
+                   postgresql_using='deficit_amount::double precision')
+    except Exception:
+        pass
+    # Create foreign key only if it doesn't exist
+    try:
+        op.create_foreign_key(None, 'employee_deficit', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    except Exception:
+        # Foreign key already exists, continue
+        pass
     # Drop columns only if they exist
     deficit_columns_to_drop = ['period', 'status', 'reason', 'amount']
     for column in deficit_columns_to_drop:
@@ -85,24 +201,46 @@ def upgrade() -> None:
         except Exception:
             # Column doesn't exist, continue
             pass
-    op.add_column('employee_overtime', sa.Column('payroll_record_id', sa.Integer(), nullable=True))
-    op.add_column('employee_overtime', sa.Column('overtime_date', sa.Date(), nullable=False))
-    op.add_column('employee_overtime', sa.Column('currency', sa.String(length=3), nullable=False))
-    op.add_column('employee_overtime', sa.Column('meta_data', sa.JSON(), nullable=True))
-    op.alter_column('employee_overtime', 'overtime_type',
-               existing_type=sa.VARCHAR(length=50),
-               nullable=True)
-    op.alter_column('employee_overtime', 'description',
-               existing_type=sa.VARCHAR(length=255),
-               type_=sa.String(length=500),
-               existing_nullable=True)
+    # Add overtime columns only if they don't exist
+    overtime_columns_to_add = [
+        ('payroll_record_id', sa.Integer(), True),
+        ('overtime_date', sa.Date(), False),
+        ('currency', sa.String(length=3), False),
+        ('meta_data', sa.JSON(), True)
+    ]
+    for column_name, column_type, nullable in overtime_columns_to_add:
+        try:
+            op.add_column('employee_overtime', sa.Column(column_name, column_type, nullable=nullable))
+        except Exception:
+            # Column already exists, continue
+            pass
+    # Alter overtime columns only if they exist
+    try:
+        op.alter_column('employee_overtime', 'overtime_type',
+                   existing_type=sa.VARCHAR(length=50),
+                   nullable=True)
+    except Exception:
+        pass
+    
+    try:
+        op.alter_column('employee_overtime', 'description',
+                   existing_type=sa.VARCHAR(length=255),
+                   type_=sa.String(length=500),
+                   existing_nullable=True)
+    except Exception:
+        pass
     # Drop constraint only if it exists
     try:
         op.drop_constraint(op.f('employee_overtime_approved_by_fkey'), 'employee_overtime', type_='foreignkey')
     except Exception:
         # Constraint doesn't exist, continue
         pass
-    op.create_foreign_key(None, 'employee_overtime', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    # Create foreign key only if it doesn't exist
+    try:
+        op.create_foreign_key(None, 'employee_overtime', 'employee_payroll_record', ['payroll_record_id'], ['id'])
+    except Exception:
+        # Foreign key already exists, continue
+        pass
     # Drop columns only if they exist
     overtime_columns_to_drop = ['approved_by', 'date']
     for column in overtime_columns_to_drop:
@@ -111,14 +249,27 @@ def upgrade() -> None:
         except Exception:
             # Column doesn't exist, continue
             pass
-    op.add_column('employee_time_off', sa.Column('currency', sa.String(length=3), nullable=False))
-    op.add_column('employee_time_off', sa.Column('period_start', sa.Date(), nullable=True))
-    op.add_column('employee_time_off', sa.Column('period_end', sa.Date(), nullable=True))
-    op.add_column('employee_time_off', sa.Column('description', sa.String(length=500), nullable=True))
-    op.add_column('employee_time_off', sa.Column('meta_data', sa.JSON(), nullable=True))
-    op.alter_column('employee_time_off', 'days_remaining',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               nullable=True)
+    # Add time_off columns only if they don't exist
+    time_off_columns_to_add = [
+        ('currency', sa.String(length=3), False),
+        ('period_start', sa.Date(), True),
+        ('period_end', sa.Date(), True),
+        ('description', sa.String(length=500), True),
+        ('meta_data', sa.JSON(), True)
+    ]
+    for column_name, column_type, nullable in time_off_columns_to_add:
+        try:
+            op.add_column('employee_time_off', sa.Column(column_name, column_type, nullable=nullable))
+        except Exception:
+            # Column already exists, continue
+            pass
+    # Alter time_off column only if it exists
+    try:
+        op.alter_column('employee_time_off', 'days_remaining',
+                   existing_type=sa.DOUBLE_PRECISION(precision=53),
+                   nullable=True)
+    except Exception:
+        pass
     # Drop constraint only if it exists
     try:
         op.drop_constraint(op.f('employee_time_off_approved_by_fkey'), 'employee_time_off', type_='foreignkey')
