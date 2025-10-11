@@ -105,10 +105,10 @@ class EmployeePayrollItemRequest(BaseModel):
     category: str = Field(..., max_length=50, description="Category of the payroll item (e.g., 'salary', 'bonus', 'deduction').")
     item_type: str = Field(..., max_length=50, description="Type of item (e.g., 'base_salary', 'overtime', 'tax').")
     description: Optional[str] = Field(None, max_length=255, description="Description of the payroll item.")
-    amount: float = Field(..., description="Amount of the payroll item.")
+    amount: float = Field(..., ge=0, description="Amount of the payroll item.")
     currency: str = Field("USD", max_length=3, description="Currency code.")
-    quantity: Optional[float] = Field(None, description="Quantity (for hourly rates, etc.).")
-    rate: Optional[float] = Field(None, description="Rate per unit.")
+    quantity: Optional[float] = Field(None, ge=0, description="Quantity (for hourly rates, etc.).")
+    rate: Optional[float] = Field(None, ge=0, description="Rate per unit.")
     meta_data: Optional[dict] = Field(None, description="Additional metadata as JSON.")
 
 class EmployeePayrollItemResponse(BaseModel):
@@ -187,6 +187,17 @@ class EmployeeResponse(BaseModel):
     line_manager_id: Optional[int] = Field(None, description="ID of the employee's line manager.")
     line_manager_name: Optional[str] = Field(None, description="Name of the employee's line manager.")
     employment_status: Optional[str] = Field("ACTIVE", description="Current employment status of the employee.")
+
+    @field_validator('employment_status')
+    @classmethod
+    def validate_employment_status(cls, v):
+        """Validate employment status."""
+        if v is None:
+            return v
+        valid_statuses = ['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE', 'SUSPENDED']
+        if v not in valid_statuses:
+            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v
 
 # Personal Details Schemas
 class EmployeePersonalDetailsRequest(BaseModel):
@@ -394,6 +405,15 @@ class EmployeeContractTimelineRequest(BaseModel):
         valid_types = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY', 'FREELANCE']
         if v not in valid_types:
             raise ValueError(f"contract_type must be one of {valid_types}")
+        return v
+
+    @field_validator('end_date')
+    @classmethod
+    def validate_contract_dates(cls, v, info):
+        """Validate that end_date is after start_date."""
+        if v is not None and 'start_date' in info.data:
+            if v <= info.data['start_date']:
+                raise ValueError("Contract end date must be after start date")
         return v
 
 class EmployeeContractTimelineResponse(BaseModel):
@@ -749,7 +769,7 @@ class EmployeeOneOffPaymentRequest(BaseModel):
     """Request schema for creating/updating one-off payments."""
     item_name: str = Field(..., max_length=255, description="Name of the one-off item.")
     item_type: str = Field(..., max_length=50, description="Type: bonus, incentive, commission, etc.")
-    amount: float = Field(..., description="Payment amount.")
+    amount: float = Field(..., ge=0, description="Payment amount.")
     currency: str = Field("USD", max_length=3, description="Currency code.")
     payment_date: Optional[date] = Field(None, description="When payment was made.")
     description: Optional[str] = Field(None, max_length=500, description="Additional description.")
@@ -773,14 +793,23 @@ class EmployeeOneOffPaymentResponse(BaseModel):
 class EmployeeTimeOffRequest(BaseModel):
     """Request schema for creating/updating time-off records."""
     time_off_type: str = Field(..., max_length=50, description="Type: vacation, sick_leave, personal, etc.")
-    days_used: float = Field(..., description="Days used in this period.")
-    days_remaining: Optional[float] = Field(None, description="Days remaining.")
-    amount: Optional[float] = Field(None, description="Monetary value if applicable.")
+    days_used: float = Field(..., ge=0, description="Days used in this period.")
+    days_remaining: Optional[float] = Field(None, ge=0, description="Days remaining.")
+    amount: Optional[float] = Field(None, ge=0, description="Monetary value if applicable.")
     currency: str = Field("USD", max_length=3, description="Currency code.")
     period_start: Optional[date] = Field(None, description="Time-off period start.")
     period_end: Optional[date] = Field(None, description="Time-off period end.")
     description: Optional[str] = Field(None, max_length=500, description="Additional description.")
     meta_data: Optional[dict] = Field(None, description="Additional metadata as JSON.")
+
+    @field_validator('time_off_type')
+    @classmethod
+    def validate_time_off_type(cls, v):
+        """Validate time-off type."""
+        valid_types = ['vacation', 'sick_leave', 'personal', 'maternity', 'paternity', 'bereavement', 'unpaid']
+        if v not in valid_types:
+            raise ValueError(f"Time-off type must be one of: {', '.join(valid_types)}")
+        return v
 
 class EmployeeTimeOffResponse(BaseModel):
     """Response schema for time-off records."""
@@ -801,9 +830,9 @@ class EmployeeTimeOffResponse(BaseModel):
 class EmployeeOvertimeRequest(BaseModel):
     """Request schema for creating/updating overtime records."""
     overtime_date: date = Field(..., description="Date of overtime work.")
-    hours: float = Field(..., description="Overtime hours worked.")
-    rate: float = Field(..., description="Overtime rate per hour.")
-    amount: float = Field(..., description="Total overtime amount (hours * rate).")
+    hours: float = Field(..., ge=0, description="Overtime hours worked.")
+    rate: float = Field(..., ge=0, description="Overtime rate per hour.")
+    amount: float = Field(..., ge=0, description="Total overtime amount (hours * rate).")
     currency: str = Field("USD", max_length=3, description="Currency code.")
     overtime_type: Optional[str] = Field(None, max_length=50, description="Type: regular, holiday, weekend, etc.")
     description: Optional[str] = Field(None, max_length=500, description="Additional description.")
@@ -829,12 +858,34 @@ class EmployeeDeficitRequest(BaseModel):
     """Request schema for creating/updating deficit records."""
     deficit_type: str = Field(..., max_length=50, description="Type: regular, penalty, adjustment, etc.")
     deficit_hours: Optional[str] = Field(None, max_length=50, description="Deficit hours (e.g., '-13h 30m').")
-    deficit_amount: float = Field(..., description="Monetary deficit amount.")
+    deficit_amount: float = Field(..., ge=0, description="Monetary deficit amount.")
     currency: str = Field("USD", max_length=3, description="Currency code.")
     period_start: Optional[date] = Field(None, description="Deficit period start.")
     period_end: Optional[date] = Field(None, description="Deficit period end.")
     description: Optional[str] = Field(None, max_length=500, description="Additional description.")
     meta_data: Optional[dict] = Field(None, description="Additional metadata as JSON.")
+
+    @field_validator('deficit_hours')
+    @classmethod
+    def validate_deficit_hours(cls, v):
+        """Validate deficit hours format (e.g., '-13h 30m')."""
+        if v is None:
+            return v
+        # Add regex pattern matching for your expected format
+        import re
+        pattern = r'^-?\d+h\s*\d*m?$'
+        if not re.match(pattern, v.strip()):
+            raise ValueError("Deficit hours must be in format '-13h 30m' or '-13h'")
+        return v.strip()
+
+    @field_validator('deficit_type')
+    @classmethod
+    def validate_deficit_type(cls, v):
+        """Validate deficit type."""
+        valid_types = ['regular', 'penalty', 'adjustment', 'absence']
+        if v not in valid_types:
+            raise ValueError(f"Deficit type must be one of: {', '.join(valid_types)}")
+        return v
 
 class EmployeeDeficitResponse(BaseModel):
     """Response schema for deficit records."""
@@ -855,8 +906,8 @@ class EmployeeDeficitResponse(BaseModel):
 class EmployeeAttendanceRequest(BaseModel):
     """Request schema for creating/updating attendance records."""
     period: str = Field(..., max_length=100, description="Period description (e.g., 'Week 1', 'Month 1').")
-    expected_hours: float = Field(..., description="Expected work hours for period.")
-    actual_work_hours: float = Field(..., description="Actual hours worked.")
+    expected_hours: float = Field(..., ge=0, description="Expected work hours for period.")
+    actual_work_hours: float = Field(..., ge=0, description="Actual hours worked.")
     period_start: Optional[date] = Field(None, description="Period start date.")
     period_end: Optional[date] = Field(None, description="Period end date.")
     description: Optional[str] = Field(None, max_length=500, description="Additional description.")
