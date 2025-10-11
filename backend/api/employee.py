@@ -6,11 +6,21 @@ from core.dependencies import get_current_active_user
 from models.employee import Employee
 from schemas.employee import (
     EmployeeRequest, EmployeeResponse, EmployeeFullResponse, EmployeeFullRequest,
+    EmployeePartialUpdateRequest, EmployeePartialFullUpdateRequest,
     EmployeePersonalDetailsRequest, EmployeePersonalDetailsResponse, EmployeePersonalDetailsPublicResponse,
     EmployeeJobTimelineRequest, EmployeeJobTimelineResponse,
+    EmployeeContractTimelineRequest, EmployeeContractTimelineResponse,
+    EmployeeWorkScheduleRequest, EmployeeWorkScheduleResponse,
+    EmployeePayrollRecordRequest, EmployeePayrollRecordResponse,
     EmployeeBankInfoRequest, EmployeeBankInfoResponse, EmployeeBankInfoPublicResponse,
     EmployeeDependentRequest, EmployeeDependentResponse,
-    EmployeeDocumentRequest, EmployeeDocumentResponse, EmployeeDocumentPublicResponse
+    EmployeeDocumentRequest, EmployeeDocumentResponse, EmployeeDocumentPublicResponse,
+    # New payroll schemas
+    EmployeeOneOffPaymentRequest, EmployeeOneOffPaymentResponse,
+    EmployeeTimeOffRequest, EmployeeTimeOffResponse,
+    EmployeeOvertimeRequest, EmployeeOvertimeResponse,
+    EmployeeDeficitRequest, EmployeeDeficitResponse,
+    EmployeeAttendanceRequest, EmployeeAttendanceResponse
 )
 from services.employee import EmployeeService
 from models.user import User
@@ -82,27 +92,167 @@ async def list_employees(
 
 @router.get(
     "/{employee_id}",
-    response_model=EmployeeResponse,
+    response_model=EmployeeFullResponse,
     summary="Get Employee",
-    description="Get a specific employee by ID",
+    description="Get complete employee information with all related data",
     tags=["Employee Management"]
 )
 async def get_employee(
     employee_id: int,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
-) -> EmployeeResponse:
+) -> EmployeeFullResponse:
     """
-    Get a specific employee by ID.
+    Get complete employee information including personal details, job timeline, 
+    bank info, dependents, and documents.
     """
     try:
-        employee = await EmployeeService.get_employee(db, employee_id, current_user)
+        employee = await EmployeeService.get_employee_full(db, employee_id, current_user)
         if not employee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Employee not found"
+                detail="Employee not found or access denied"
             )
         return employee
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}",
+    response_model=EmployeeResponse,
+    summary="Update Employee",
+    description="Update basic employee information",
+    tags=["Employee Management"]
+)
+async def update_employee(
+    employee_id: int,
+    employee_data: EmployeeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeResponse:
+    """
+    Update basic employee information.
+    
+    - **first_name**: Employee's first name
+    - **last_name**: Employee's last name  
+    - **email**: Employee's email address (must be unique)
+    - **phone**: Employee's phone number
+    - **join_date**: Date the employee joined the company
+    """
+    try:
+        employee = await EmployeeService.update_employee(db, employee_id, employee_data, current_user)
+        if not employee:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Employee not found or access denied"
+            )
+        return employee
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.patch(
+    "/{employee_id}",
+    response_model=EmployeeResponse,
+    summary="Partially Update Employee",
+    description="Partially update basic employee information",
+    tags=["Employee Management"]
+)
+async def partial_update_employee(
+    employee_id: int,
+    employee_data: EmployeePartialUpdateRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeResponse:
+    """
+    Partially update basic employee information.
+    
+    Only the provided fields will be updated, leaving other fields unchanged.
+    
+    - **first_name**: Employee's first name (optional)
+    - **last_name**: Employee's last name (optional)
+    - **email**: Employee's email address (optional, must be unique)
+    - **phone**: Employee's phone number (optional)
+    - **join_date**: Date the employee joined the company (optional)
+    """
+    try:
+        return await EmployeeService.partial_update_employee(db, employee_id, employee_data, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Employee",
+    description="Delete an employee and all related data",
+    tags=["Employee Management"]
+)
+async def delete_employee(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """
+    Delete an employee and all related data.
+    
+    This endpoint permanently removes an employee and all associated data including:
+    - Personal details
+    - Bank information
+    - Job timeline
+    - Dependents
+    - Documents
+    
+    **Deletion Behavior:**
+    - Permanently removes employee and all related data
+    - Cannot be undone
+    - Returns 204 No Content on success
+    - Returns 404 if employee not found
+    
+    **Security Considerations:**
+    - Only employee owner can delete the employee
+    - All sensitive data is permanently removed
+    - Audit trail may be maintained in logs
+    
+    **Use Cases:**
+    - Employee leaving the company
+    - Data privacy compliance
+    - Cleanup of test data
+    - Account closure
+    """
+    try:
+        success = await EmployeeService.delete_employee(db, employee_id, current_user)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Employee not found or access denied"
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -132,7 +282,7 @@ async def get_employee_full(
         if not employee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Employee not found"
+                detail="Employee not found or access denied"
             )
         return employee
     except HTTPException:
@@ -186,6 +336,385 @@ async def create_job_timeline(
         )
 
 
+@router.get(
+    "/{employee_id}/job",
+    response_model=List[EmployeeJobTimelineResponse],
+    summary="Get Job Timeline Entries",
+    description="Get all job timeline entries for an employee",
+    tags=["Employee Job Timeline"]
+)
+async def get_job_timeline(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeJobTimelineResponse]:
+    """
+    Get all job timeline entries for an employee.
+    """
+    try:
+        return await EmployeeService.get_job_timeline(db, employee_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.put(
+    "/{employee_id}/job/{job_id}",
+    response_model=EmployeeJobTimelineResponse,
+    summary="Update Job Timeline Entry",
+    description="Update a specific job timeline entry for an employee",
+    tags=["Employee Job Timeline"]
+)
+async def update_job_timeline(
+    employee_id: int,
+    job_id: int,
+    job_data: EmployeeJobTimelineRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeJobTimelineResponse:
+    """
+    Update a specific job timeline entry for an employee.
+    
+    - **effective_date**: Date when this job position became effective
+    - **end_date**: Date when this job position ended (optional)
+    - **job_title**: Job title/position name
+    - **employment_type**: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, TEMPORARY
+    - **department**: Department name
+    - **office**: Office location
+    - **is_current**: Whether this is the current job position
+    - **line_manager_id**: Direct manager's employee ID (optional)
+    """
+    try:
+        return await EmployeeService.update_job_timeline(db, employee_id, job_id, job_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.delete(
+    "/{employee_id}/job/{job_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Job Timeline Entry",
+    description="Delete a specific job timeline entry for an employee",
+    tags=["Employee Job Timeline"]
+)
+async def delete_job_timeline(
+    employee_id: int,
+    job_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a specific job timeline entry for an employee.
+    """
+    try:
+        await EmployeeService.delete_job_timeline(db, employee_id, job_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ==================== CONTRACT TIMELINE ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/contract",
+    response_model=EmployeeContractTimelineResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add Contract Timeline Entry",
+    description="Add a contract timeline entry for an employee",
+    tags=["Employee Contract Timeline"]
+)
+async def create_contract_timeline(
+    employee_id: int,
+    contract_data: EmployeeContractTimelineRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeContractTimelineResponse:
+    """
+    Add a contract timeline entry for an employee.
+    
+    - **contract_number**: Unique contract number
+    - **contract_name**: Name/description of the contract
+    - **contract_type**: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, TEMPORARY, FREELANCE
+    - **start_date**: Contract start date
+    - **end_date**: Contract end date (optional)
+    - **is_active**: Whether this contract is currently active
+    """
+    try:
+        return await EmployeeService.create_contract_timeline(db, employee_id, contract_data, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/contract",
+    response_model=List[EmployeeContractTimelineResponse],
+    summary="Get Contract Timeline",
+    description="Get all contract timeline entries for an employee",
+    tags=["Employee Contract Timeline"]
+)
+async def get_contract_timeline(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeContractTimelineResponse]:
+    """
+    Get all contract timeline entries for an employee.
+    
+    Returns a list of all contract timeline entries ordered by start date (newest first).
+    """
+    try:
+        return await EmployeeService.get_contract_timeline(db, employee_id, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/contract/{contract_id}",
+    response_model=EmployeeContractTimelineResponse,
+    summary="Update Contract Timeline Entry",
+    description="Update a contract timeline entry for an employee",
+    tags=["Employee Contract Timeline"]
+)
+async def update_contract_timeline(
+    employee_id: int,
+    contract_id: int,
+    contract_data: EmployeeContractTimelineRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeContractTimelineResponse:
+    """
+    Update a contract timeline entry for an employee.
+    
+    - **contract_number**: Unique contract number
+    - **contract_name**: Name/description of the contract
+    - **contract_type**: FULL_TIME, PART_TIME, CONTRACT, INTERNSHIP, TEMPORARY, FREELANCE
+    - **start_date**: Contract start date
+    - **end_date**: Contract end date (optional)
+    - **is_active**: Whether this contract is currently active
+    """
+    try:
+        return await EmployeeService.update_contract_timeline(db, contract_id, contract_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/contract/{contract_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Contract Timeline Entry",
+    description="Delete a contract timeline entry for an employee",
+    tags=["Employee Contract Timeline"]
+)
+async def delete_contract_timeline(
+    employee_id: int,
+    contract_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """
+    Delete a contract timeline entry for an employee.
+    
+    This action cannot be undone and will permanently remove the contract timeline entry.
+    """
+    try:
+        await EmployeeService.delete_contract_timeline(db, contract_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ==================== WORK SCHEDULE ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/work-schedule",
+    response_model=EmployeeWorkScheduleResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Employee Work Schedule Entry",
+    description="Create a new work schedule entry for a specific employee",
+    tags=["Employee Work Schedule"]
+)
+async def create_work_schedule(
+    employee_id: int,
+    work_schedule_data: EmployeeWorkScheduleRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeWorkScheduleResponse:
+    """
+    Create a new work schedule entry for an employee.
+    """
+    try:
+        return await EmployeeService.create_work_schedule(db, employee_id, work_schedule_data, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/work-schedule",
+    response_model=List[EmployeeWorkScheduleResponse],
+    summary="Get Employee Work Schedule",
+    description="Retrieve all work schedule entries for a specific employee, ordered by effective date descending",
+    tags=["Employee Work Schedule"]
+)
+async def get_work_schedule(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeWorkScheduleResponse]:
+    """
+    Retrieve all work schedule entries for a specific employee.
+    """
+    try:
+        return await EmployeeService.get_work_schedule(db, employee_id, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/work-schedule/{schedule_id}",
+    response_model=EmployeeWorkScheduleResponse,
+    summary="Update Employee Work Schedule Entry",
+    description="Update a specific work schedule entry for an employee",
+    tags=["Employee Work Schedule"]
+)
+async def update_work_schedule(
+    employee_id: int,
+    schedule_id: int,
+    work_schedule_data: EmployeeWorkScheduleRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeWorkScheduleResponse:
+    """
+    Update a specific work schedule entry for an employee.
+    """
+    try:
+        return await EmployeeService.update_work_schedule(db, schedule_id, work_schedule_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/work-schedule/{schedule_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Employee Work Schedule Entry",
+    description="Delete a specific work schedule entry for an employee",
+    tags=["Employee Work Schedule"]
+)
+async def delete_work_schedule(
+    employee_id: int,
+    schedule_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """
+    Delete a specific work schedule entry for an employee.
+    
+    This action cannot be undone and will permanently remove the work schedule entry.
+    """
+    try:
+        await EmployeeService.delete_work_schedule(db, schedule_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
 # ==================== DEPENDENT ENDPOINTS ====================
 
 @router.post(
@@ -217,6 +746,234 @@ async def create_dependent(
     try:
         return await EmployeeService.create_dependent(db, employee_id, dependent_data, current_user)
     except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/dependent",
+    response_model=List[EmployeeDependentResponse],
+    summary="Get Employee Dependents",
+    description="Get all dependents for an employee",
+    tags=["Employee Dependents"]
+)
+async def get_dependents(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeDependentResponse]:
+    """
+    Get all dependents for an employee.
+    
+    Returns a list of all dependents ordered by creation date (newest first).
+    """
+    try:
+        return await EmployeeService.get_dependents(db, employee_id, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/dependent/{dependent_id}",
+    response_model=EmployeeDependentResponse,
+    summary="Get Employee Dependent by ID",
+    description="Get a specific dependent for an employee",
+    tags=["Employee Dependents"]
+)
+async def get_dependent(
+    employee_id: int,
+    dependent_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeDependentResponse:
+    """
+    Get a specific dependent for an employee.
+    
+    Returns the dependent information if found.
+    """
+    try:
+        dependent = await EmployeeService.get_dependent(db, employee_id, dependent_id, current_user)
+        if not dependent:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dependent not found"
+            )
+        return dependent
+    except HTTPException:
+        raise
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/dependent/{dependent_id}",
+    response_model=EmployeeDependentResponse,
+    summary="Update Employee Dependent",
+    description="Update a specific dependent for an employee",
+    tags=["Employee Dependents"]
+)
+async def update_dependent(
+    employee_id: int,
+    dependent_id: int,
+    dependent_data: EmployeeDependentRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeDependentResponse:
+    """
+    Update a specific dependent for an employee.
+    
+    - **name**: Dependent's full name
+    - **relationship_type**: SPOUSE, CHILD, PARENT, SIBLING, OTHER
+    - **date_of_birth**: Dependent's date of birth (optional)
+    - **gender**: Dependent's gender (optional)
+    - **nationality**: Dependent's nationality (optional)
+    - **primary_address**: Dependent's address (optional)
+    - **city**, **state**, **country**, **postal_code**: Address components (optional)
+    - **is_active**: Whether this dependent is active
+    """
+    try:
+        dependent = await EmployeeService.update_dependent(db, employee_id, dependent_id, dependent_data, current_user)
+        if not dependent:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dependent not found"
+            )
+        return dependent
+    except HTTPException:
+        raise
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.patch(
+    "/{employee_id}/dependent/{dependent_id}",
+    response_model=EmployeeDependentResponse,
+    summary="Partially Update Employee Dependent",
+    description="Partially update a specific dependent for an employee",
+    tags=["Employee Dependents"]
+)
+async def partial_update_dependent(
+    employee_id: int,
+    dependent_id: int,
+    dependent_data: EmployeeDependentRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeDependentResponse:
+    """
+    Partially update a specific dependent for an employee.
+    
+    Only the provided fields will be updated, leaving other fields unchanged.
+    
+    - **name**: Dependent's full name (optional)
+    - **relationship_type**: SPOUSE, CHILD, PARENT, SIBLING, OTHER (optional)
+    - **date_of_birth**: Dependent's date of birth (optional)
+    - **gender**: Dependent's gender (optional)
+    - **nationality**: Dependent's nationality (optional)
+    - **primary_address**: Dependent's address (optional)
+    - **city**, **state**, **country**, **postal_code**: Address components (optional)
+    - **is_active**: Whether this dependent is active (optional)
+    """
+    try:
+        dependent = await EmployeeService.partial_update_dependent(db, employee_id, dependent_id, dependent_data, current_user)
+        if not dependent:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dependent not found"
+            )
+        return dependent
+    except HTTPException:
+        raise
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/dependent/{dependent_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Employee Dependent",
+    description="Delete a specific dependent for an employee",
+    tags=["Employee Dependents"]
+)
+async def delete_dependent(
+    employee_id: int,
+    dependent_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """
+    Delete a specific dependent for an employee.
+    
+    This action cannot be undone and will permanently remove the dependent.
+    """
+    try:
+        success = await EmployeeService.delete_dependent(db, employee_id, dependent_id, current_user)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dependent not found"
+            )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -353,6 +1110,83 @@ async def update_employee_full(
     """
     try:
         return await EmployeeService.update_employee_full(db, employee_id, employee_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.patch(
+    "/{employee_id}/full",
+    response_model=EmployeeFullResponse,
+    summary="Partially Update Employee Full Data",
+    description="Update only the provided employee fields and related data while preserving existing data",
+    tags=["Employee Management"]
+)
+async def partial_update_employee_full(
+    employee_id: int,
+    employee_data: EmployeePartialFullUpdateRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeFullResponse:
+    """
+    Partially update employee information with all related data.
+    
+    This endpoint allows you to update only the provided fields in the employee data
+    and related data while preserving all existing data. Only provided fields will be updated.
+    
+    **Basic Employee Fields (optional):**
+    - **first_name**: Employee's first name
+    - **last_name**: Employee's last name  
+    - **email**: Employee's email address (must be unique)
+    - **phone**: Employee's phone number
+    - **join_date**: Date the employee joined the company
+    
+    **Related Data (optional, only provided fields will be updated):**
+    - **personal_details**: Personal information (gender, DOB, address, etc.)
+    - **bank_info**: Banking information for payroll
+    - **job_timeline**: Job history and current position
+    - **contract_timeline**: Contract timeline entries
+    - **dependents**: Family members and dependents
+    - **documents**: Uploaded documents and files
+    
+    **Key Benefits:**
+    - **Safe**: Only updates provided fields, preserves existing data
+    - **Efficient**: Smaller payloads, faster updates
+    - **Flexible**: Update just one field or multiple related data sections
+    - **No Data Loss**: Unrelated data remains unchanged
+    
+    **Use Cases:**
+    - Update employee name after marriage/legal name change
+    - Add contract timeline entries
+    - Update personal details
+    - Modify bank information
+    - Add new dependents
+    
+    **Example:**
+    ```json
+    {
+        "first_name": "Alice",
+        "contract_timeline": [
+            {
+                "contract_number": "EMP-001",
+                "contract_name": "Employment Contract",
+                "contract_type": "FULL_TIME",
+                "start_date": "2024-01-01",
+                "is_active": true
+            }
+        ]
+    }
+    ```
+    Only the name and contract timeline will be updated, all other data remains unchanged.
+    """
+    try:
+        return await EmployeeService.partial_update_employee_full(db, employee_id, employee_data, current_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1097,6 +1931,658 @@ async def delete_employee_document(
             )
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# ==================== PAYROLL ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/payroll",
+    response_model=EmployeePayrollRecordResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Employee Payroll Record",
+    description="Create a new payroll record for a specific employee",
+    tags=["Employee Payroll"]
+)
+async def create_payroll_record(
+    employee_id: int,
+    payroll_data: EmployeePayrollRecordRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeePayrollRecordResponse:
+    """Create a new payroll record for an employee."""
+    try:
+        return await EmployeeService.create_payroll_record(db, employee_id, payroll_data, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/payroll",
+    response_model=List[EmployeePayrollRecordResponse],
+    summary="Get Employee Payroll Records",
+    description="Retrieve all payroll records for a specific employee, ordered by period start date descending",
+    tags=["Employee Payroll"]
+)
+async def get_payroll_records(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeePayrollRecordResponse]:
+    """Retrieve all payroll records for a specific employee."""
+    try:
+        return await EmployeeService.get_payroll_records(db, employee_id, current_user)
+    except ValueError as e:
+        if "not found or access denied" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/payroll/{payroll_id}",
+    response_model=EmployeePayrollRecordResponse,
+    summary="Update Employee Payroll Record",
+    description="Update a specific payroll record for an employee",
+    tags=["Employee Payroll"]
+)
+async def update_payroll_record(
+    employee_id: int,
+    payroll_id: int,
+    payroll_data: EmployeePayrollRecordRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeePayrollRecordResponse:
+    """Update a specific payroll record for an employee."""
+    try:
+        return await EmployeeService.update_payroll_record(db, payroll_id, payroll_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/payroll/{payroll_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Employee Payroll Record",
+    description="Delete a specific payroll record for an employee",
+    tags=["Employee Payroll"]
+)
+async def delete_payroll_record(
+    employee_id: int,
+    payroll_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific payroll record for an employee."""
+    try:
+        await EmployeeService.delete_payroll_record(db, payroll_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+# ==================== ONE-OFF PAYMENT ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/one-off-payments",
+    response_model=EmployeeOneOffPaymentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create One-Off Payment",
+    description="Create a new one-off payment for an employee",
+    tags=["Employee One-Off Payments"]
+)
+async def create_one_off_payment(
+    employee_id: int,
+    payment_data: EmployeeOneOffPaymentRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeOneOffPaymentResponse:
+    """Create a new one-off payment for an employee."""
+    try:
+        return await EmployeeService.create_one_off_payment(db, employee_id, payment_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/one-off-payments",
+    response_model=List[EmployeeOneOffPaymentResponse],
+    summary="List One-Off Payments",
+    description="Get all one-off payments for an employee",
+    tags=["Employee One-Off Payments"]
+)
+async def list_one_off_payments(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeOneOffPaymentResponse]:
+    """Get all one-off payments for an employee."""
+    try:
+        return await EmployeeService.list_one_off_payments(db, employee_id, current_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/one-off-payments/{payment_id}",
+    response_model=EmployeeOneOffPaymentResponse,
+    summary="Update One-Off Payment",
+    description="Update a specific one-off payment for an employee",
+    tags=["Employee One-Off Payments"]
+)
+async def update_one_off_payment(
+    employee_id: int,
+    payment_id: int,
+    payment_data: EmployeeOneOffPaymentRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeOneOffPaymentResponse:
+    """Update a specific one-off payment for an employee."""
+    try:
+        return await EmployeeService.update_one_off_payment(db, payment_id, payment_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/one-off-payments/{payment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete One-Off Payment",
+    description="Delete a specific one-off payment for an employee",
+    tags=["Employee One-Off Payments"]
+)
+async def delete_one_off_payment(
+    employee_id: int,
+    payment_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific one-off payment for an employee."""
+    try:
+        await EmployeeService.delete_one_off_payment(db, payment_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+# ==================== TIME-OFF ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/time-off",
+    response_model=EmployeeTimeOffResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Time-Off Record",
+    description="Create a new time-off record for an employee",
+    tags=["Employee Time-Off"]
+)
+async def create_time_off(
+    employee_id: int,
+    time_off_data: EmployeeTimeOffRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeTimeOffResponse:
+    """Create a new time-off record for an employee."""
+    try:
+        return await EmployeeService.create_time_off(db, employee_id, time_off_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/time-off",
+    response_model=List[EmployeeTimeOffResponse],
+    summary="List Time-Off Records",
+    description="Get all time-off records for an employee",
+    tags=["Employee Time-Off"]
+)
+async def list_time_off(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeTimeOffResponse]:
+    """Get all time-off records for an employee."""
+    try:
+        return await EmployeeService.list_time_off(db, employee_id, current_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/time-off/{time_off_id}",
+    response_model=EmployeeTimeOffResponse,
+    summary="Update Time-Off Record",
+    description="Update a specific time-off record for an employee",
+    tags=["Employee Time-Off"]
+)
+async def update_time_off(
+    employee_id: int,
+    time_off_id: int,
+    time_off_data: EmployeeTimeOffRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeTimeOffResponse:
+    """Update a specific time-off record for an employee."""
+    try:
+        return await EmployeeService.update_time_off(db, time_off_id, time_off_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/time-off/{time_off_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Time-Off Record",
+    description="Delete a specific time-off record for an employee",
+    tags=["Employee Time-Off"]
+)
+async def delete_time_off(
+    employee_id: int,
+    time_off_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific time-off record for an employee."""
+    try:
+        await EmployeeService.delete_time_off(db, time_off_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+# ==================== OVERTIME ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/overtime",
+    response_model=EmployeeOvertimeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Overtime Record",
+    description="Create a new overtime record for an employee",
+    tags=["Employee Overtime"]
+)
+async def create_overtime(
+    employee_id: int,
+    overtime_data: EmployeeOvertimeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeOvertimeResponse:
+    """Create a new overtime record for an employee."""
+    try:
+        return await EmployeeService.create_overtime(db, employee_id, overtime_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/overtime",
+    response_model=List[EmployeeOvertimeResponse],
+    summary="List Overtime Records",
+    description="Get all overtime records for an employee",
+    tags=["Employee Overtime"]
+)
+async def list_overtime(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeOvertimeResponse]:
+    """Get all overtime records for an employee."""
+    try:
+        return await EmployeeService.list_overtime(db, employee_id, current_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/overtime/{overtime_id}",
+    response_model=EmployeeOvertimeResponse,
+    summary="Update Overtime Record",
+    description="Update a specific overtime record for an employee",
+    tags=["Employee Overtime"]
+)
+async def update_overtime(
+    employee_id: int,
+    overtime_id: int,
+    overtime_data: EmployeeOvertimeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeOvertimeResponse:
+    """Update a specific overtime record for an employee."""
+    try:
+        return await EmployeeService.update_overtime(db, overtime_id, overtime_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/overtime/{overtime_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Overtime Record",
+    description="Delete a specific overtime record for an employee",
+    tags=["Employee Overtime"]
+)
+async def delete_overtime(
+    employee_id: int,
+    overtime_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific overtime record for an employee."""
+    try:
+        await EmployeeService.delete_overtime(db, overtime_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+# ==================== DEFICIT ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/deficits",
+    response_model=EmployeeDeficitResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Deficit Record",
+    description="Create a new deficit record for an employee",
+    tags=["Employee Deficit"]
+)
+async def create_deficit(
+    employee_id: int,
+    deficit_data: EmployeeDeficitRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeDeficitResponse:
+    """Create a new deficit record for an employee."""
+    try:
+        return await EmployeeService.create_deficit(db, employee_id, deficit_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/deficits",
+    response_model=List[EmployeeDeficitResponse],
+    summary="List Deficit Records",
+    description="Get all deficit records for an employee",
+    tags=["Employee Deficit"]
+)
+async def list_deficits(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeDeficitResponse]:
+    """Get all deficit records for an employee."""
+    try:
+        return await EmployeeService.list_deficits(db, employee_id, current_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/deficits/{deficit_id}",
+    response_model=EmployeeDeficitResponse,
+    summary="Update Deficit Record",
+    description="Update a specific deficit record for an employee",
+    tags=["Employee Deficit"]
+)
+async def update_deficit(
+    employee_id: int,
+    deficit_id: int,
+    deficit_data: EmployeeDeficitRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeDeficitResponse:
+    """Update a specific deficit record for an employee."""
+    try:
+        return await EmployeeService.update_deficit(db, deficit_id, deficit_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/deficits/{deficit_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Deficit Record",
+    description="Delete a specific deficit record for an employee",
+    tags=["Employee Deficit"]
+)
+async def delete_deficit(
+    employee_id: int,
+    deficit_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific deficit record for an employee."""
+    try:
+        await EmployeeService.delete_deficit(db, deficit_id, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+# ==================== ATTENDANCE ENDPOINTS ====================
+
+@router.post(
+    "/{employee_id}/attendance",
+    response_model=EmployeeAttendanceResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Attendance Record",
+    description="Create a new attendance record for an employee",
+    tags=["Employee Attendance"]
+)
+async def create_attendance(
+    employee_id: int,
+    attendance_data: EmployeeAttendanceRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeAttendanceResponse:
+    """Create a new attendance record for an employee."""
+    try:
+        return await EmployeeService.create_attendance(db, employee_id, attendance_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get(
+    "/{employee_id}/attendance",
+    response_model=List[EmployeeAttendanceResponse],
+    summary="List Attendance Records",
+    description="Get all attendance records for an employee",
+    tags=["Employee Attendance"]
+)
+async def list_attendance(
+    employee_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> List[EmployeeAttendanceResponse]:
+    """Get all attendance records for an employee."""
+    try:
+        return await EmployeeService.list_attendance(db, employee_id, current_user)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.put(
+    "/{employee_id}/attendance/{attendance_id}",
+    response_model=EmployeeAttendanceResponse,
+    summary="Update Attendance Record",
+    description="Update a specific attendance record for an employee",
+    tags=["Employee Attendance"]
+)
+async def update_attendance(
+    employee_id: int,
+    attendance_id: int,
+    attendance_data: EmployeeAttendanceRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> EmployeeAttendanceResponse:
+    """Update a specific attendance record for an employee."""
+    try:
+        return await EmployeeService.update_attendance(db, attendance_id, attendance_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete(
+    "/{employee_id}/attendance/{attendance_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Attendance Record",
+    description="Delete a specific attendance record for an employee",
+    tags=["Employee Attendance"]
+)
+async def delete_attendance(
+    employee_id: int,
+    attendance_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    """Delete a specific attendance record for an employee."""
+    try:
+        await EmployeeService.delete_attendance(db, attendance_id, current_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
