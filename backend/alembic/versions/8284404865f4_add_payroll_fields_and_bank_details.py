@@ -39,10 +39,15 @@ def upgrade() -> None:
         op.create_table('employee_attendance',
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('employee_id', sa.Integer(), nullable=False),
-            sa.Column('expected_hours', sa.Float(), nullable=False),
-            sa.Column('actual_work_hours', sa.Float(), nullable=False),
-            sa.Column('period_start', sa.Date(), nullable=True),
-            sa.Column('period_end', sa.Date(), nullable=True),
+            sa.Column('expected_hours', sa.VARCHAR(length=50), nullable=False),  # Start with VARCHAR, will be converted to Float
+            sa.Column('actual_work_hours', sa.VARCHAR(length=50), nullable=False),  # Start with VARCHAR, will be converted to Float
+            sa.Column('period_start', sa.DATE(), nullable=False),  # Start as NOT NULL, will be made nullable
+            sa.Column('period_end', sa.DATE(), nullable=False),  # Start as NOT NULL, will be made nullable
+            sa.Column('late_arrivals', sa.INTEGER(), nullable=False),  # Will be dropped
+            sa.Column('attendance_rate', sa.Float(), nullable=False),  # Will be dropped
+            sa.Column('days_present', sa.INTEGER(), nullable=False),  # Will be dropped
+            sa.Column('days_absent', sa.INTEGER(), nullable=False),  # Will be dropped
+            sa.Column('early_departures', sa.INTEGER(), nullable=False),  # Will be dropped
             sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
             sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
@@ -53,7 +58,11 @@ def upgrade() -> None:
         op.create_table('employee_deficit',
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('employee_id', sa.Integer(), nullable=False),
-            sa.Column('deficit_amount', sa.Float(), nullable=False),
+            sa.Column('deficit_amount', sa.VARCHAR(length=50), nullable=False),  # Start with VARCHAR, will be converted to Float
+            sa.Column('period', sa.VARCHAR(length=100), nullable=False),  # Will be dropped
+            sa.Column('status', sa.VARCHAR(length=50), nullable=False),  # Will be dropped
+            sa.Column('reason', sa.VARCHAR(length=255), nullable=True),  # Will be dropped
+            sa.Column('amount', sa.Float(), nullable=False),  # Will be dropped
             sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
             sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
@@ -64,11 +73,14 @@ def upgrade() -> None:
         op.create_table('employee_overtime',
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('employee_id', sa.Integer(), nullable=False),
-            sa.Column('overtime_type', sa.String(length=50), nullable=True),
-            sa.Column('description', sa.String(length=500), nullable=True),
+            sa.Column('overtime_type', sa.VARCHAR(length=50), nullable=False),  # Will be made nullable
+            sa.Column('description', sa.VARCHAR(length=255), nullable=True),  # Will be changed to length 500
+            sa.Column('approved_by', sa.INTEGER(), nullable=True),  # Will be dropped
+            sa.Column('date', sa.DATE(), nullable=False),  # Will be dropped
             sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
             sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.ForeignKeyConstraint(['approved_by'], ['users.id']),
             sa.PrimaryKeyConstraint('id')
         )
     
@@ -76,10 +88,16 @@ def upgrade() -> None:
         op.create_table('employee_time_off',
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('employee_id', sa.Integer(), nullable=False),
-            sa.Column('days_remaining', sa.Float(), nullable=True),
+            sa.Column('days_remaining', sa.Float(), nullable=False),  # Will be made nullable
+            sa.Column('status', sa.VARCHAR(length=50), nullable=False),  # Will be dropped
+            sa.Column('reason', sa.VARCHAR(length=255), nullable=True),  # Will be dropped
+            sa.Column('start_date', sa.DATE(), nullable=False),  # Will be dropped
+            sa.Column('approved_by', sa.INTEGER(), nullable=True),  # Will be dropped
+            sa.Column('end_date', sa.DATE(), nullable=False),  # Will be dropped
             sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
             sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
             sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+            sa.ForeignKeyConstraint(['approved_by'], ['users.id']),
             sa.PrimaryKeyConstraint('id')
         )
     
