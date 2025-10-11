@@ -267,6 +267,55 @@ async def auth_headers(test_user: User, shared_db_session: AsyncSession) -> dict
 
 
 @pytest_asyncio.fixture
+async def other_user_auth_headers(shared_db_session: AsyncSession) -> dict:
+    """
+    Create authentication headers for a second test user.
+    
+    Useful for testing access control scenarios where you need
+    two different users to verify isolation.
+    """
+    from schemas.auth import RegisterRequest
+    from services.auth_service import AuthService
+    
+    # Create a second user
+    register_data = RegisterRequest(
+        email="otheruser@example.com",
+        password="testpassword123",
+        first_name="Other",
+        last_name="User"
+    )
+    
+    await AuthService.register(shared_db_session, register_data)
+    
+    # Get the created user and ensure they are verified for testing
+    from sqlalchemy import select
+    from models.user import User
+    result = await shared_db_session.execute(
+        select(User).where(User.email == register_data.email)
+    )
+    user = result.scalar_one()
+    
+    # Ensure user is verified for testing
+    user.is_verified = True
+    await shared_db_session.commit()
+    await shared_db_session.refresh(user)
+    
+    # Login to get token
+    from schemas.auth import LoginRequest
+    login_data = LoginRequest(
+        email="otheruser@example.com",
+        password="testpassword123"
+    )
+    
+    token_response = await AuthService.login(shared_db_session, login_data)
+    
+    return {
+        "Authorization": f"Bearer {token_response.access_token}",
+        "Content-Type": "application/json"
+    }
+
+
+@pytest_asyncio.fixture
 async def test_user_with_onboarding(shared_db_session: AsyncSession) -> tuple[User, Onboarding]:
     """
     Create test user with completed onboarding.

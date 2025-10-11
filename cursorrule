@@ -1,0 +1,215 @@
+**Purpose:**
+A single, practical rulebook for developing in a monorepo that contains Python (FastAPI) services and a Next.js (TypeScript + React + Shadcn UI) web app. This document merges both original cursor-rules, keeps a single voice, enforces step-by-step development and testing, and includes extra constraints you requested (online-search-when-in-doubt, per-line justification comments, no bloated code, one-step-at-a-time + explicit confirmation, and FastAPI curl-first verification before writing tests).
+
+---
+
+## Core Principles (merged)
+
+* **Functional & declarative**: prefer pure functions, avoid classes unless a class is demonstrably the simplest, clearest choice. Use `def` for pure Python functions and `async def` for async functions; use the `function` keyword for pure TypeScript functions.
+* **RORO (Receive an Object, Return an Object)**: design functions and routes to accept a single well-typed object (Pydantic model or TS interface) and return a clear object.
+* **Minimal duplication, maximal modularity**: structure reusable helpers in `utils`/`lib` packages, not inline.
+* **Descriptive names with auxiliary verbs**: `is_active`, `has_permission`, `is_loading`, `has_error`.
+* **Comments: justify logic/choice on every code line** — every line of production code should have a short, precise comment explaining *why* it exists (not restating *what* the line does). Keep comments concise to avoid bloat.
+* **No bloated code**: prefer brevity and clarity; if per-line comments threaten to bloat a function, prefer concise per-line comments (≤ 12 words) and a short function docstring describing the high-level rationale.
+* **When in doubt — online search**: always validate uncertain facts, API choices, package versions or security questions with an online search before finalizing design decisions.
+* **Ask for confirmation before moving to the next step**: work in explicit, small steps; after each completed step present the result and ask for confirmation to continue.
+* **Test then write tests**: especially for FastAPI — after implementing a route, run `curl` (or equivalent) to verify behavior before writing automated tests.
+
+---
+
+## Monorepo Layout (recommended)
+
+```
+/ (repo root)                                # repo-wide scripts, CI, infra manifests
+├─ apps/                                      # runnable apps
+│  ├─ web-next/                               # Next.js app (TypeScript)
+│  └─ api-python/                             # FastAPI service (Python)
+├─ packages/                                  # reusable utils, libs, configs
+├─ infra/                                     # docker-compose, k8s manifests, terraform
+├─ scripts/                                   # developer convenience: scaffold, lint, build
+└─ .github/                                   # CI workflows
+```
+
+* **Directories naming**: use `kebab-case` for top-level app directories (e.g., `web-next`), and `snake_case` for Python packages/modules (e.g., `routers/user_routes.py`).
+* **Files naming**:
+
+  * Python modules: `snake_case.py`.
+  * TypeScript component files: `PascalCase.tsx` for React components; directories with `kebab-case` (e.g., `components/auth-wizard`).
+
+---
+
+## Python / FastAPI Conventions
+
+* **Typing & validation**: use Pydantic v2 models for input/output validation and return types.
+* **Function styles**: `def` for CPU-bound/pure functions; `async def` for I/O-bound tasks (DB, http).
+* **RORO**: route handlers accept a Pydantic input model and return a Pydantic response model.
+* **Database**: prefer async drivers (`asyncpg`) and SQLAlchemy 2.0 async patterns when using an ORM.
+* **Startup / shutdown**: prefer `lifespan` context manager over `@app.on_event` for deterministic lifecycle management.
+* **Dependencies**: rely on FastAPI DI for DB sessions, config, and secrets.
+* **Error handling**: handle validation/guard clauses early (if-return pattern). Use `HTTPException` for expected HTTP errors and middleware for unexpected exceptions and telemetry.
+* **Logging**: middleware for request/response logging (structured logs).
+* **Testing after route implementation**: after adding a route, run `curl` commands manually to confirm behavior before writing `pytest` tests.
+
+### FastAPI: Minimal example (comment-on-every-line style)
+
+```py
+from fastapi import APIRouter, Depends, HTTPException  # router building blocks and errors
+from pydantic import BaseModel                           # input/output validation
+
+router = APIRouter()                                     # create a router to register endpoints
+
+class CreateUser(BaseModel):                              # request schema for creating a user
+    name: str                                            # username field
+
+class UserOut(BaseModel):                                 # output schema for responses
+    id: int                                              # numeric id
+    name: str                                            # username field
+
+@router.post("/users", response_model=UserOut)
+async def create_user(payload: CreateUser, db=Depends(...)):  # create user route, DI for db
+    # guard: ensure name provided, else early return with clear error
+    if not payload.name:                                  # fast precondition check
+        raise HTTPException(status_code=400, detail="name required")  # explicit client error
+    # happy path: create user and return response
+    new_user = {...}                                      # create in db (async call) and return result
+    return UserOut(**new_user)                            # return typed response
+```
+
+* **After implementing**: test with curl (example below).
+
+---
+
+## TypeScript / Next.js (App Router) Conventions
+
+* **Types**: use TypeScript everywhere; prefer `interface` over `type` for object shapes.
+* **Avoid enums**: use readonly maps or unions where needed; prefer maps for maintainability.
+* **Export style**: favor named exports for components and helpers.
+* **Component design**: favor React Server Components (RSC); limit `use client` to small leaf components that need browser APIs.
+* **Styling / UI**: use Shadcn UI + Radix primitives + Tailwind; mobile-first; responsive utilities.
+* **Performance**: minimize `useEffect`, `setState`; suspend with `Suspense` and lazy-load non-critical components.
+* **State & URL**: prefer `nuqs` for URL search param state.
+
+### TS minimal example (comment-on-every-line style)
+
+```ts
+export interface GreetingProps {            // props interface for the component
+  name: string                             // user name to show
+}
+
+export function Greeting({ name }: GreetingProps) {  // named exported server-friendly component
+  // return a simple fragment; small and declarative
+  return <div>{`Hello, ${name}`}</div>     // render text with clear interpolation rationale
+}
+```
+
+---
+
+## Error Handling & Validation (merged)
+
+* **Guard clauses**: check preconditions at the top of functions and return early with helpful errors.
+* **Custom error types / factories**: define application-specific errors to unify handling and mapping to HTTP status codes.
+* **Logging & telemetry**: always log unexpected errors with context, but avoid exposing internals to users.
+* **User-friendly messages**: surface clear guidance in API error messages (e.g., `"email already registered"`).
+
+---
+
+## Performance & Scalability
+
+* **Async for I/O**: convert all I/O boundaries (DB, networks) to async.
+* **Caching**: use Redis for frequently accessed or heavy payloads; set TTLs and cache invalidation rules.
+* **Lazy loading & pagination**: for large datasets, return cursors/pagination and lazily fetch data.
+* **Serialization**: keep Pydantic models minimal; avoid returning giant objects when not necessary.
+
+---
+
+## Testing & Dev Workflow (one step at a time)
+
+**Per-feature development flow** (explicit small steps — ask for confirmation after each):
+
+1. **Design & contract** — write a minimal API contract (Pydantic + TS interface) and a short acceptance checklist.
+2. **Create branch + scaffold** — create a small feature branch and add minimal files.
+3. **Implement minimal route / UI** — implement the smallest runnable piece.
+4. **Manual verification** — for FastAPI: `curl` the new route and confirm behavior; for Next.js: render the page locally and verify UI.
+5. **Write automated tests** — after step 4 passes, write unit and integration tests (`pytest-asyncio` for Python, `vitest`/`react-testing-library` for TS).
+6. **Type-check & lint** — run `mypy`/`ruff` or `pyright`/`eslint`, plus formatters.
+7. **Open small PR** — keep PRs focused and small; include the minimal reproduction and test artifacts.
+8. **Merge & deploy** — merge after approvals and CI green.
+
+* **Important**: after each step, *present the result* and ask for confirmation to proceed.
+
+### FastAPI — curl first, tests second (examples)
+
+```bash
+# GET example
+curl -i "http://localhost:8000/health"            # quick health check to verify server is up
+
+# POST JSON example (create resource)
+curl -i -X POST "http://localhost:8000/users" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"alice"}'
+
+# Expectation: check HTTP status, response shape, and headers before writing tests
+```
+
+---
+
+## CI / PR / Release Guidelines
+
+* **Small PRs**: every PR should implement a single small step from the workflow above.
+* **Checks**: run linters, typechecks, unit tests, and a minimal integration smoke test (e.g., run FastAPI with sqlite and `curl` health check).
+* **Merging**: require at least one approving review and CI pass.
+
+---
+
+## Commenting & Rationale policy (practical compromise)
+
+* **Every production code line must have a short comment** explaining the *reason* that line exists (why this action is taken), not restating the obvious.
+* **Length cap**: keep comments to one short sentence (≤ 12 words) where possible to avoid bloat.
+* **Non-obvious logic**: expand into short multi-line block comments, still focused on rationale.
+* **Docstrings**: each public function must include a one-paragraph docstring describing intent and RORO contract.
+
+---
+
+## Example: small FastAPI route with per-line comments
+
+```py
+from fastapi import APIRouter, Depends, HTTPException  # imports required for routing and errors
+from pydantic import BaseModel                            # schema validation type
+
+router = APIRouter()                                      # router to group related endpoints
+
+class Ping(BaseModel):                                     # request schema for ping endpoint
+    msg: str                                              # message payload
+
+class Pong(BaseModel):                                     # response schema for ping
+    echo: str                                             # echoed message
+
+@router.post("/ping", response_model=Pong)               # expose POST /ping returning Pong
+async def ping(payload: Ping):                             # handler receives typed payload
+    # guard: require a message; provide clear client error
+    if not payload.msg:                                   # precondition check avoids nulls
+        raise HTTPException(status_code=400, detail="msg required")  # explicit error for client
+    # happy path: echo the message back
+    return Pong(echo=payload.msg)                         # return typed response to consumers
+```
+
+---
+
+## Enforcement & Best-effort
+
+* The rules are prescriptive but practical — adopt the parts that match project constraints.
+* If a rule creates a stronger trade-off (e.g., per-line comments add noise), prefer concise comments + docstrings; flag the trade-off and include it in the PR description.
+
+---
+
+## Next steps (what I can do for you now)
+
+1. **Scaffold the monorepo skeleton** (FastAPI service + Next.js app) with minimal files and per-line commented examples.
+2. **Create a single FastAPI route** with the exact per-line comments and provide curl commands to test it.
+3. **Create a Next.js component** with per-line comments.
+
+*I will perform a single selected step and then ask you to confirm before proceeding to the next.*
+
+---
+
+*End of rulebook.*

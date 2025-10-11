@@ -37,6 +37,13 @@ class Employee(Base):
     payroll_records: Mapped[List["EmployeePayrollRecord"]] = relationship("EmployeePayrollRecord", back_populates="employee", uselist=True)
     dependents: Mapped[List["EmployeeDependent"]] = relationship("EmployeeDependent", back_populates="employee", uselist=True)
     documents: Mapped[List["EmployeeDocument"]] = relationship("EmployeeDocument", back_populates="employee", uselist=True)
+    
+    # New payroll-related relationships
+    one_off_payments: Mapped[List["EmployeeOneOffPayment"]] = relationship("EmployeeOneOffPayment", back_populates="employee", uselist=True)
+    time_off_records: Mapped[List["EmployeeTimeOff"]] = relationship("EmployeeTimeOff", back_populates="employee", uselist=True)
+    overtime_records: Mapped[List["EmployeeOvertime"]] = relationship("EmployeeOvertime", back_populates="employee", uselist=True)
+    deficit_records: Mapped[List["EmployeeDeficit"]] = relationship("EmployeeDeficit", back_populates="employee", uselist=True)
+    attendance_records: Mapped[List["EmployeeAttendance"]] = relationship("EmployeeAttendance", back_populates="employee", uselist=True)
 
     def __repr__(self) -> str:
         return f"<Employee(id={self.id}, first_name={self.first_name}, last_name={self.last_name}, email={self.email}, phone={self.phone}, join_date={self.join_date})>"
@@ -179,6 +186,12 @@ class EmployeePayrollRecord(Base):
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="payroll_records")
     payroll_items: Mapped[List["EmployeePayrollItem"]] = relationship("EmployeePayrollItem", back_populates="payroll_record")
+    
+    # New payroll-related relationships
+    one_off_payments: Mapped[List["EmployeeOneOffPayment"]] = relationship("EmployeeOneOffPayment", back_populates="payroll_record")
+    overtime_records: Mapped[List["EmployeeOvertime"]] = relationship("EmployeeOvertime", back_populates="payroll_record")
+    deficit_records: Mapped[List["EmployeeDeficit"]] = relationship("EmployeeDeficit", back_populates="payroll_record")
+    attendance_records: Mapped[List["EmployeeAttendance"]] = relationship("EmployeeAttendance", back_populates="payroll_record")
 
     def __repr__(self) -> str:
         return f"<EmployeePayrollRecord(id={self.id}, employee_id={self.employee_id}, period_start={self.period_start}, period_end={self.period_end}, base_salary={self.base_salary}, total_compensation={self.total_compensation}, status={self.status}, payment_date={self.payment_date})>"
@@ -210,6 +223,143 @@ class EmployeePayrollItem(Base):
     def __repr__(self) -> str:
         return f"<EmployeePayrollItem(id={self.id}, payroll_record_id={self.payroll_record_id}, category={self.category}, item_type={self.item_type}, description={self.description}, amount={self.amount}, currency={self.currency}, quantity={self.quantity}, rate={self.rate}, meta_data={self.meta_data})>"
 
+class EmployeeOneOffPayment(Base):
+    """
+    Employee one-off payment model for managing one-time payments, bonuses, incentives.
+    """
+    __tablename__ = "employee_one_off_payment"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    payroll_record_id: Mapped[int] = mapped_column(ForeignKey("employee_payroll_record.id"), nullable=True)  # Optional link to payroll period
+    item_name: Mapped[str] = mapped_column(String(255), nullable=False)  # Name of the one-off item
+    item_type: Mapped[str] = mapped_column(String(50), nullable=False)  # Type: bonus, incentive, commission, etc.
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # Payment amount
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")  # Currency code
+    payment_date: Mapped[date] = mapped_column(Date, nullable=True)  # When payment was made
+    description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional description
+    meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Additional metadata
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    employee: Mapped["Employee"] = relationship("Employee")
+    payroll_record: Mapped["EmployeePayrollRecord"] = relationship("EmployeePayrollRecord")
+
+    def __repr__(self) -> str:
+        return f"<EmployeeOneOffPayment(id={self.id}, employee_id={self.employee_id}, item_name={self.item_name}, item_type={self.item_type}, amount={self.amount}, currency={self.currency}, payment_date={self.payment_date})>"
+
+class EmployeeTimeOff(Base):
+    """
+    Employee time-off model for managing vacation, sick leave, and other time-off tracking.
+    """
+    __tablename__ = "employee_time_off"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    time_off_type: Mapped[str] = mapped_column(String(50), nullable=False)  # vacation, sick_leave, personal, etc.
+    days_used: Mapped[float] = mapped_column(Float, nullable=False, default=0)  # Days used in this period
+    days_remaining: Mapped[float] = mapped_column(Float, nullable=True)  # Days remaining
+    amount: Mapped[float] = mapped_column(Float, nullable=True)  # Monetary value if applicable
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")  # Currency code
+    period_start: Mapped[date] = mapped_column(Date, nullable=True)  # Time-off period start
+    period_end: Mapped[date] = mapped_column(Date, nullable=True)  # Time-off period end
+    description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional description
+    meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Additional metadata
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    employee: Mapped["Employee"] = relationship("Employee")
+
+    def __repr__(self) -> str:
+        return f"<EmployeeTimeOff(id={self.id}, employee_id={self.employee_id}, time_off_type={self.time_off_type}, days_used={self.days_used}, days_remaining={self.days_remaining}, amount={self.amount}, currency={self.currency})>"
+
+class EmployeeOvertime(Base):
+    """
+    Employee overtime model for managing overtime hours and payments.
+    """
+    __tablename__ = "employee_overtime"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    payroll_record_id: Mapped[int] = mapped_column(ForeignKey("employee_payroll_record.id"), nullable=True)  # Optional link to payroll period
+    overtime_date: Mapped[date] = mapped_column(Date, nullable=False)  # Date of overtime work
+    hours: Mapped[float] = mapped_column(Float, nullable=False)  # Overtime hours worked
+    rate: Mapped[float] = mapped_column(Float, nullable=False)  # Overtime rate per hour
+    amount: Mapped[float] = mapped_column(Float, nullable=False)  # Total overtime amount (hours * rate)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")  # Currency code
+    overtime_type: Mapped[str] = mapped_column(String(50), nullable=True)  # regular, holiday, weekend, etc.
+    description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional description
+    meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Additional metadata
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    employee: Mapped["Employee"] = relationship("Employee")
+    payroll_record: Mapped["EmployeePayrollRecord"] = relationship("EmployeePayrollRecord")
+
+    def __repr__(self) -> str:
+        return f"<EmployeeOvertime(id={self.id}, employee_id={self.employee_id}, overtime_date={self.overtime_date}, hours={self.hours}, rate={self.rate}, amount={self.amount}, currency={self.currency})>"
+
+class EmployeeDeficit(Base):
+    """
+    Employee deficit model for managing time deficits and penalties.
+    """
+    __tablename__ = "employee_deficit"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    payroll_record_id: Mapped[int] = mapped_column(ForeignKey("employee_payroll_record.id"), nullable=True)  # Optional link to payroll period
+    deficit_type: Mapped[str] = mapped_column(String(50), nullable=False)  # regular, penalty, adjustment, etc.
+    deficit_hours: Mapped[str] = mapped_column(String(50), nullable=True)  # Deficit hours (e.g., "-13h 30m")
+    deficit_amount: Mapped[float] = mapped_column(Float, nullable=False)  # Monetary deficit amount
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")  # Currency code
+    period_start: Mapped[date] = mapped_column(Date, nullable=True)  # Deficit period start
+    period_end: Mapped[date] = mapped_column(Date, nullable=True)  # Deficit period end
+    description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional description
+    meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Additional metadata
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    employee: Mapped["Employee"] = relationship("Employee")
+    payroll_record: Mapped["EmployeePayrollRecord"] = relationship("EmployeePayrollRecord")
+
+    def __repr__(self) -> str:
+        return f"<EmployeeDeficit(id={self.id}, employee_id={self.employee_id}, deficit_type={self.deficit_type}, deficit_hours={self.deficit_hours}, deficit_amount={self.deficit_amount}, currency={self.currency})>"
+
+class EmployeeAttendance(Base):
+    """
+    Employee attendance model for tracking work hours vs expected hours.
+    """
+    __tablename__ = "employee_attendance"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    payroll_record_id: Mapped[int] = mapped_column(ForeignKey("employee_payroll_record.id"), nullable=True)  # Optional link to payroll period
+    period: Mapped[str] = mapped_column(String(100), nullable=False)  # Period description (e.g., "Week 1", "Month 1")
+    expected_hours: Mapped[float] = mapped_column(Float, nullable=False)  # Expected work hours for period
+    actual_work_hours: Mapped[float] = mapped_column(Float, nullable=False)  # Actual hours worked
+    period_start: Mapped[date] = mapped_column(Date, nullable=True)  # Period start date
+    period_end: Mapped[date] = mapped_column(Date, nullable=True)  # Period end date
+    description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional description
+    meta_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Additional metadata
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    employee: Mapped["Employee"] = relationship("Employee")
+    payroll_record: Mapped["EmployeePayrollRecord"] = relationship("EmployeePayrollRecord")
+
+    def __repr__(self) -> str:
+        return f"<EmployeeAttendance(id={self.id}, employee_id={self.employee_id}, period={self.period}, expected_hours={self.expected_hours}, actual_work_hours={self.actual_work_hours})>"
+
 class EmployeeBankInfo(Base):
     """
     Employee bank info model for managing employee bank info.
@@ -219,8 +369,11 @@ class EmployeeBankInfo(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False, unique=True)  # One-to-One relationship
     bank_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    branch: Mapped[str] = mapped_column(String(255), nullable=True)  # Bank branch name
+    swift_bic: Mapped[str] = mapped_column(String(11), nullable=True)  # SWIFT/BIC code for international transfers
     account_number: Mapped[str] = mapped_column(String(50), nullable=False)
     routing_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    iban: Mapped[str] = mapped_column(String(34), nullable=True)  # IBAN for European/international accounts
     account_type: Mapped[str] = mapped_column(String(50), nullable=False)
     account_holder_name: Mapped[str] = mapped_column(String(255), nullable=False)
     account_holder_type: Mapped[str] = mapped_column(String(50), nullable=False)
