@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
@@ -5,7 +6,51 @@ import re
 from utils.security import mask_tax_id, mask_social_insurance, mask_address, mask_sensitive_string
 
 
-class EmployeeRequest(BaseModel):
+class EmployeeValidatorMixin:
+    """Shared validators for employee schemas."""
+    
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_names(cls, v):
+        """Validate names contain only letters and common characters."""
+        if v is None:
+            return v
+        if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", v.strip()):
+            raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
+        return v.strip().title()
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v):
+        """Validate phone number format - flexible but secure."""
+        if v is None or not v:  # Allow None/empty for partial updates
+            return v
+        
+        # Remove all non-digit characters to check length
+        digits_only = re.sub(r'\D', '', v.strip())
+        
+        # Check if it's a valid length (10-15 digits)
+        if not (10 <= len(digits_only) <= 15):
+            raise ValueError("Phone number must be 10-15 digits")
+        
+        # Optional: Format US numbers nicely
+        if len(digits_only) == 10:
+            return f"({digits_only[:3]}) {digits_only[3:6]}-{digits_only[6:]}"
+        
+        return v.strip()
+    
+    @field_validator('join_date')
+    @classmethod
+    def validate_join_date(cls, v):
+        """Validate join date is a valid date."""
+        if v is None:
+            return v
+        if not isinstance(v, date):
+            raise ValueError("Join date must be a valid date")
+        return v
+
+
+class EmployeeRequest(EmployeeValidatorMixin, BaseModel):
     """Request schema for creating an employee."""
     first_name: str = Field(..., min_length=1, max_length=50, description="The first name of the employee.")
     last_name: str = Field(..., min_length=1, max_length=50, description="The last name of the employee.")
@@ -13,89 +58,13 @@ class EmployeeRequest(BaseModel):
     phone: str = Field(..., min_length=1, max_length=50, description="The phone number of the employee.")
     join_date: date = Field(..., description="The date the employee joined the company.")   
 
-    @field_validator('first_name', 'last_name')
-    @classmethod
-    def validate_names(cls, v):
-        """Validate names contain only letters and common characters."""
-        if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", v.strip()):
-            raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
-        return v.strip().title()
-
-    @field_validator('phone')
-    @classmethod
-    def validate_phone(cls, v):
-        """Validate phone number format - flexible but secure."""
-        if not v:  # Allow empty phone numbers
-            return v
-        
-        # Remove all non-digit characters to check length
-        digits_only = re.sub(r'\D', '', v.strip())
-        
-        # Check if it's a valid length (10-15 digits)
-        if not (10 <= len(digits_only) <= 15):
-            raise ValueError("Phone number must be 10-15 digits")
-        
-        # Optional: Format US numbers nicely
-        if len(digits_only) == 10:
-            return f"({digits_only[:3]}) {digits_only[3:6]}-{digits_only[6:]}"
-        
-        return v.strip()
-    
-    @field_validator('join_date')
-    @classmethod
-    def validate_join_date(cls, v):
-        """Validate join date is a valid date."""
-        if not isinstance(v, date):
-            raise ValueError("Join date must be a valid date")
-        return v
-
-class EmployeePartialUpdateRequest(BaseModel):
+class EmployeePartialUpdateRequest(EmployeeValidatorMixin, BaseModel):
     """Request schema for partially updating an employee."""
     first_name: Optional[str] = Field(None, min_length=1, max_length=50, description="The first name of the employee.")
     last_name: Optional[str] = Field(None, min_length=1, max_length=50, description="The last name of the employee.")
     email: Optional[EmailStr] = Field(None, min_length=1, max_length=50, description="The email of the employee.")
     phone: Optional[str] = Field(None, min_length=1, max_length=50, description="The phone number of the employee.")
     join_date: Optional[date] = Field(None, description="The date the employee joined the company.")
-
-    @field_validator('first_name', 'last_name')
-    @classmethod
-    def validate_names(cls, v):
-        """Validate names contain only letters and common characters."""
-        if v is None:
-            return v
-        if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", v.strip()):
-            raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
-        return v.strip().title()
-
-    @field_validator('phone')
-    @classmethod
-    def validate_phone(cls, v):
-        """Validate phone number format - flexible but secure."""
-        if v is None:  # Allow None for partial updates
-            return v
-        
-        # Remove all non-digit characters to check length
-        digits_only = re.sub(r'\D', '', v.strip())
-        
-        # Check if it's a valid length (10-15 digits)
-        if not (10 <= len(digits_only) <= 15):
-            raise ValueError("Phone number must be 10-15 digits")
-        
-        # Optional: Format US numbers nicely
-        if len(digits_only) == 10:
-            return f"({digits_only[:3]}) {digits_only[3:6]}-{digits_only[6:]}"
-        
-        return v.strip()
-    
-    @field_validator('join_date')
-    @classmethod
-    def validate_join_date(cls, v):
-        """Validate join date is a valid date."""
-        if v is None:
-            return v
-        if not isinstance(v, date):
-            raise ValueError("Join date must be a valid date")
-        return v
 
 
 # ==================== PAYROLL SCHEMAS ====================
@@ -697,11 +666,11 @@ class EmployeeFullResponse(BaseModel):
     documents: List[EmployeeDocumentPublicResponse] = Field(default_factory=list, description="Documents (sensitive data masked).")
     
     # New payroll-related data
-    one_off_payments: List["EmployeeOneOffPaymentResponse"] = Field(default_factory=list, description="One-off payments and bonuses.")
-    time_off_records: List["EmployeeTimeOffResponse"] = Field(default_factory=list, description="Time-off records.")
-    overtime_records: List["EmployeeOvertimeResponse"] = Field(default_factory=list, description="Overtime records.")
-    deficit_records: List["EmployeeDeficitResponse"] = Field(default_factory=list, description="Deficit records.")
-    attendance_records: List["EmployeeAttendanceResponse"] = Field(default_factory=list, description="Attendance records.")
+    one_off_payments: List[EmployeeOneOffPaymentResponse] = Field(default_factory=list, description="One-off payments and bonuses.")
+    time_off_records: List[EmployeeTimeOffResponse] = Field(default_factory=list, description="Time-off records.")
+    overtime_records: List[EmployeeOvertimeResponse] = Field(default_factory=list, description="Overtime records.")
+    deficit_records: List[EmployeeDeficitResponse] = Field(default_factory=list, description="Deficit records.")
+    attendance_records: List[EmployeeAttendanceResponse] = Field(default_factory=list, description="Attendance records.")
 
 class EmployeePartialFullUpdateRequest(BaseModel):
     """Request schema for partially updating an employee with all related data."""
