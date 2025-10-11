@@ -287,6 +287,19 @@ async def other_user_auth_headers(shared_db_session: AsyncSession) -> dict:
     
     await AuthService.register(shared_db_session, register_data)
     
+    # Get the created user and ensure they are verified for testing
+    from sqlalchemy import select
+    from models.user import User
+    result = await shared_db_session.execute(
+        select(User).where(User.email == register_data.email)
+    )
+    user = result.scalar_one()
+    
+    # Ensure user is verified for testing
+    user.is_verified = True
+    await shared_db_session.commit()
+    await shared_db_session.refresh(user)
+    
     # Login to get token
     from schemas.auth import LoginRequest
     login_data = LoginRequest(

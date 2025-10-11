@@ -743,19 +743,6 @@ class EmployeePartialFullUpdateRequest(BaseModel):
         return v
 
 
-# ==================== PAYROLL SCHEMAS ====================
-
-class EmployeePayrollItemRequest(BaseModel):
-    """Request schema for creating/updating payroll items."""
-    category: str = Field(..., max_length=50, description="Category of the payroll item (e.g., 'salary', 'bonus', 'deduction').")
-    item_type: str = Field(..., max_length=50, description="Type of item (e.g., 'base_salary', 'overtime', 'tax').")
-    description: Optional[str] = Field(None, max_length=255, description="Description of the payroll item.")
-    amount: float = Field(..., description="Amount of the payroll item.")
-    currency: str = Field("USD", max_length=3, description="Currency code.")
-    quantity: Optional[float] = Field(None, description="Quantity (for hourly rates, etc.).")
-    rate: Optional[float] = Field(None, description="Rate per unit.")
-    meta_data: Optional[dict] = Field(None, description="Additional metadata as JSON.")
-
 # ==================== NEW PAYROLL SCHEMAS ====================
 
 class EmployeeOneOffPaymentRequest(BaseModel):
