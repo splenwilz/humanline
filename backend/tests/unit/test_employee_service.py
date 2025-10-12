@@ -127,6 +127,7 @@ class TestEmployeeServiceGet:
         mock_employee.email = "john.doe@example.com"
         mock_employee.phone = "(555) 123-4567"
         mock_employee.join_date = date(2024, 1, 15)
+        mock_employee.employment_status = "ACTIVE"
         mock_employee.created_at = datetime.now(timezone.utc)
         mock_employee.updated_at = datetime.now(timezone.utc)
         mock_employee.job_timeline = []  # Initialize empty job timeline
@@ -200,6 +201,7 @@ class TestEmployeeServiceList:
         mock_employee1.email = "john.doe@example.com"
         mock_employee1.phone = "(555) 123-4567"
         mock_employee1.join_date = date(2024, 1, 15)
+        mock_employee1.employment_status = "ACTIVE"
         mock_employee1.created_at = datetime.now(timezone.utc)
         mock_employee1.updated_at = datetime.now(timezone.utc)
         mock_employee1.job_timeline = []  # Initialize empty job timeline
@@ -212,6 +214,7 @@ class TestEmployeeServiceList:
         mock_employee2.email = "jane.smith@example.com"
         mock_employee2.phone = "(555) 987-6543"
         mock_employee2.join_date = date(2024, 2, 1)
+        mock_employee2.employment_status = "ACTIVE"
         mock_employee2.created_at = datetime.now(timezone.utc)
         mock_employee2.updated_at = datetime.now(timezone.utc)
         mock_employee2.job_timeline = []  # Initialize empty job timeline
@@ -353,6 +356,7 @@ class TestEmployeeServiceGetFull:
         mock_employee.email = "john.doe@example.com"
         mock_employee.phone = "(555) 123-4567"
         mock_employee.join_date = date(2024, 1, 15)
+        mock_employee.employment_status = "ACTIVE"
         mock_employee.created_at = datetime.now(timezone.utc)
         mock_employee.updated_at = datetime.now(timezone.utc)
         

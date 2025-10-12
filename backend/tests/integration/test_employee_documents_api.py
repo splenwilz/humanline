@@ -2,11 +2,11 @@
 Integration tests for Employee Documents API endpoints.
 
 This module tests the complete document management functionality including:
-- GET /api/v1/employee/{employee_id}/documents
-- GET /api/v1/employee/{employee_id}/documents/{document_id}
-- PUT /api/v1/employee/{employee_id}/documents/{document_id}
-- PATCH /api/v1/employee/{employee_id}/documents/{document_id}
-- DELETE /api/v1/employee/{employee_id}/documents/{document_id}
+- GET /api/v1/employees/{employee_id}/documents
+- GET /api/v1/employees/{employee_id}/documents/{document_id}
+- PUT /api/v1/employees/{employee_id}/documents/{document_id}
+- PATCH /api/v1/employees/{employee_id}/documents/{document_id}
+- DELETE /api/v1/employees/{employee_id}/documents/{document_id}
 """
 
 import pytest
@@ -26,7 +26,7 @@ class TestEmployeeDocumentsEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that getting documents requires authentication."""
-        response = client.get(f"/api/v1/employee/{employee_id}/documents")
+        response = client.get(f"/api/v1/employees/{employee_id}/documents")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_documents_empty_list(
@@ -34,7 +34,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test getting documents for employee with no documents."""
         response = client.get(
-            f"/api/v1/employee/{employee_id}/documents", headers=auth_headers
+            f"/api/v1/employees/{employee_id}/documents", headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == []
@@ -44,7 +44,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test successfully getting documents with data masking."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_documents}/documents", 
+            f"/api/v1/employees/{employee_with_documents}/documents", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -68,7 +68,7 @@ class TestEmployeeDocumentsEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that getting specific document requires authentication."""
-        response = client.get(f"/api/v1/employee/{employee_id}/documents/99999")
+        response = client.get(f"/api/v1/employees/{employee_id}/documents/99999")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_specific_document_not_found(
@@ -76,7 +76,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test getting non-existent document."""
         response = client.get(
-            f"/api/v1/employee/{employee_id}/documents/99999", 
+            f"/api/v1/employees/{employee_id}/documents/99999", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -87,7 +87,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test successfully getting specific document with data masking."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_documents}/documents/1", 
+            f"/api/v1/employees/{employee_with_documents}/documents/1", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -114,7 +114,7 @@ class TestEmployeeDocumentsEndpoints:
             "is_active": True
         }
         response = client.put(
-            f"/api/v1/employee/{employee_id}/documents/99999",
+            f"/api/v1/employees/{employee_id}/documents/99999",
             json=document_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -133,7 +133,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_with_documents}/documents/1",
+            f"/api/v1/employees/{employee_with_documents}/documents/1",
             json=document_data,
             headers=auth_headers
         )
@@ -163,7 +163,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/documents/99999",
+            f"/api/v1/employees/{employee_id}/documents/99999",
             json=document_data,
             headers=auth_headers
         )
@@ -182,7 +182,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_with_documents}/documents/1",
+            f"/api/v1/employees/{employee_with_documents}/documents/1",
             json=invalid_data,
             headers=auth_headers
         )
@@ -194,7 +194,7 @@ class TestEmployeeDocumentsEndpoints:
         """Test that partial updating document requires authentication."""
         document_data = {"is_active": False}
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/documents/99999",
+            f"/api/v1/employees/{employee_id}/documents/99999",
             json=document_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -209,7 +209,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         response = client.patch(
-            f"/api/v1/employee/{employee_with_documents}/documents/1",
+            f"/api/v1/employees/{employee_with_documents}/documents/1",
             json=partial_data,
             headers=auth_headers
         )
@@ -230,7 +230,7 @@ class TestEmployeeDocumentsEndpoints:
         partial_data = {"is_active": False}
         
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/documents/99999",
+            f"/api/v1/employees/{employee_id}/documents/99999",
             json=partial_data,
             headers=auth_headers
         )
@@ -241,7 +241,7 @@ class TestEmployeeDocumentsEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that deleting document requires authentication."""
-        response = client.delete(f"/api/v1/employee/{employee_id}/documents/99999")
+        response = client.delete(f"/api/v1/employees/{employee_id}/documents/99999")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_document_success(
@@ -249,14 +249,14 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test successfully deleting document."""
         response = client.delete(
-            f"/api/v1/employee/{employee_with_documents}/documents/1",
+            f"/api/v1/employees/{employee_with_documents}/documents/1",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         
         # Verify document is deleted
         get_response = client.get(
-            f"/api/v1/employee/{employee_with_documents}/documents/1",
+            f"/api/v1/employees/{employee_with_documents}/documents/1",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
@@ -266,7 +266,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test deleting non-existent document."""
         response = client.delete(
-            f"/api/v1/employee/{employee_id}/documents/99999",
+            f"/api/v1/employees/{employee_id}/documents/99999",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -277,7 +277,7 @@ class TestEmployeeDocumentsEndpoints:
     ):
         """Test that sensitive data is properly masked in responses."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_documents}/documents",
+            f"/api/v1/employees/{employee_with_documents}/documents",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -306,7 +306,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         create_response = client.post(
-            f"/api/v1/employee/{employee_id}/documents",
+            f"/api/v1/employees/{employee_id}/documents",
             json=create_data,
             headers=auth_headers
         )
@@ -324,7 +324,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             json=update_data,
             headers=auth_headers
         )
@@ -348,7 +348,7 @@ class TestEmployeeDocumentsEndpoints:
         }
         
         create_response = client.post(
-            f"/api/v1/employee/{employee_id}/documents",
+            f"/api/v1/employees/{employee_id}/documents",
             json=document_data,
             headers=auth_headers
         )
@@ -357,7 +357,7 @@ class TestEmployeeDocumentsEndpoints:
         
         # 2. Get all documents
         get_all_response = client.get(
-            f"/api/v1/employee/{employee_id}/documents",
+            f"/api/v1/employees/{employee_id}/documents",
             headers=auth_headers
         )
         assert get_all_response.status_code == status.HTTP_200_OK
@@ -366,7 +366,7 @@ class TestEmployeeDocumentsEndpoints:
         
         # 3. Get specific document
         get_specific_response = client.get(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             headers=auth_headers
         )
         assert get_specific_response.status_code == status.HTTP_200_OK
@@ -379,7 +379,7 @@ class TestEmployeeDocumentsEndpoints:
         updated_data["file_name"] = "professional_cert.pdf"
         
         update_response = client.put(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             json=updated_data,
             headers=auth_headers
         )
@@ -388,7 +388,7 @@ class TestEmployeeDocumentsEndpoints:
         # 5. Partial update
         partial_data = {"is_active": False}
         patch_response = client.patch(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             json=partial_data,
             headers=auth_headers
         )
@@ -396,7 +396,7 @@ class TestEmployeeDocumentsEndpoints:
         
         # 6. Verify changes
         final_response = client.get(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             headers=auth_headers
         )
         assert final_response.status_code == status.HTTP_200_OK
@@ -407,14 +407,14 @@ class TestEmployeeDocumentsEndpoints:
         
         # 7. Delete document
         delete_response = client.delete(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             headers=auth_headers
         )
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
         
         # 8. Verify deletion
         get_after_delete = client.get(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             headers=auth_headers
         )
         assert get_after_delete.status_code == status.HTTP_404_NOT_FOUND

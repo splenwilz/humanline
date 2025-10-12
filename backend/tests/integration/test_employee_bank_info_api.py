@@ -2,10 +2,10 @@
 Integration tests for Employee Bank Information API endpoints.
 
 This module tests the complete bank information management functionality including:
-- GET /api/v1/employee/{employee_id}/bank
-- PUT /api/v1/employee/{employee_id}/bank  
-- PATCH /api/v1/employee/{employee_id}/bank
-- DELETE /api/v1/employee/{employee_id}/bank
+- GET /api/v1/employees/{employee_id}/bank
+- PUT /api/v1/employees/{employee_id}/bank  
+- PATCH /api/v1/employees/{employee_id}/bank
+- DELETE /api/v1/employees/{employee_id}/bank
 """
 
 import pytest
@@ -25,7 +25,7 @@ class TestEmployeeBankInfoEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that getting bank info requires authentication."""
-        response = client.get(f"/api/v1/employee/{employee_id}/bank")
+        response = client.get(f"/api/v1/employees/{employee_id}/bank")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_bank_info_not_found(
@@ -33,7 +33,7 @@ class TestEmployeeBankInfoEndpoints:
     ):
         """Test getting bank info for employee without bank info."""
         response = client.get(
-            f"/api/v1/employee/{employee_id}/bank", headers=auth_headers
+            f"/api/v1/employees/{employee_id}/bank", headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Bank information not found" in response.json()["detail"]
@@ -43,7 +43,7 @@ class TestEmployeeBankInfoEndpoints:
     ):
         """Test successfully getting bank info with data masking."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_bank_info}/bank", 
+            f"/api/v1/employees/{employee_with_bank_info}/bank", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -73,7 +73,7 @@ class TestEmployeeBankInfoEndpoints:
             "is_active": True
         }
         response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -94,7 +94,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -126,7 +126,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -148,7 +148,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=invalid_data,
             headers=auth_headers
         )
@@ -170,7 +170,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.put(
-            "/api/v1/employee/99999/bank",
+            "/api/v1/employees/99999/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -183,7 +183,7 @@ class TestEmployeeBankInfoEndpoints:
         """Test that partial updating bank info requires authentication."""
         bank_data = {"account_type": "SAVINGS"}
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -199,7 +199,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.patch(
-            f"/api/v1/employee/{employee_with_bank_info}/bank",
+            f"/api/v1/employees/{employee_with_bank_info}/bank",
             json=partial_data,
             headers=auth_headers
         )
@@ -221,7 +221,7 @@ class TestEmployeeBankInfoEndpoints:
         partial_data = {"account_type": "SAVINGS"}
         
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=partial_data,
             headers=auth_headers
         )
@@ -232,7 +232,7 @@ class TestEmployeeBankInfoEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that deleting bank info requires authentication."""
-        response = client.delete(f"/api/v1/employee/{employee_id}/bank")
+        response = client.delete(f"/api/v1/employees/{employee_id}/bank")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_bank_info_success(
@@ -240,14 +240,14 @@ class TestEmployeeBankInfoEndpoints:
     ):
         """Test successfully deleting bank info."""
         response = client.delete(
-            f"/api/v1/employee/{employee_with_bank_info}/bank",
+            f"/api/v1/employees/{employee_with_bank_info}/bank",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         
         # Verify bank info is deleted
         get_response = client.get(
-            f"/api/v1/employee/{employee_with_bank_info}/bank",
+            f"/api/v1/employees/{employee_with_bank_info}/bank",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
@@ -257,7 +257,7 @@ class TestEmployeeBankInfoEndpoints:
     ):
         """Test deleting bank info when none exist."""
         response = client.delete(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -268,7 +268,7 @@ class TestEmployeeBankInfoEndpoints:
     ):
         """Test that sensitive data is properly masked in responses."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_bank_info}/bank",
+            f"/api/v1/employees/{employee_with_bank_info}/bank",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -299,7 +299,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -326,7 +326,7 @@ class TestEmployeeBankInfoEndpoints:
         }
         
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -334,7 +334,7 @@ class TestEmployeeBankInfoEndpoints:
         
         # 2. Get bank info
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -348,7 +348,7 @@ class TestEmployeeBankInfoEndpoints:
         updated_data["account_type"] = "SAVINGS"
         
         update_response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=updated_data,
             headers=auth_headers
         )
@@ -357,7 +357,7 @@ class TestEmployeeBankInfoEndpoints:
         # 4. Partial update
         partial_data = {"is_primary": False, "is_active": False}
         patch_response = client.patch(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=partial_data,
             headers=auth_headers
         )
@@ -365,7 +365,7 @@ class TestEmployeeBankInfoEndpoints:
         
         # 5. Verify changes
         final_response = client.get(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert final_response.status_code == status.HTTP_200_OK
@@ -377,14 +377,14 @@ class TestEmployeeBankInfoEndpoints:
         
         # 6. Delete bank info
         delete_response = client.delete(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
         
         # 7. Verify deletion
         get_after_delete = client.get(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert get_after_delete.status_code == status.HTTP_404_NOT_FOUND

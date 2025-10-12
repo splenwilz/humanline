@@ -2,10 +2,10 @@
 Integration tests for Employee Personal Details API endpoints.
 
 This module tests the complete personal details management functionality including:
-- GET /api/v1/employee/{employee_id}/personal
-- PUT /api/v1/employee/{employee_id}/personal  
-- PATCH /api/v1/employee/{employee_id}/personal
-- DELETE /api/v1/employee/{employee_id}/personal
+- GET /api/v1/employees/{employee_id}/personal
+- PUT /api/v1/employees/{employee_id}/personal  
+- PATCH /api/v1/employees/{employee_id}/personal
+- DELETE /api/v1/employees/{employee_id}/personal
 """
 
 import pytest
@@ -25,7 +25,7 @@ class TestEmployeePersonalDetailsEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that getting personal details requires authentication."""
-        response = client.get(f"/api/v1/employee/{employee_id}/personal")
+        response = client.get(f"/api/v1/employees/{employee_id}/personal")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_get_personal_details_not_found(
@@ -33,7 +33,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test getting personal details for employee without personal details."""
         response = client.get(
-            f"/api/v1/employee/{employee_id}/personal", headers=auth_headers
+            f"/api/v1/employees/{employee_id}/personal", headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Personal details not found" in response.json()["detail"]
@@ -43,7 +43,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test successfully getting personal details with data masking."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_personal_details}/personal", 
+            f"/api/v1/employees/{employee_with_personal_details}/personal", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -63,7 +63,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test getting personal details for employee belonging to different user."""
         response = client.get(
-            f"/api/v1/employee/{other_user_employee}/personal", 
+            f"/api/v1/employees/{other_user_employee}/personal", 
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -78,7 +78,7 @@ class TestEmployeePersonalDetailsEndpoints:
             "nationality": "Canadian"
         }
         response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -103,7 +103,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -140,7 +140,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -162,7 +162,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=invalid_data,
             headers=auth_headers
         )
@@ -178,7 +178,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.put(
-            "/api/v1/employee/99999/personal",
+            "/api/v1/employees/99999/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -191,7 +191,7 @@ class TestEmployeePersonalDetailsEndpoints:
         """Test that partial updating personal details requires authentication."""
         personal_data = {"city": "Boston"}
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -207,7 +207,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.patch(
-            f"/api/v1/employee/{employee_with_personal_details}/personal",
+            f"/api/v1/employees/{employee_with_personal_details}/personal",
             json=partial_data,
             headers=auth_headers
         )
@@ -229,7 +229,7 @@ class TestEmployeePersonalDetailsEndpoints:
         partial_data = {"city": "Boston"}
         
         response = client.patch(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=partial_data,
             headers=auth_headers
         )
@@ -240,7 +240,7 @@ class TestEmployeePersonalDetailsEndpoints:
         self, client: TestClient, employee_id: int
     ):
         """Test that deleting personal details requires authentication."""
-        response = client.delete(f"/api/v1/employee/{employee_id}/personal")
+        response = client.delete(f"/api/v1/employees/{employee_id}/personal")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_delete_personal_details_success(
@@ -248,14 +248,14 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test successfully deleting personal details."""
         response = client.delete(
-            f"/api/v1/employee/{employee_with_personal_details}/personal",
+            f"/api/v1/employees/{employee_with_personal_details}/personal",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         
         # Verify personal details are deleted
         get_response = client.get(
-            f"/api/v1/employee/{employee_with_personal_details}/personal",
+            f"/api/v1/employees/{employee_with_personal_details}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
@@ -265,7 +265,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test deleting personal details when none exist."""
         response = client.delete(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -276,7 +276,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test deleting personal details for employee belonging to different user."""
         response = client.delete(
-            f"/api/v1/employee/{other_user_employee}/personal",
+            f"/api/v1/employees/{other_user_employee}/personal",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -286,7 +286,7 @@ class TestEmployeePersonalDetailsEndpoints:
     ):
         """Test that sensitive data is properly masked in responses."""
         response = client.get(
-            f"/api/v1/employee/{employee_with_personal_details}/personal",
+            f"/api/v1/employees/{employee_with_personal_details}/personal",
             headers=auth_headers
         )
         assert response.status_code == status.HTTP_200_OK
@@ -314,7 +314,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -346,7 +346,7 @@ class TestEmployeePersonalDetailsEndpoints:
         }
         
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -354,7 +354,7 @@ class TestEmployeePersonalDetailsEndpoints:
         
         # 2. Get personal details
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -368,7 +368,7 @@ class TestEmployeePersonalDetailsEndpoints:
         updated_data["city"] = "Boston"
         
         update_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=updated_data,
             headers=auth_headers
         )
@@ -377,7 +377,7 @@ class TestEmployeePersonalDetailsEndpoints:
         # 4. Partial update
         partial_data = {"state": "MA", "postal_code": "02101"}
         patch_response = client.patch(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=partial_data,
             headers=auth_headers
         )
@@ -385,7 +385,7 @@ class TestEmployeePersonalDetailsEndpoints:
         
         # 5. Verify changes
         final_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert final_response.status_code == status.HTTP_200_OK
@@ -397,14 +397,14 @@ class TestEmployeePersonalDetailsEndpoints:
         
         # 6. Delete personal details
         delete_response = client.delete(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
         
         # 7. Verify deletion
         get_after_delete = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_after_delete.status_code == status.HTTP_404_NOT_FOUND

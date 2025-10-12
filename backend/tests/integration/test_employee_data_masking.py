@@ -32,7 +32,7 @@ class TestEmployeeDataMasking:
         
         # Create personal details
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -40,7 +40,7 @@ class TestEmployeeDataMasking:
         
         # Get personal details and verify masking
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -72,7 +72,7 @@ class TestEmployeeDataMasking:
             
             # Create personal details
             create_response = client.put(
-                f"/api/v1/employee/{employee_id}/personal",
+                f"/api/v1/employees/{employee_id}/personal",
                 json=personal_data,
                 headers=auth_headers
             )
@@ -80,7 +80,7 @@ class TestEmployeeDataMasking:
             
             # Get and verify masking
             get_response = client.get(
-                f"/api/v1/employee/{employee_id}/personal",
+                f"/api/v1/employees/{employee_id}/personal",
                 headers=auth_headers
             )
             assert get_response.status_code == status.HTTP_200_OK
@@ -102,7 +102,7 @@ class TestEmployeeDataMasking:
         
         # Create personal details
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -110,7 +110,7 @@ class TestEmployeeDataMasking:
         
         # Get and verify no masking for short strings
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -134,7 +134,7 @@ class TestEmployeeDataMasking:
         
         # Create personal details
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -142,7 +142,7 @@ class TestEmployeeDataMasking:
         
         # Get and verify None values
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -169,7 +169,7 @@ class TestEmployeeDataMasking:
         
         # Create bank info
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -177,7 +177,7 @@ class TestEmployeeDataMasking:
         
         # Get bank info and verify masking
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -211,7 +211,7 @@ class TestEmployeeDataMasking:
             
             # Create bank info
             create_response = client.put(
-                f"/api/v1/employee/{employee_id}/bank",
+                f"/api/v1/employees/{employee_id}/bank",
                 json=bank_data,
                 headers=auth_headers
             )
@@ -219,7 +219,7 @@ class TestEmployeeDataMasking:
             
             # Get and verify masking
             get_response = client.get(
-                f"/api/v1/employee/{employee_id}/bank",
+                f"/api/v1/employees/{employee_id}/bank",
                 headers=auth_headers
             )
             assert get_response.status_code == status.HTTP_200_OK
@@ -242,7 +242,7 @@ class TestEmployeeDataMasking:
         
         # Create document
         create_response = client.post(
-            f"/api/v1/employee/{employee_id}/documents",
+            f"/api/v1/employees/{employee_id}/documents",
             json=document_data,
             headers=auth_headers
         )
@@ -254,7 +254,7 @@ class TestEmployeeDataMasking:
         
         # Get document and verify masking
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/documents/{document_id}",
+            f"/api/v1/employees/{employee_id}/documents/{document_id}",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK
@@ -286,7 +286,7 @@ class TestEmployeeDataMasking:
             
             # Create document
             create_response = client.post(
-                f"/api/v1/employee/{employee_id}/documents",
+                f"/api/v1/employees/{employee_id}/documents",
                 json=document_data,
                 headers=auth_headers
             )
@@ -298,7 +298,7 @@ class TestEmployeeDataMasking:
             
             # Get and verify masking
             get_response = client.get(
-                f"/api/v1/employee/{employee_id}/documents/{document_id}",
+                f"/api/v1/employees/{employee_id}/documents/{document_id}",
                 headers=auth_headers
             )
             assert get_response.status_code == status.HTTP_200_OK
@@ -320,7 +320,7 @@ class TestEmployeeDataMasking:
         }
         
         client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -338,7 +338,7 @@ class TestEmployeeDataMasking:
         }
         
         client.put(
-            f"/api/v1/employee/{employee_id}/bank",
+            f"/api/v1/employees/{employee_id}/bank",
             json=bank_data,
             headers=auth_headers
         )
@@ -354,7 +354,7 @@ class TestEmployeeDataMasking:
         }
         
         create_response = client.post(
-            f"/api/v1/employee/{employee_id}/documents",
+            f"/api/v1/employees/{employee_id}/documents",
             json=document_data,
             headers=auth_headers
         )
@@ -362,7 +362,7 @@ class TestEmployeeDataMasking:
         
         # Get full employee response
         full_response = client.get(
-            f"/api/v1/employee/{employee_id}/full",
+            f"/api/v1/employees/{employee_id}/full",
             headers=auth_headers
         )
         assert full_response.status_code == status.HTTP_200_OK
@@ -407,13 +407,13 @@ class TestEmployeeDataMasking:
         }
         
         # Create data
-        client.put(f"/api/v1/employee/{employee_id}/personal", json=personal_data, headers=auth_headers)
-        client.put(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        client.put(f"/api/v1/employees/{employee_id}/personal", json=personal_data, headers=auth_headers)
+        client.put(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         
         # Get data from individual endpoints
-        personal_response = client.get(f"/api/v1/employee/{employee_id}/personal", headers=auth_headers)
-        bank_response = client.get(f"/api/v1/employee/{employee_id}/bank", headers=auth_headers)
-        full_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        personal_response = client.get(f"/api/v1/employees/{employee_id}/personal", headers=auth_headers)
+        bank_response = client.get(f"/api/v1/employees/{employee_id}/bank", headers=auth_headers)
+        full_response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         
         personal_data = personal_response.json()
         bank_data = bank_response.json()
@@ -441,7 +441,7 @@ class TestEmployeeDataMasking:
         
         # Create personal details
         create_response = client.put(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             json=personal_data,
             headers=auth_headers
         )
@@ -449,7 +449,7 @@ class TestEmployeeDataMasking:
         
         # Get and verify masking
         get_response = client.get(
-            f"/api/v1/employee/{employee_id}/personal",
+            f"/api/v1/employees/{employee_id}/personal",
             headers=auth_headers
         )
         assert get_response.status_code == status.HTTP_200_OK

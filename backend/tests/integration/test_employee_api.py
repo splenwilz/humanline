@@ -143,7 +143,7 @@ class TestEmployeeBasicEndpoints:
         """Test that create employee endpoint requires authentication."""
         data = EmployeeDataFactory.valid_employee_data()
         
-        response = client.post("/api/v1/employee", json=data)
+        response = client.post("/api/v1/employees", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -152,7 +152,7 @@ class TestEmployeeBasicEndpoints:
         """Test successful employee creation."""
         data = EmployeeDataFactory.valid_employee_data("new.employee@example.com")
         
-        response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -172,7 +172,7 @@ class TestEmployeeBasicEndpoints:
         """Test validation errors with invalid data."""
         invalid_data = EmployeeDataFactory.invalid_employee_data()
         
-        response = client.post("/api/v1/employee", json=invalid_data, headers=auth_headers)
+        response = client.post("/api/v1/employees", json=invalid_data, headers=auth_headers)
         
         assert response.status_code == 422
         error_data = response.json()
@@ -186,12 +186,12 @@ class TestEmployeeBasicEndpoints:
         data = EmployeeDataFactory.valid_employee_data("duplicate@example.com")
         
         # First creation should succeed
-        response1 = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        response1 = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert response1.status_code == 201
         
         # Second creation should fail
         data2 = EmployeeDataFactory.valid_employee_data("duplicate@example.com")
-        response2 = client.post("/api/v1/employee", json=data2, headers=auth_headers)
+        response2 = client.post("/api/v1/employees", json=data2, headers=auth_headers)
         
         assert response2.status_code == 400
         error_data = response2.json()
@@ -199,7 +199,7 @@ class TestEmployeeBasicEndpoints:
     
     def test_list_employees_requires_authentication(self, client: TestClient):
         """Test that list employees endpoint requires authentication."""
-        response = client.get("/api/v1/employee")
+        response = client.get("/api/v1/employees")
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -208,11 +208,11 @@ class TestEmployeeBasicEndpoints:
         """Test successful employee listing."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("list.test@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         
         # Then list employees
-        response = client.get("/api/v1/employee", headers=auth_headers)
+        response = client.get("/api/v1/employees", headers=auth_headers)
         
         assert response.status_code == 200
         employees = response.json()
@@ -226,7 +226,7 @@ class TestEmployeeBasicEndpoints:
     
     def test_get_employee_requires_authentication(self, client: TestClient):
         """Test that get employee endpoint requires authentication."""
-        response = client.get("/api/v1/employee/1")
+        response = client.get("/api/v1/employees/1")
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -235,12 +235,12 @@ class TestEmployeeBasicEndpoints:
         """Test successful employee retrieval."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("get.test@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then retrieve it
-        response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         
         assert response.status_code == 200
         employee_data = response.json()
@@ -251,7 +251,7 @@ class TestEmployeeBasicEndpoints:
     
     def test_get_employee_not_found(self, client: TestClient, auth_headers: dict):
         """Test getting non-existent employee."""
-        response = client.get("/api/v1/employee/99999", headers=auth_headers)
+        response = client.get("/api/v1/employees/99999", headers=auth_headers)
         
         assert response.status_code == 404
         error_data = response.json()
@@ -261,7 +261,7 @@ class TestEmployeeBasicEndpoints:
         """Test successful employee update."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("update.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -271,7 +271,7 @@ class TestEmployeeBasicEndpoints:
         updated_data["last_name"] = "Smith"
         updated_data["phone"] = "(555) 999-8888"
         
-        update_response = client.put(f"/api/v1/employee/{employee_id}", json=updated_data, headers=auth_headers)
+        update_response = client.put(f"/api/v1/employees/{employee_id}", json=updated_data, headers=auth_headers)
         assert update_response.status_code == 200
         
         updated_employee = update_response.json()
@@ -287,7 +287,7 @@ class TestEmployeeBasicEndpoints:
     def test_update_employee_not_found(self, client: TestClient, auth_headers: dict):
         """Test updating a non-existent employee."""
         updated_data = EmployeeDataFactory.valid_employee_data("notfound.update@example.com")
-        response = client.put("/api/v1/employee/99999", json=updated_data, headers=auth_headers)
+        response = client.put("/api/v1/employees/99999", json=updated_data, headers=auth_headers)
         assert response.status_code == 404
         assert "Employee not found or access denied" in response.json()["detail"]
 
@@ -295,7 +295,7 @@ class TestEmployeeBasicEndpoints:
         """Test successful partial employee update."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("partial.update@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -308,7 +308,7 @@ class TestEmployeeBasicEndpoints:
             "join_date": "2024-01-15"  # Keep same
         }
         
-        patch_response = client.patch(f"/api/v1/employee/{employee_id}", json=partial_data, headers=auth_headers)
+        patch_response = client.patch(f"/api/v1/employees/{employee_id}", json=partial_data, headers=auth_headers)
         assert patch_response.status_code == 200
         
         updated_employee = patch_response.json()
@@ -328,7 +328,7 @@ class TestEmployeeBasicEndpoints:
             "phone": "(555) 777-6666",
             "join_date": "2024-01-15"
         }
-        response = client.patch("/api/v1/employee/99999", json=partial_data, headers=auth_headers)
+        response = client.patch("/api/v1/employees/99999", json=partial_data, headers=auth_headers)
         assert response.status_code == 404
         assert "Employee not found or access denied" in response.json()["detail"]
 
@@ -336,22 +336,22 @@ class TestEmployeeBasicEndpoints:
         """Test successful employee deletion."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("delete.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Delete the employee
-        delete_response = client.delete(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        delete_response = client.delete(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert delete_response.status_code == 204
         
         # Verify employee was deleted
-        get_response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert get_response.status_code == 404
         assert "Employee not found or access denied" in get_response.json()["detail"]
 
     def test_delete_employee_not_found(self, client: TestClient, auth_headers: dict):
         """Test deleting a non-existent employee."""
-        response = client.delete("/api/v1/employee/99999", headers=auth_headers)
+        response = client.delete("/api/v1/employees/99999", headers=auth_headers)
         assert response.status_code == 404
         assert "Employee not found or access denied" in response.json()["detail"]
 
@@ -359,12 +359,12 @@ class TestEmployeeBasicEndpoints:
         """Test complete CRUD workflow for employees."""
         # 1. CREATE - Add an employee
         employee_data = EmployeeDataFactory.valid_employee_data("workflow.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # 2. READ - Get the employee
-        get_response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert get_response.status_code == 200
         employee = get_response.json()
         assert employee["email"] == "workflow.test@example.com"
@@ -374,7 +374,7 @@ class TestEmployeeBasicEndpoints:
         updated_data["first_name"] = "Jane"
         updated_data["last_name"] = "Smith"
         
-        update_response = client.put(f"/api/v1/employee/{employee_id}", json=updated_data, headers=auth_headers)
+        update_response = client.put(f"/api/v1/employees/{employee_id}", json=updated_data, headers=auth_headers)
         assert update_response.status_code == 200
         updated_employee = update_response.json()
         assert updated_employee["first_name"] == "Jane"
@@ -389,17 +389,17 @@ class TestEmployeeBasicEndpoints:
             "join_date": "2024-01-15"
         }
         
-        patch_response = client.patch(f"/api/v1/employee/{employee_id}", json=partial_data, headers=auth_headers)
+        patch_response = client.patch(f"/api/v1/employees/{employee_id}", json=partial_data, headers=auth_headers)
         assert patch_response.status_code == 200
         patched_employee = patch_response.json()
         assert patched_employee["phone"] == "(555) 888-7777"
         
         # 5. DELETE - Remove employee
-        delete_response = client.delete(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        delete_response = client.delete(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert delete_response.status_code == 204
         
         # 6. Verify deletion
-        get_response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert get_response.status_code == 404
 
 
@@ -410,7 +410,7 @@ class TestEmployeePersonalDetailsEndpoints:
         """Test that personal details endpoint requires authentication."""
         data = EmployeeDataFactory.valid_personal_details_data()
         
-        response = client.post("/api/v1/employee/1/personal", json=data)
+        response = client.post("/api/v1/employees/1/personal", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -419,13 +419,13 @@ class TestEmployeePersonalDetailsEndpoints:
         """Test successful personal details creation."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("personal.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then add personal details
         personal_data = EmployeeDataFactory.valid_personal_details_data()
-        response = client.post(f"/api/v1/employee/{employee_id}/personal", json=personal_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/personal", json=personal_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -442,7 +442,7 @@ class TestEmployeePersonalDetailsEndpoints:
         """Test personal details creation for non-existent employee."""
         personal_data = EmployeeDataFactory.valid_personal_details_data()
         
-        response = client.post("/api/v1/employee/99999/personal", json=personal_data, headers=auth_headers)
+        response = client.post("/api/v1/employees/99999/personal", json=personal_data, headers=auth_headers)
         
         assert response.status_code == 400
         error_data = response.json()
@@ -452,7 +452,7 @@ class TestEmployeePersonalDetailsEndpoints:
         """Test validation errors with invalid personal details data."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("validation.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -463,7 +463,7 @@ class TestEmployeePersonalDetailsEndpoints:
             "date_of_birth": "invalid-date"  # Invalid date format
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/personal", json=invalid_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/personal", json=invalid_data, headers=auth_headers)
         
         assert response.status_code == 422
         error_data = response.json()
@@ -477,7 +477,7 @@ class TestEmployeeJobTimelineEndpoints:
         """Test that job timeline endpoint requires authentication."""
         data = EmployeeDataFactory.valid_job_timeline_data()
         
-        response = client.post("/api/v1/employee/1/job", json=data)
+        response = client.post("/api/v1/employees/1/job", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -486,13 +486,13 @@ class TestEmployeeJobTimelineEndpoints:
         """Test successful job timeline creation."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("job.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then add job timeline
         job_data = EmployeeDataFactory.valid_job_timeline_data()
-        response = client.post(f"/api/v1/employee/{employee_id}/job", json=job_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/job", json=job_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -509,7 +509,7 @@ class TestEmployeeJobTimelineEndpoints:
         """Test validation errors with invalid job timeline data."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("job.validation@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -522,7 +522,7 @@ class TestEmployeeJobTimelineEndpoints:
             "office": ""  # Empty required field
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/job", json=invalid_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/job", json=invalid_data, headers=auth_headers)
         
         assert response.status_code == 422
         error_data = response.json()
@@ -536,7 +536,7 @@ class TestEmployeeBankInfoEndpoints:
         """Test that bank info endpoint requires authentication."""
         data = EmployeeDataFactory.valid_bank_info_data()
         
-        response = client.post("/api/v1/employee/1/bank", json=data)
+        response = client.post("/api/v1/employees/1/bank", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -545,13 +545,13 @@ class TestEmployeeBankInfoEndpoints:
         """Test successful bank info creation."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("bank.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then add bank info
         bank_data = EmployeeDataFactory.valid_bank_info_data()
-        response = client.post(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -569,17 +569,17 @@ class TestEmployeeBankInfoEndpoints:
         """Test duplicate bank info prevention."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("bank.duplicate@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # First bank info creation should succeed
         bank_data = EmployeeDataFactory.valid_bank_info_data()
-        response1 = client.post(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        response1 = client.post(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         assert response1.status_code == 201
         
         # Second bank info creation should fail
-        response2 = client.post(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        response2 = client.post(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         
         assert response2.status_code == 400
         error_data = response2.json()
@@ -593,7 +593,7 @@ class TestEmployeeDependentEndpoints:
         """Test that dependent endpoint requires authentication."""
         data = EmployeeDataFactory.valid_dependent_data()
         
-        response = client.post("/api/v1/employee/1/dependent", json=data)
+        response = client.post("/api/v1/employees/1/dependent", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -602,13 +602,13 @@ class TestEmployeeDependentEndpoints:
         """Test successful dependent creation."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then add dependent
         dependent_data = EmployeeDataFactory.valid_dependent_data()
-        response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -625,7 +625,7 @@ class TestEmployeeDependentEndpoints:
         """Test validation errors with invalid dependent data."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.validation@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -636,7 +636,7 @@ class TestEmployeeDependentEndpoints:
             "date_of_birth": "invalid-date"  # Invalid date format
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=invalid_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=invalid_data, headers=auth_headers)
         
         assert response.status_code == 422
         error_data = response.json()
@@ -646,7 +646,7 @@ class TestEmployeeDependentEndpoints:
         """Test successful retrieval of all dependents for an employee."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependents.list@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -660,15 +660,15 @@ class TestEmployeeDependentEndpoints:
         dependent2_data["relationship_type"] = "CHILD"
         
         # Create first dependent
-        response1 = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent1_data, headers=auth_headers)
+        response1 = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent1_data, headers=auth_headers)
         assert response1.status_code == 201
         
         # Create second dependent
-        response2 = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent2_data, headers=auth_headers)
+        response2 = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent2_data, headers=auth_headers)
         assert response2.status_code == 201
         
         # Get all dependents
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent", headers=auth_headers)
         assert get_response.status_code == 200
         
         dependents = get_response.json()
@@ -689,12 +689,12 @@ class TestEmployeeDependentEndpoints:
         """Test getting dependents when none exist."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependents.empty@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Get dependents (should be empty)
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent", headers=auth_headers)
         assert get_response.status_code == 200
         
         dependents = get_response.json()
@@ -702,7 +702,7 @@ class TestEmployeeDependentEndpoints:
 
     def test_get_dependents_employee_not_found(self, client: TestClient, auth_headers: dict):
         """Test getting dependents for non-existent employee."""
-        response = client.get("/api/v1/employee/99999/dependent", headers=auth_headers)
+        response = client.get("/api/v1/employees/99999/dependent", headers=auth_headers)
         assert response.status_code == 404
         assert "Employee not found or access denied" in response.json()["detail"]
 
@@ -710,7 +710,7 @@ class TestEmployeeDependentEndpoints:
         """Test successful retrieval of a specific dependent."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.get@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -719,12 +719,12 @@ class TestEmployeeDependentEndpoints:
         dependent_data["name"] = "Alice Johnson"
         dependent_data["relationship_type"] = "SPOUSE"
         
-        create_dependent_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        create_dependent_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert create_dependent_response.status_code == 201
         dependent_id = create_dependent_response.json()["id"]
         
         # Get the specific dependent
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert get_response.status_code == 200
         
         dependent = get_response.json()
@@ -738,12 +738,12 @@ class TestEmployeeDependentEndpoints:
         """Test getting a non-existent dependent."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.notfound@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Try to get non-existent dependent
-        response = client.get(f"/api/v1/employee/{employee_id}/dependent/99999", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/dependent/99999", headers=auth_headers)
         assert response.status_code == 404
         assert "Dependent not found" in response.json()["detail"]
 
@@ -751,7 +751,7 @@ class TestEmployeeDependentEndpoints:
         """Test successful dependent update."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.update@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -762,7 +762,7 @@ class TestEmployeeDependentEndpoints:
         dependent_data["nationality"] = "American"
         dependent_data["city"] = "New York"
         
-        create_dependent_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        create_dependent_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert create_dependent_response.status_code == 201
         dependent_id = create_dependent_response.json()["id"]
         
@@ -775,7 +775,7 @@ class TestEmployeeDependentEndpoints:
         updated_data["state"] = "MA"
         updated_data["postal_code"] = "02101"
         
-        update_response = client.put(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", json=updated_data, headers=auth_headers)
+        update_response = client.put(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", json=updated_data, headers=auth_headers)
         assert update_response.status_code == 200
         
         updated_dependent = update_response.json()
@@ -793,13 +793,13 @@ class TestEmployeeDependentEndpoints:
         """Test updating a non-existent dependent."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.update.notfound@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Try to update non-existent dependent
         updated_data = EmployeeDataFactory.valid_dependent_data()
-        response = client.put(f"/api/v1/employee/{employee_id}/dependent/99999", json=updated_data, headers=auth_headers)
+        response = client.put(f"/api/v1/employees/{employee_id}/dependent/99999", json=updated_data, headers=auth_headers)
         assert response.status_code == 404
         assert "Dependent not found" in response.json()["detail"]
 
@@ -807,7 +807,7 @@ class TestEmployeeDependentEndpoints:
         """Test successful partial dependent update."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.patch@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -818,7 +818,7 @@ class TestEmployeeDependentEndpoints:
         dependent_data["nationality"] = "American"
         dependent_data["city"] = "New York"
         
-        create_dependent_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        create_dependent_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert create_dependent_response.status_code == 201
         dependent_id = create_dependent_response.json()["id"]
         
@@ -829,7 +829,7 @@ class TestEmployeeDependentEndpoints:
             "nationality": "Canadian"  # Update this
         }
         
-        patch_response = client.patch(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", json=partial_data, headers=auth_headers)
+        patch_response = client.patch(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", json=partial_data, headers=auth_headers)
         assert patch_response.status_code == 200
         
         updated_dependent = patch_response.json()
@@ -845,7 +845,7 @@ class TestEmployeeDependentEndpoints:
         """Test partial updating a non-existent dependent."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.patch.notfound@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -855,7 +855,7 @@ class TestEmployeeDependentEndpoints:
             "relationship_type": "SPOUSE",
             "nationality": "Canadian"
         }
-        response = client.patch(f"/api/v1/employee/{employee_id}/dependent/99999", json=partial_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/dependent/99999", json=partial_data, headers=auth_headers)
         assert response.status_code == 404
         assert "Dependent not found" in response.json()["detail"]
 
@@ -863,27 +863,27 @@ class TestEmployeeDependentEndpoints:
         """Test successful dependent deletion."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.delete@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Create a dependent
         dependent_data = EmployeeDataFactory.valid_dependent_data()
-        create_dependent_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        create_dependent_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert create_dependent_response.status_code == 201
         dependent_id = create_dependent_response.json()["id"]
         
         # Delete the dependent
-        delete_response = client.delete(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        delete_response = client.delete(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert delete_response.status_code == 204
         
         # Verify dependent was deleted
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert get_response.status_code == 404
         assert "Dependent not found" in get_response.json()["detail"]
         
         # Verify dependent is not in the list
-        list_response = client.get(f"/api/v1/employee/{employee_id}/dependent", headers=auth_headers)
+        list_response = client.get(f"/api/v1/employees/{employee_id}/dependent", headers=auth_headers)
         assert list_response.status_code == 200
         dependents = list_response.json()
         assert dependents == []
@@ -892,42 +892,42 @@ class TestEmployeeDependentEndpoints:
         """Test deleting a non-existent dependent."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.delete.notfound@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Try to delete non-existent dependent
-        response = client.delete(f"/api/v1/employee/{employee_id}/dependent/99999", headers=auth_headers)
+        response = client.delete(f"/api/v1/employees/{employee_id}/dependent/99999", headers=auth_headers)
         assert response.status_code == 404
         assert "Dependent not found" in response.json()["detail"]
 
     def test_dependent_endpoints_require_authentication(self, client: TestClient):
         """Test that all dependent endpoints require authentication."""
         # Test GET all dependents
-        response = client.get("/api/v1/employee/1/dependent")
+        response = client.get("/api/v1/employees/1/dependent")
         assert response.status_code == 403
         
         # Test GET specific dependent
-        response = client.get("/api/v1/employee/1/dependent/1")
+        response = client.get("/api/v1/employees/1/dependent/1")
         assert response.status_code == 403
         
         # Test PUT update dependent
-        response = client.put("/api/v1/employee/1/dependent/1", json=EmployeeDataFactory.valid_dependent_data())
+        response = client.put("/api/v1/employees/1/dependent/1", json=EmployeeDataFactory.valid_dependent_data())
         assert response.status_code == 403
         
         # Test PATCH partial update dependent
-        response = client.patch("/api/v1/employee/1/dependent/1", json=EmployeeDataFactory.valid_dependent_data())
+        response = client.patch("/api/v1/employees/1/dependent/1", json=EmployeeDataFactory.valid_dependent_data())
         assert response.status_code == 403
         
         # Test DELETE dependent
-        response = client.delete("/api/v1/employee/1/dependent/1")
+        response = client.delete("/api/v1/employees/1/dependent/1")
         assert response.status_code == 403
 
     def test_dependent_crud_workflow(self, client: TestClient, auth_headers: dict):
         """Test complete CRUD workflow for dependents."""
         # Create employee
         employee_data = EmployeeDataFactory.valid_employee_data("dependent.workflow@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -936,19 +936,19 @@ class TestEmployeeDependentEndpoints:
         dependent_data["name"] = "Alice Johnson"
         dependent_data["relationship_type"] = "SPOUSE"
         
-        create_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        create_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert create_response.status_code == 201
         dependent_id = create_response.json()["id"]
         
         # 2. READ - Get all dependents
-        list_response = client.get(f"/api/v1/employee/{employee_id}/dependent", headers=auth_headers)
+        list_response = client.get(f"/api/v1/employees/{employee_id}/dependent", headers=auth_headers)
         assert list_response.status_code == 200
         dependents = list_response.json()
         assert len(dependents) == 1
         assert dependents[0]["name"] == "Alice Johnson"
         
         # 3. READ - Get specific dependent
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert get_response.status_code == 200
         dependent = get_response.json()
         assert dependent["name"] == "Alice Johnson"
@@ -959,7 +959,7 @@ class TestEmployeeDependentEndpoints:
         updated_data["relationship_type"] = "SPOUSE"
         updated_data["nationality"] = "Canadian"
         
-        update_response = client.put(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", json=updated_data, headers=auth_headers)
+        update_response = client.put(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", json=updated_data, headers=auth_headers)
         assert update_response.status_code == 200
         updated_dependent = update_response.json()
         assert updated_dependent["name"] == "Alice Johnson-Smith"
@@ -972,21 +972,21 @@ class TestEmployeeDependentEndpoints:
             "city": "Boston"
         }
         
-        patch_response = client.patch(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", json=partial_data, headers=auth_headers)
+        patch_response = client.patch(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", json=partial_data, headers=auth_headers)
         assert patch_response.status_code == 200
         patched_dependent = patch_response.json()
         assert patched_dependent["city"] == "Boston"
         assert patched_dependent["nationality"] == "Canadian"  # Should remain unchanged
         
         # 6. DELETE - Remove dependent
-        delete_response = client.delete(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        delete_response = client.delete(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert delete_response.status_code == 204
         
         # 7. Verify deletion
-        get_response = client.get(f"/api/v1/employee/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/dependent/{dependent_id}", headers=auth_headers)
         assert get_response.status_code == 404
         
-        list_response = client.get(f"/api/v1/employee/{employee_id}/dependent", headers=auth_headers)
+        list_response = client.get(f"/api/v1/employees/{employee_id}/dependent", headers=auth_headers)
         assert list_response.status_code == 200
         dependents = list_response.json()
         assert dependents == []
@@ -999,7 +999,7 @@ class TestEmployeeDocumentEndpoints:
         """Test that document endpoint requires authentication."""
         data = EmployeeDataFactory.valid_document_data()
         
-        response = client.post("/api/v1/employee/1/document", json=data)
+        response = client.post("/api/v1/employees/1/document", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -1008,13 +1008,13 @@ class TestEmployeeDocumentEndpoints:
         """Test successful document creation."""
         # First create an employee
         employee_data = EmployeeDataFactory.valid_employee_data("document.test@example.com")
-        create_response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then add document
         document_data = EmployeeDataFactory.valid_document_data()
-        response = client.post(f"/api/v1/employee/{employee_id}/document", json=document_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/document", json=document_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -1038,7 +1038,7 @@ class TestEmployeeFullEndpoints:
         """Test that create employee full endpoint requires authentication."""
         data = EmployeeDataFactory.valid_full_employee_data()
         
-        response = client.post("/api/v1/employee/full", json=data)
+        response = client.post("/api/v1/employees/full", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -1047,7 +1047,7 @@ class TestEmployeeFullEndpoints:
         """Test successful full employee creation."""
         data = EmployeeDataFactory.valid_full_employee_data("full.test@example.com")
         
-        response = client.post("/api/v1/employee/full", json=data, headers=auth_headers)
+        response = client.post("/api/v1/employees/full", json=data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -1081,7 +1081,7 @@ class TestEmployeeFullEndpoints:
             "join_date": "2024-01-15"
         }
         
-        response = client.post("/api/v1/employee/full", json=data, headers=auth_headers)
+        response = client.post("/api/v1/employees/full", json=data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -1097,7 +1097,7 @@ class TestEmployeeFullEndpoints:
     
     def test_get_employee_full_requires_authentication(self, client: TestClient):
         """Test that get employee full endpoint requires authentication."""
-        response = client.get("/api/v1/employee/1/full")
+        response = client.get("/api/v1/employees/1/full")
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -1106,12 +1106,12 @@ class TestEmployeeFullEndpoints:
         """Test successful full employee retrieval."""
         # First create a full employee
         data = EmployeeDataFactory.valid_full_employee_data("get.full@example.com")
-        create_response = client.post("/api/v1/employee/full", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees/full", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Then retrieve it
-        response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         
         assert response.status_code == 200
         employee_data = response.json()
@@ -1129,7 +1129,7 @@ class TestEmployeeFullEndpoints:
         """Test that update employee full endpoint requires authentication."""
         data = EmployeeDataFactory.valid_full_employee_data()
         
-        response = client.put("/api/v1/employee/1/full", json=data)
+        response = client.put("/api/v1/employees/1/full", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -1138,7 +1138,7 @@ class TestEmployeeFullEndpoints:
         """Test successful full employee update."""
         # First create a full employee
         data = EmployeeDataFactory.valid_full_employee_data("update.full@example.com")
-        create_response = client.post("/api/v1/employee/full", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees/full", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1147,7 +1147,7 @@ class TestEmployeeFullEndpoints:
         updated_data["first_name"] = "Updated John"
         updated_data["personal_details"]["nationality"] = "Canadian"
         
-        response = client.put(f"/api/v1/employee/{employee_id}/full", json=updated_data, headers=auth_headers)
+        response = client.put(f"/api/v1/employees/{employee_id}/full", json=updated_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1161,7 +1161,7 @@ class TestEmployeeFullEndpoints:
         """Test update non-existent employee."""
         data = EmployeeDataFactory.valid_full_employee_data()
         
-        response = client.put("/api/v1/employee/99999/full", json=data, headers=auth_headers)
+        response = client.put("/api/v1/employees/99999/full", json=data, headers=auth_headers)
         
         assert response.status_code == 400
         error_data = response.json()
@@ -1175,37 +1175,37 @@ class TestEmployeeEndToEnd:
         """Test complete employee management flow from creation to full details."""
         # 1. Create basic employee
         basic_data = EmployeeDataFactory.valid_employee_data("e2e.test@example.com")
-        create_response = client.post("/api/v1/employee", json=basic_data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=basic_data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # 2. Add personal details
         personal_data = EmployeeDataFactory.valid_personal_details_data()
-        personal_response = client.post(f"/api/v1/employee/{employee_id}/personal", json=personal_data, headers=auth_headers)
+        personal_response = client.post(f"/api/v1/employees/{employee_id}/personal", json=personal_data, headers=auth_headers)
         assert personal_response.status_code == 201
         
         # 3. Add job timeline
         job_data = EmployeeDataFactory.valid_job_timeline_data()
-        job_response = client.post(f"/api/v1/employee/{employee_id}/job", json=job_data, headers=auth_headers)
+        job_response = client.post(f"/api/v1/employees/{employee_id}/job", json=job_data, headers=auth_headers)
         assert job_response.status_code == 201
         
         # 4. Add bank info
         bank_data = EmployeeDataFactory.valid_bank_info_data()
-        bank_response = client.post(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        bank_response = client.post(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         assert bank_response.status_code == 201
         
         # 5. Add dependent
         dependent_data = EmployeeDataFactory.valid_dependent_data()
-        dependent_response = client.post(f"/api/v1/employee/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
+        dependent_response = client.post(f"/api/v1/employees/{employee_id}/dependent", json=dependent_data, headers=auth_headers)
         assert dependent_response.status_code == 201
         
         # 6. Add document
         document_data = EmployeeDataFactory.valid_document_data()
-        document_response = client.post(f"/api/v1/employee/{employee_id}/document", json=document_data, headers=auth_headers)
+        document_response = client.post(f"/api/v1/employees/{employee_id}/document", json=document_data, headers=auth_headers)
         assert document_response.status_code == 201
         
         # 7. Get full employee details
-        full_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        full_response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         assert full_response.status_code == 200
         full_data = full_response.json()
         
@@ -1220,11 +1220,11 @@ class TestEmployeeEndToEnd:
         # 8. Update full employee
         updated_data = EmployeeDataFactory.valid_full_employee_data("e2e.updated@example.com")
         updated_data["first_name"] = "Updated John"
-        update_response = client.put(f"/api/v1/employee/{employee_id}/full", json=updated_data, headers=auth_headers)
+        update_response = client.put(f"/api/v1/employees/{employee_id}/full", json=updated_data, headers=auth_headers)
         assert update_response.status_code == 200
         
         # 9. Verify update
-        verify_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        verify_response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         assert verify_response.status_code == 200
         verify_data = verify_response.json()
         assert verify_data["first_name"] == "Updated John"
@@ -1235,7 +1235,7 @@ class TestEmployeeEndToEnd:
         """Test that employees are properly isolated between users."""
         # Create employee for first user
         data1 = EmployeeDataFactory.valid_employee_data("user1@example.com")
-        response1 = client.post("/api/v1/employee", json=data1, headers=auth_headers)
+        response1 = client.post("/api/v1/employees", json=data1, headers=auth_headers)
         assert response1.status_code == 201
         employee_id = response1.json()["id"]
         
@@ -1268,17 +1268,17 @@ class TestEmployeeEndToEnd:
         }
         
         # Second user should not see first user's employee
-        response2 = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers2)
+        response2 = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers2)
         assert response2.status_code == 404
         
         # Second user should not see first user's employees in list
-        list_response = client.get("/api/v1/employee", headers=auth_headers2)
+        list_response = client.get("/api/v1/employees", headers=auth_headers2)
         assert list_response.status_code == 200
         employees = list_response.json()
         assert len(employees) == 0
         
         # Second user should not be able to access first user's employee full details
-        full_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers2)
+        full_response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers2)
         assert full_response.status_code == 404
 
     @pytest.mark.asyncio
@@ -1286,7 +1286,7 @@ class TestEmployeeEndToEnd:
         """Test that line_manager_id validation enforces tenant isolation."""
         # Create employee for first user
         data1 = EmployeeDataFactory.valid_employee_data("user1@tenant1.com")
-        response1 = client.post("/api/v1/employee", json=data1, headers=auth_headers)
+        response1 = client.post("/api/v1/employees", json=data1, headers=auth_headers)
         assert response1.status_code == 201
         employee1_id = response1.json()["id"]
         
@@ -1320,7 +1320,7 @@ class TestEmployeeEndToEnd:
         
         # Create employee for second user
         data2 = EmployeeDataFactory.valid_employee_data("emp2@tenant2.com")
-        response2 = client.post("/api/v1/employee", json=data2, headers=auth_headers2)
+        response2 = client.post("/api/v1/employees", json=data2, headers=auth_headers2)
         assert response2.status_code == 201
         employee2_id = response2.json()["id"]
         
@@ -1330,7 +1330,7 @@ class TestEmployeeEndToEnd:
         job_data["line_manager_id"] = employee1_id  # Cross-tenant reference
         
         response = client.post(
-            f"/api/v1/employee/{employee2_id}/job",
+            f"/api/v1/employees/{employee2_id}/job",
             json=job_data,
             headers=auth_headers2
         )
@@ -1342,7 +1342,7 @@ class TestEmployeeEndToEnd:
         full_employee_data["job_timeline"][0]["line_manager_id"] = employee1_id  # Cross-tenant reference
         
         response = client.post(
-            "/api/v1/employee/full",
+            "/api/v1/employees/full",
             json=full_employee_data,
             headers=auth_headers2
         )
@@ -1354,7 +1354,7 @@ class TestEmployeeEndToEnd:
         job_data_valid["line_manager_id"] = employee2_id  # Same tenant
         
         response = client.post(
-            f"/api/v1/employee/{employee2_id}/job",
+            f"/api/v1/employees/{employee2_id}/job",
             json=job_data_valid,
             headers=auth_headers2
         )
@@ -1362,45 +1362,45 @@ class TestEmployeeEndToEnd:
 
     def test_delete_employee_requires_authentication(self, client: TestClient):
         """Test that delete employee endpoint requires authentication."""
-        response = client.delete("/api/v1/employee/1")
+        response = client.delete("/api/v1/employees/1")
         assert response.status_code == 403  # FastAPI returns 403 for missing auth headers
 
     def test_delete_employee_success(self, client: TestClient, auth_headers: dict):
         """Test successful employee deletion."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data()
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Add some related data to test cascade deletion
         personal_data = EmployeeDataFactory.valid_personal_details_data()
-        client.post(f"/api/v1/employee/{employee_id}/personal", json=personal_data, headers=auth_headers)
+        client.post(f"/api/v1/employees/{employee_id}/personal", json=personal_data, headers=auth_headers)
         
         bank_data = EmployeeDataFactory.valid_bank_info_data()
-        client.post(f"/api/v1/employee/{employee_id}/bank", json=bank_data, headers=auth_headers)
+        client.post(f"/api/v1/employees/{employee_id}/bank", json=bank_data, headers=auth_headers)
         
         job_data = EmployeeDataFactory.valid_job_timeline_data()
-        client.post(f"/api/v1/employee/{employee_id}/job", json=job_data, headers=auth_headers)
+        client.post(f"/api/v1/employees/{employee_id}/job", json=job_data, headers=auth_headers)
         
         # Now delete the employee
-        delete_response = client.delete(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        delete_response = client.delete(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert delete_response.status_code == 204
         
         # Verify employee is deleted
-        get_response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         assert get_response.status_code == 404
         
         # Verify related data is also deleted
-        personal_response = client.get(f"/api/v1/employee/{employee_id}/personal", headers=auth_headers)
+        personal_response = client.get(f"/api/v1/employees/{employee_id}/personal", headers=auth_headers)
         assert personal_response.status_code == 404
         
-        bank_response = client.get(f"/api/v1/employee/{employee_id}/bank", headers=auth_headers)
+        bank_response = client.get(f"/api/v1/employees/{employee_id}/bank", headers=auth_headers)
         assert bank_response.status_code == 404
 
     def test_delete_employee_not_found(self, client: TestClient, auth_headers: dict):
         """Test delete employee with non-existent ID."""
-        response = client.delete("/api/v1/employee/99999", headers=auth_headers)
+        response = client.delete("/api/v1/employees/99999", headers=auth_headers)
         assert response.status_code == 404
         assert "Employee not found" in response.json()["detail"]
 
@@ -1412,7 +1412,7 @@ class TestEmployeePartialUpdateAPI:
         """Test that partial update employee endpoint requires authentication."""
         data = {"first_name": "Updated"}
         
-        response = client.patch("/api/v1/employee/1/full", json=data)
+        response = client.patch("/api/v1/employees/1/full", json=data)
         
         assert response.status_code == 403
         assert "detail" in response.json()
@@ -1421,13 +1421,13 @@ class TestEmployeePartialUpdateAPI:
         """Test successful partial update with single field."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.single@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Update only first name
         update_data = {"first_name": "Updated John"}
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1441,7 +1441,7 @@ class TestEmployeePartialUpdateAPI:
         """Test successful partial update with multiple fields."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.multiple@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1451,7 +1451,7 @@ class TestEmployeePartialUpdateAPI:
             "last_name": "Updated Doe",
             "phone": "(555) 999-8888"
         }
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1465,13 +1465,13 @@ class TestEmployeePartialUpdateAPI:
         """Test successful partial update with email change."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.email@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Update email
         update_data = {"email": "updated.email@example.com"}
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1482,19 +1482,19 @@ class TestEmployeePartialUpdateAPI:
         """Test partial update with duplicate email fails."""
         # Create first employee
         data1 = EmployeeDataFactory.valid_employee_data("employee1@example.com")
-        create_response1 = client.post("/api/v1/employee", json=data1, headers=auth_headers)
+        create_response1 = client.post("/api/v1/employees", json=data1, headers=auth_headers)
         assert create_response1.status_code == 201
         employee1_id = create_response1.json()["id"]
         
         # Create second employee
         data2 = EmployeeDataFactory.valid_employee_data("employee2@example.com")
-        create_response2 = client.post("/api/v1/employee", json=data2, headers=auth_headers)
+        create_response2 = client.post("/api/v1/employees", json=data2, headers=auth_headers)
         assert create_response2.status_code == 201
         employee2_id = create_response2.json()["id"]
         
         # Try to update second employee with first employee's email
         update_data = {"email": "employee1@example.com"}
-        response = client.patch(f"/api/v1/employee/{employee2_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee2_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 400
         error_data = response.json()
@@ -1504,7 +1504,7 @@ class TestEmployeePartialUpdateAPI:
         """Test partial update with invalid data fails validation."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.invalid@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1514,7 +1514,7 @@ class TestEmployeePartialUpdateAPI:
             "email": "invalid-email",  # Invalid format
             "phone": "123"  # Too short
         }
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 422  # Validation error
         error_data = response.json()
@@ -1524,7 +1524,7 @@ class TestEmployeePartialUpdateAPI:
         """Test partial update of non-existent employee."""
         update_data = {"first_name": "Updated"}
         
-        response = client.patch("/api/v1/employee/99999/full", json=update_data, headers=auth_headers)
+        response = client.patch("/api/v1/employees/99999/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 400
         error_data = response.json()
@@ -1534,12 +1534,12 @@ class TestEmployeePartialUpdateAPI:
         """Test that partial update preserves all related data."""
         # Create a full employee with all related data
         data = EmployeeDataFactory.valid_full_employee_data("partial.preserve@example.com")
-        create_response = client.post("/api/v1/employee/full", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees/full", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Verify related data exists
-        full_response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        full_response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         assert full_response.status_code == 200
         full_data = full_response.json()
         assert full_data["personal_details"] is not None
@@ -1550,14 +1550,14 @@ class TestEmployeePartialUpdateAPI:
         
         # Update only basic fields
         update_data = {"first_name": "Updated John"}
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["first_name"] == "Updated John"
         
         # Verify all related data is still there
-        full_response_after = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        full_response_after = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         assert full_response_after.status_code == 200
         full_data_after = full_response_after.json()
         
@@ -1572,13 +1572,13 @@ class TestEmployeePartialUpdateAPI:
         """Test partial update with empty request body."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.empty@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Update with empty body
         update_data = {}
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1591,13 +1591,13 @@ class TestEmployeePartialUpdateAPI:
         """Test partial update with join date change."""
         # First create an employee
         data = EmployeeDataFactory.valid_employee_data("partial.date@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
         # Update join date
         update_data = {"join_date": "2024-06-01"}
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=update_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1612,7 +1612,7 @@ class TestEmployeeContractTimelineAPI:
         """Test creating a contract timeline entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.test@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1626,7 +1626,7 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -1645,7 +1645,7 @@ class TestEmployeeContractTimelineAPI:
         """Test getting contract timeline entries."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.get@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1670,11 +1670,11 @@ class TestEmployeeContractTimelineAPI:
         ]
         
         for contract_data in contracts:
-            response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+            response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
             assert response.status_code == 201
         
         # Get all contract timeline entries
-        response = client.get(f"/api/v1/employee/{employee_id}/contract", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/contract", headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1688,7 +1688,7 @@ class TestEmployeeContractTimelineAPI:
         """Test updating a contract timeline entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.update@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1702,7 +1702,7 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        create_response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        create_response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert create_response.status_code == 201
         contract_id = create_response.json()["id"]
         
@@ -1716,7 +1716,7 @@ class TestEmployeeContractTimelineAPI:
             "is_active": False
         }
         
-        response = client.put(f"/api/v1/employee/{employee_id}/contract/{contract_id}", json=update_data, headers=auth_headers)
+        response = client.put(f"/api/v1/employees/{employee_id}/contract/{contract_id}", json=update_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1732,7 +1732,7 @@ class TestEmployeeContractTimelineAPI:
         """Test deleting a contract timeline entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.delete@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1746,17 +1746,17 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        create_response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        create_response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert create_response.status_code == 201
         contract_id = create_response.json()["id"]
         
         # Delete contract timeline entry
-        response = client.delete(f"/api/v1/employee/{employee_id}/contract/{contract_id}", headers=auth_headers)
+        response = client.delete(f"/api/v1/employees/{employee_id}/contract/{contract_id}", headers=auth_headers)
         
         assert response.status_code == 204
         
         # Verify it's deleted
-        get_response = client.get(f"/api/v1/employee/{employee_id}/contract", headers=auth_headers)
+        get_response = client.get(f"/api/v1/employees/{employee_id}/contract", headers=auth_headers)
         assert get_response.status_code == 200
         assert len(get_response.json()) == 0
     
@@ -1764,7 +1764,7 @@ class TestEmployeeContractTimelineAPI:
         """Test contract timeline validation."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.validation@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1778,7 +1778,7 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=invalid_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=invalid_data, headers=auth_headers)
         assert response.status_code == 422
         
         # Test missing required fields
@@ -1790,14 +1790,14 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=incomplete_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=incomplete_data, headers=auth_headers)
         assert response.status_code == 422
     
     def test_contract_timeline_duplicate_number(self, client: TestClient, auth_headers: dict):
         """Test that contract numbers must be unique."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.duplicate@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1811,11 +1811,11 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert response.status_code == 201
         
         # Try to create another with same contract number
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"]
     
@@ -1823,7 +1823,7 @@ class TestEmployeeContractTimelineAPI:
         """Test that contract timeline is included in full employee response."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.full@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1837,11 +1837,11 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert response.status_code == 201
         
         # Get full employee response
-        response = client.get(f"/api/v1/employee/{employee_id}", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}", headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1853,7 +1853,7 @@ class TestEmployeeContractTimelineAPI:
         """Test PATCH /full endpoint with contract timeline."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("contract.patch@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1871,7 +1871,7 @@ class TestEmployeeContractTimelineAPI:
             ]
         }
         
-        response = client.patch(f"/api/v1/employee/{employee_id}/full", json=patch_data, headers=auth_headers)
+        response = client.patch(f"/api/v1/employees/{employee_id}/full", json=patch_data, headers=auth_headers)
         
         assert response.status_code == 200
         response_data = response.json()
@@ -1880,7 +1880,7 @@ class TestEmployeeContractTimelineAPI:
         assert response_data["contract_timeline"][0]["contract_number"] == "EMP-CT-001"
         
         # Verify it's also available via individual endpoint
-        response = client.get(f"/api/v1/employee/{employee_id}/contract", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/contract", headers=auth_headers)
         assert response.status_code == 200
         assert len(response.json()) == 1
         assert response.json()[0]["contract_number"] == "EMP-CT-001"
@@ -1889,7 +1889,7 @@ class TestEmployeeContractTimelineAPI:
         """Test that users can only access their own contract timeline."""
         # Create employee with first user
         data = EmployeeDataFactory.valid_employee_data("contract.access@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1903,15 +1903,15 @@ class TestEmployeeContractTimelineAPI:
             "is_active": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=auth_headers)
         assert response.status_code == 201
         
         # Try to access with different user
-        response = client.get(f"/api/v1/employee/{employee_id}/contract", headers=other_user_auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/contract", headers=other_user_auth_headers)
         assert response.status_code == 404
         
         # Try to create contract timeline with different user
-        response = client.post(f"/api/v1/employee/{employee_id}/contract", json=contract_data, headers=other_user_auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/contract", json=contract_data, headers=other_user_auth_headers)
         assert response.status_code == 404
 
 
@@ -1922,7 +1922,7 @@ class TestEmployeeWorkScheduleAPI:
         """Test creating a work schedule entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("work.schedule.test@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1943,7 +1943,7 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
         
         assert response.status_code == 201
         response_data = response.json()
@@ -1960,7 +1960,7 @@ class TestEmployeeWorkScheduleAPI:
         """Test retrieving work schedule entries."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("work.schedule.get@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -1982,15 +1982,15 @@ class TestEmployeeWorkScheduleAPI:
         }
         
         # Create first schedule
-        response1 = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data1, headers=auth_headers)
+        response1 = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data1, headers=auth_headers)
         assert response1.status_code == 201
         
         # Create second schedule
-        response2 = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data2, headers=auth_headers)
+        response2 = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data2, headers=auth_headers)
         assert response2.status_code == 201
         
         # Get all work schedules
-        response = client.get(f"/api/v1/employee/{employee_id}/work-schedule", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/work-schedule", headers=auth_headers)
         assert response.status_code == 200
         
         schedules = response.json()
@@ -2004,7 +2004,7 @@ class TestEmployeeWorkScheduleAPI:
         """Test updating a work schedule entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("work.schedule.update@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -2017,7 +2017,7 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        create_response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
+        create_response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
         assert create_response.status_code == 201
         schedule_id = create_response.json()["id"]
         
@@ -2030,7 +2030,7 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        response = client.put(f"/api/v1/employee/{employee_id}/work-schedule/{schedule_id}", json=update_data, headers=auth_headers)
+        response = client.put(f"/api/v1/employees/{employee_id}/work-schedule/{schedule_id}", json=update_data, headers=auth_headers)
         assert response.status_code == 200
         
         response_data = response.json()
@@ -2041,7 +2041,7 @@ class TestEmployeeWorkScheduleAPI:
         """Test deleting a work schedule entry."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("work.schedule.delete@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -2054,16 +2054,16 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        create_response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
+        create_response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
         assert create_response.status_code == 201
         schedule_id = create_response.json()["id"]
         
         # Delete work schedule
-        response = client.delete(f"/api/v1/employee/{employee_id}/work-schedule/{schedule_id}", headers=auth_headers)
+        response = client.delete(f"/api/v1/employees/{employee_id}/work-schedule/{schedule_id}", headers=auth_headers)
         assert response.status_code == 204
         
         # Verify it's deleted
-        response = client.get(f"/api/v1/employee/{employee_id}/work-schedule", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/work-schedule", headers=auth_headers)
         assert response.status_code == 200
         schedules = response.json()
         assert len(schedules) == 0
@@ -2072,7 +2072,7 @@ class TestEmployeeWorkScheduleAPI:
         """Test work schedule validation rules."""
         # Create employee first
         data = EmployeeDataFactory.valid_employee_data("work.schedule.validation@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -2085,7 +2085,7 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=invalid_data, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=invalid_data, headers=auth_headers)
         assert response.status_code == 422
         
         # Test invalid hours
@@ -2097,14 +2097,14 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=invalid_data2, headers=auth_headers)
+        response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=invalid_data2, headers=auth_headers)
         assert response.status_code == 422
     
     def test_work_schedule_in_full_employee_response(self, client: TestClient, auth_headers: dict):
         """Test that work schedule is included in full employee response."""
         # Create employee with work schedule
         data = EmployeeDataFactory.valid_employee_data("work.schedule.full@example.com")
-        create_response = client.post("/api/v1/employee", json=data, headers=auth_headers)
+        create_response = client.post("/api/v1/employees", json=data, headers=auth_headers)
         assert create_response.status_code == 201
         employee_id = create_response.json()["id"]
         
@@ -2117,11 +2117,11 @@ class TestEmployeeWorkScheduleAPI:
             "is_current": True
         }
         
-        schedule_response = client.post(f"/api/v1/employee/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
+        schedule_response = client.post(f"/api/v1/employees/{employee_id}/work-schedule", json=schedule_data, headers=auth_headers)
         assert schedule_response.status_code == 201
         
         # Get full employee data
-        response = client.get(f"/api/v1/employee/{employee_id}/full", headers=auth_headers)
+        response = client.get(f"/api/v1/employees/{employee_id}/full", headers=auth_headers)
         assert response.status_code == 200
         
         employee_data = response.json()
@@ -2139,11 +2139,11 @@ class TestEmployeeListAPI:
         # Create multiple employees
         for i in range(3):
             employee_data = EmployeeDataFactory.valid_employee_data(f"employee{i}@example.com")
-            response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+            response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
             assert response.status_code == 201
         
         # List employees
-        response = client.get("/api/v1/employee", headers=auth_headers)
+        response = client.get("/api/v1/employees", headers=auth_headers)
         assert response.status_code == 200
         
         employees = response.json()
@@ -2157,11 +2157,11 @@ class TestEmployeeListAPI:
         # Create multiple employees
         for i in range(5):
             employee_data = EmployeeDataFactory.valid_employee_data(f"employee{i}@example.com")
-            response = client.post("/api/v1/employee", json=employee_data, headers=auth_headers)
+            response = client.post("/api/v1/employees", json=employee_data, headers=auth_headers)
             assert response.status_code == 201
         
         # Test pagination
-        response = client.get("/api/v1/employee?skip=0&limit=2", headers=auth_headers)
+        response = client.get("/api/v1/employees?skip=0&limit=2", headers=auth_headers)
         assert response.status_code == 200
         
         employees = response.json()
@@ -2169,7 +2169,7 @@ class TestEmployeeListAPI:
     
     def test_list_employees_requires_auth(self, client: TestClient):
         """Test that employee listing requires authentication."""
-        response = client.get("/api/v1/employee")
+        response = client.get("/api/v1/employees")
         assert response.status_code == 403
 
 
