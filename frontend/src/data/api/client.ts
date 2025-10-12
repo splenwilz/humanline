@@ -231,7 +231,11 @@ class ApiClient {
         }
       }
 
-      // Parse response
+      // Parse response - handle empty responses (like DELETE with 204)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return undefined as T
+      }
+      
       const data = await response.json()
       return data
     } catch (error: unknown) {

@@ -5,6 +5,7 @@ import { Button } from '../ui/button'
 import { ArrowUpDown, Eye, Edit, Trash2, ChevronDown } from 'lucide-react'
 import { Checkbox } from '../ui/checkbox'
 import Image from 'next/image'
+import Link from 'next/link'
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -20,7 +21,9 @@ export type EmployeeDetails = {
   account: string
 }
 
-export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
+export const createEmployeeColumns = (
+  onDelete: (id: number, name: string) => void
+): ColumnDef<EmployeeDetails>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -197,19 +200,21 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
           >
             <Eye className="h-4 w-4" />
           </Button>
+          <Link href={`/dashboard/employees/manage/${employee.id}`}>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0 bg-blue-100 hover:bg-blue-200 text-blue-700"
+            className="h-8 w-8 p-0 cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700"
             onClick={() => console.log('Edit', employee.id)}
           >
             <Edit className="h-4 w-4" />
           </Button>
+          </Link>
           <Button
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 bg-red-100 hover:bg-red-200 text-red-700"
-            onClick={() => console.log('Delete', employee.id)}
+            onClick={() => onDelete(parseInt(employee.id), employee.name)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -220,3 +225,6 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
     enableHiding: false,
   },
 ]
+
+// Keep the old export for backward compatibility
+export const employeeColumns = createEmployeeColumns(() => {})

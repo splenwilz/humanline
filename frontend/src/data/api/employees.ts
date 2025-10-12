@@ -2,20 +2,21 @@ import { apiClient } from './client'
 
 // Employee types
 export interface Employee {
-  id: string
+  id: number
+  user_id: number
   first_name: string
   last_name: string
   email: string
-  phone?: string
-  job_title: string
-  department: string
-  office: string
-  employment_status: 'active' | 'inactive' | 'terminated'
-  hire_date: string
-  salary?: number
-  manager_id?: string
+  phone: string
+  join_date: string
   created_at: string
   updated_at: string
+  job_title: string | null
+  department: string | null
+  office: string | null
+  line_manager_id: number | null
+  line_manager_name: string | null
+  employment_status: 'ACTIVE' | 'INACTIVE' | 'TERMINATED' | 'ON_LEAVE' | 'SUSPENDED'
 }
 
 export interface EmployeeStats {
@@ -25,22 +26,17 @@ export interface EmployeeStats {
   byOffice: Record<string, number>
 }
 
-export interface CreateEmployeeRequest {
+export interface CreateEmployeeRequest extends Record<string, unknown> {
   first_name: string
   last_name: string
   email: string
-  phone?: string
-  job_title: string
-  department: string
-  office: string
-  employment_status?: 'active' | 'inactive'
-  hire_date: string
-  salary?: number
-  manager_id?: string
+  phone: string
+  join_date: string
+  employment_status?: 'ACTIVE' | 'INACTIVE' | 'TERMINATED' | 'ON_LEAVE' | 'SUSPENDED'
 }
 
 export interface UpdateEmployeeRequest extends Partial<CreateEmployeeRequest> {
-  id: string
+  id: number
 }
 
 // Employee API functions
@@ -51,7 +47,7 @@ export const employeeApi = {
   },
 
   // Get employee by ID
-  async getById(id: string): Promise<Employee> {
+  async getById(id: number): Promise<Employee> {
     return apiClient.get<Employee>(`/employees/${id}`)
   },
 
@@ -88,14 +84,14 @@ export const employeeApi = {
 
   // Update employee
   async update(
-    id: string,
+    id: number,
     data: Partial<UpdateEmployeeRequest>,
   ): Promise<Employee> {
     return apiClient.put<Employee>(`/employees/${id}`, data)
   },
 
   // Delete employee
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     return apiClient.delete<void>(`/employees/${id}`)
   },
 }

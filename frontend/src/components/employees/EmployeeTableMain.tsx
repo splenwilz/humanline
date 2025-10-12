@@ -2,12 +2,12 @@
 
 import { useEmployees } from '@/hooks/useEmployees'
 import React from 'react'
-import { employeeColumns } from '../table/EmployeeColumns'
 import { EmployeeManagementTable } from '../table/EmployeeManagementTable'
 
 export default function EmployeeTable() {
   const { employees: employeeData, loading, error } = useEmployees()
   const data = employeeData || []
+  
   return (
     <div className="flex flex-col gap-2 mt-5 w-full min-w-0">
       {loading ? (
@@ -19,7 +19,7 @@ export default function EmployeeTable() {
           <div className="text-red-500">Error: {error}</div>
         </div>
       ) : (
-        <EmployeeManagementTable columns={employeeColumns} data={data} />
+        <EmployeeManagementTable data={data} />
       )}
     </div>
   )

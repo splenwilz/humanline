@@ -47,7 +47,8 @@ class EmployeeService:
                 last_name=employee_data.last_name,
                 email=employee_data.email,
                 phone=employee_data.phone,
-                join_date=employee_data.join_date
+                join_date=employee_data.join_date,
+                employment_status=employee_data.employment_status
             )
             db.add(employee)
             await db.commit()
@@ -61,7 +62,8 @@ class EmployeeService:
                 phone=employee.phone,
                 join_date=employee.join_date,
                 created_at=employee.created_at,
-                updated_at=employee.updated_at
+                updated_at=employee.updated_at,
+                employment_status=employee.employment_status
             )
         except IntegrityError as e:
             await db.rollback()

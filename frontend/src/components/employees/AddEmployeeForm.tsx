@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -14,51 +13,70 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { CalendarIcon } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 const formSchema = z.object({
-  firstName: z.string().min(2, {
+  first_name: z.string().min(2, {
     message: 'First Name must be at least 2 characters.',
   }),
-  lastName: z.string().min(2, {
+  last_name: z.string().min(2, {
     message: 'Last Name must be at least 2 characters.',
   }),
-  email: z.email({
+  email: z.string().email({
     message: 'Invalid email address.',
   }),
   phone: z.string().min(10, {
     message: 'Phone number must be at least 10 characters.',
   }),
-  joinDate: z.string().min(1, {
+  join_date: z.string().min(1, {
     message: 'Join date is required.',
+  }),
+  employment_status: z.enum(['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE', 'SUSPENDED'], {
+    message: 'Please select a valid employment status.',
   }),
 })
 
-export function AddEmployeeForm() {
+interface AddEmployeeFormProps {
+  onSubmit: (data: z.infer<typeof formSchema>) => Promise<void>
+  isLoading?: boolean
+}
+
+export function AddEmployeeForm({ onSubmit, isLoading = false }: AddEmployeeFormProps) {
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
-      joinDate: '',
+      join_date: '',
+      employment_status: 'ACTIVE',
     },
   })
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values)
+  async function handleSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await onSubmit(values)
+      form.reset()
+    } catch {
+      // Error handling is done in the parent component
+    }
   }
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="firstName"
+          name="first_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>First Name</FormLabel>
@@ -75,7 +93,7 @@ export function AddEmployeeForm() {
         />
         <FormField
           control={form.control}
-          name="lastName"
+          name="last_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Last Name</FormLabel>
@@ -127,7 +145,7 @@ export function AddEmployeeForm() {
         {/* Join Date with Calender Input */}
         <FormField
           control={form.control}
-          name="joinDate"
+          name="join_date"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Join Date</FormLabel>
@@ -145,12 +163,38 @@ export function AddEmployeeForm() {
             </FormItem>
           )}
         />
-        {/* <Button
+        {/* Employment Status */}
+        <FormField
+          control={form.control}
+          name="employment_status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Employment Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="w-full h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green">
+                    <SelectValue placeholder="Select employment status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="TERMINATED">Terminated</SelectItem>
+                  <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button
           type="submit"
-          className="bg-custom-grey-900 text-white cursor-pointer"
+          disabled={isLoading}
+          className="bg-custom-grey-900 text-white cursor-pointer disabled:opacity-50"
         >
-          Add Employee
-        </Button> */}
+          {isLoading ? 'Adding Employee...' : 'Add Employee'}
+        </Button>
       </form>
     </Form>
   )

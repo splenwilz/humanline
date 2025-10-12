@@ -2,7 +2,6 @@
 
 import React from 'react'
 import {
-  ColumnDef,
   ColumnFiltersState,
   flexRender,
   getCoreRowModel,
@@ -35,36 +34,96 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { DownloadIcon, PlusIcon, SearchIcon } from 'lucide-react'
-import { Label } from '../ui/label'
 import { AddEmployeeForm } from '../employees/AddEmployeeForm'
+import { useCreateEmployee, useDeleteEmployee } from '@/hooks/useEmployees'
+import { useState } from 'react'
+import { type CreateEmployeeRequest } from '@/data/api/employees'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { createEmployeeColumns, type EmployeeDetails } from './EmployeeColumns'
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
+interface DataTableProps {
+  data: EmployeeDetails[]
+  onDeleteEmployee?: (id: number) => void
 }
 
 // Helper function to get unique values from data
-function getUniqueValues<TData>(data: TData[], key: keyof TData): string[] {
+function getUniqueValues(data: EmployeeDetails[], key: keyof EmployeeDetails): string[] {
   const values = data.map((item) => String(item[key]))
-  return Array.from(new Set(values)).sort()
+  return Array.from(new Set(values)).filter(value => value && value !== 'null' && value !== 'undefined').sort()
 }
 
-export function EmployeeManagementTable<TData, TValue>({
-  columns,
+export function EmployeeManagementTable({
   data,
-}: DataTableProps<TData, TValue>) {
+  onDeleteEmployee,
+}: DataTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   )
   const [rowSelection, setRowSelection] = React.useState({})
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [employeeToDelete, setEmployeeToDelete] = useState<{ id: number; name: string } | null>(null)
+  
+  // Use the create and delete employee hooks
+  const { createEmployee, isLoading: isCreatingEmployee } = useCreateEmployee()
+  const { deleteEmployee, isLoading: isDeletingEmployee } = useDeleteEmployee()
+  
+  // Handle delete confirmation
+  const handleDeleteClick = (id: number, name: string) => {
+    setEmployeeToDelete({ id, name })
+    setDeleteDialogOpen(true)
+  }
+  
+  // Create columns with delete handler
+  const columns = createEmployeeColumns(handleDeleteClick)
+  
+  // Handle form submission
+  const handleCreateEmployee = async (employeeData: CreateEmployeeRequest) => {
+    try {
+      await createEmployee(employeeData)
+      setIsSheetOpen(false) // Close the sheet on success
+    } catch {
+      // Error handling is done in the hook
+    }
+  }
+  
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!employeeToDelete) return
+    
+    try {
+      await deleteEmployee(employeeToDelete.id)
+      setDeleteDialogOpen(false)
+      setEmployeeToDelete(null)
+      // Call the parent callback if provided
+      onDeleteEmployee?.(employeeToDelete.id)
+    } catch {
+      // Error handling is done in the hook
+    }
+  }
+  
+  // Handle delete cancellation
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false)
+    setEmployeeToDelete(null)
+  }
+  
   const table = useReactTable({
     data,
     columns,
@@ -84,12 +143,9 @@ export function EmployeeManagementTable<TData, TValue>({
   })
 
   // Get unique values for filters
-  const offices = getUniqueValues(data, 'office' as keyof TData)
-  const jobTitles = getUniqueValues(data, 'job_title' as keyof TData)
-  const employmentStatuses = getUniqueValues(
-    data,
-    'employment_status' as keyof TData,
-  )
+  const offices = getUniqueValues(data, 'office')
+  const jobTitles = getUniqueValues(data, 'job_title')
+  const employmentStatuses = getUniqueValues(data, 'employment_status')
 
   return (
     <div className="overflow-hidden border bg-white shadow-none border-none rounded-xl w-full min-w-0">
@@ -112,7 +168,7 @@ export function EmployeeManagementTable<TData, TValue>({
             Download
           </Button>
 
-          <Sheet>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button className="bg-custom-grey-900 text-white cursor-pointer">
                 <PlusIcon className="h-4 w-4" />
@@ -126,10 +182,12 @@ export function EmployeeManagementTable<TData, TValue>({
                 </SheetTitle>
               </SheetHeader>
               <div className="px-4">
-                <AddEmployeeForm />
+                <AddEmployeeForm 
+                  onSubmit={handleCreateEmployee}
+                  isLoading={isCreatingEmployee}
+                />
               </div>
               <SheetFooter>
-                <Button type="submit">Add Employee</Button>
                 <SheetClose asChild>
                   <Button variant="outline">Close</Button>
                 </SheetClose>
@@ -396,6 +454,31 @@ export function EmployeeManagementTable<TData, TValue>({
           </Select>
         </div>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{employeeToDelete?.name}</strong>? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeletingEmployee}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeletingEmployee ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
