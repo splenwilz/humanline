@@ -26,7 +26,7 @@ from services.employee import EmployeeService
 from models.user import User
 
 router = APIRouter(
-    prefix="/employee",
+    prefix="/employees",
 )
 
 # ==================== EMPLOYEE CRUD ENDPOINTS ====================

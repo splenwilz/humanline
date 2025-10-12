@@ -52,7 +52,7 @@ export default function DocumentForm() {
     const files = Array.from(e.dataTransfer.files)
     files.forEach((file) => {
       const newDocument: Document = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: file.name,
         type: 'personal',
         uploadDate: new Date().toISOString().split('T')[0],
@@ -67,7 +67,7 @@ export default function DocumentForm() {
     const files = Array.from(e.target.files || [])
     files.forEach((file) => {
       const newDocument: Document = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: file.name,
         type: 'personal',
         uploadDate: new Date().toISOString().split('T')[0],
@@ -282,7 +282,7 @@ export default function DocumentForm() {
             const files = Array.from(e.target.files || [])
             files.forEach((file) => {
               const newDocument: Document = {
-                id: Date.now().toString(),
+                id: crypto.randomUUID(),
                 name: file.name,
                 type: 'payslip',
                 uploadDate: new Date().toISOString().split('T')[0],
@@ -331,7 +331,7 @@ export default function DocumentForm() {
                   const files = Array.from(e.target.files || [])
                   files.forEach((file) => {
                     const newDocument: Document = {
-                      id: Date.now().toString(),
+                      id: crypto.randomUUID(),
                       name: file.name,
                       type: 'payslip',
                       uploadDate: new Date().toISOString().split('T')[0],

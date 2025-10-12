@@ -56,7 +56,19 @@ class EmployeeRequest(EmployeeValidatorMixin, BaseModel):
     last_name: str = Field(..., min_length=1, max_length=50, description="The last name of the employee.")
     email: EmailStr = Field(..., min_length=1, max_length=50, description="The email of the employee.")
     phone: str = Field(..., min_length=1, max_length=50, description="The phone number of the employee.")
-    join_date: date = Field(..., description="The date the employee joined the company.")   
+    join_date: date = Field(..., description="The date the employee joined the company.")
+    employment_status: Optional[str] = Field("ACTIVE", description="Current employment status of the employee.")
+
+    @field_validator('employment_status')
+    @classmethod
+    def validate_employment_status(cls, v):
+        """Validate employment status."""
+        if v is None:
+            return v
+        valid_statuses = ['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE', 'SUSPENDED']
+        if v not in valid_statuses:
+            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v   
 
 class EmployeePartialUpdateRequest(EmployeeValidatorMixin, BaseModel):
     """Request schema for partially updating an employee."""
@@ -65,6 +77,18 @@ class EmployeePartialUpdateRequest(EmployeeValidatorMixin, BaseModel):
     email: Optional[EmailStr] = Field(None, min_length=1, max_length=50, description="The email of the employee.")
     phone: Optional[str] = Field(None, min_length=1, max_length=50, description="The phone number of the employee.")
     join_date: Optional[date] = Field(None, description="The date the employee joined the company.")
+    employment_status: Optional[str] = Field(None, description="Current employment status of the employee.")
+
+    @field_validator('employment_status')
+    @classmethod
+    def validate_employment_status(cls, v):
+        """Validate employment status."""
+        if v is None:
+            return v
+        valid_statuses = ['ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE', 'SUSPENDED']
+        if v not in valid_statuses:
+            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v
 
 
 # ==================== PAYROLL SCHEMAS ====================
@@ -652,6 +676,7 @@ class EmployeeFullResponse(BaseModel):
     email: EmailStr = Field(..., description="The email of the employee.")
     phone: str = Field(..., description="The phone number of the employee.")
     join_date: date = Field(..., description="The date the employee joined the company.")
+    employment_status: Optional[str] = Field("ACTIVE", description="Current employment status of the employee.")
     created_at: datetime = Field(..., description="When the employee record was created.")
     updated_at: datetime = Field(..., description="When the employee record was last updated.")
     

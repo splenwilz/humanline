@@ -2,8 +2,8 @@
 
 import { useEmployees } from '@/hooks/useEmployees'
 import React from 'react'
-import { DataTable } from '../table/data-table'
-import { employeeColumns } from '../table/column'
+import { EmployeeDataTable } from '../table/EmployeeDataTable'
+import { employeeColumns } from '../table/EmployeeColumns'
 
 export default function EmployeeTable() {
   const { employees: employeeData, loading, error } = useEmployees()
@@ -19,7 +19,7 @@ export default function EmployeeTable() {
           <div className="text-red-500">Error: {error}</div>
         </div>
       ) : (
-        <DataTable columns={employeeColumns} data={data} />
+        <EmployeeDataTable columns={employeeColumns} data={data} />
       )}
     </div>
   )

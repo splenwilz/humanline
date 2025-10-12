@@ -301,6 +301,7 @@ export default function EmailConfirmationPage() {
             alt="Success"
             width={100}
             height={100}
+            style={{ width: "auto", height: "auto" }}
           />
 
           <h2 className="text-xl font-semibold text-gray-900">

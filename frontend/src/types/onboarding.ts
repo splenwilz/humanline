@@ -59,3 +59,20 @@ export interface DomainAvailabilityResponse {
   full_domain: string
   message: string
 }
+
+// Alias for OnboardingDetail (used in API)
+export type OnboardingDetail = Onboarding
+
+// Onboarding status for flow control
+export interface OnboardingStatus {
+  has_onboarding: boolean
+  onboarding_completed: boolean
+  workspace_created: boolean
+  company_domain: string | null
+}
+
+// API error response structure
+export interface OnboardingApiError {
+  error_code: string
+  message: string
+}

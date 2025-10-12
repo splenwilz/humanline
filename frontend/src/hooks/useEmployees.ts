@@ -6,11 +6,10 @@ import { mutate } from 'swr'
 import {
   employeeApi,
   type Employee,
-  type EmployeeStats,
   type CreateEmployeeRequest,
   type UpdateEmployeeRequest,
 } from '@/data/api/employees'
-import { type EmployeeDetails } from '@/components/table/column'
+import { type EmployeeDetails } from '@/components/table/EmployeeColumns'
 import { createCacheKey, invalidateCache } from '@/lib/swr-config'
 import { toast } from 'sonner'
 
@@ -43,7 +42,6 @@ function transformEmployeeToTableFormat(employee: Employee): EmployeeDetails {
     name: `${employee.first_name} ${employee.last_name}`,
     email: employee.email,
     job_title: employee.job_title,
-    line_manager: '', // Will need to be populated from manager_id lookup
     department: employee.department,
     office: employee.office,
     employment_status: employee.employment_status.toUpperCase(),

@@ -180,6 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   alt="logo"
                   width={120}
                   height={120}
+                  style={{ width: "auto", height: "auto" }}
                 />
               </a>
             </SidebarMenuButton>

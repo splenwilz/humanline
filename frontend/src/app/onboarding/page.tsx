@@ -84,6 +84,7 @@ const OnboardingContent = () => {
           className="p-8 pt-10"
           width={200}
           height={200}
+          style={{ width: "auto", height: "auto" }}
         />
       </div>
 

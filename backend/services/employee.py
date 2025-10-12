@@ -127,7 +127,7 @@ class EmployeeService:
             office=current_job.office if current_job else None,
             line_manager_id=current_job.line_manager_id if current_job else None,
             line_manager_name=line_manager_name,
-            employment_status="ACTIVE"  # Default status
+            employment_status=employee.employment_status or "ACTIVE"  # Use actual status or default
         )
 
     @staticmethod
@@ -427,6 +427,7 @@ class EmployeeService:
             email=employee.email,
             phone=employee.phone,
             join_date=employee.join_date,
+            employment_status=employee.employment_status or "ACTIVE",
             created_at=employee.created_at,
             updated_at=employee.updated_at,
             personal_details=personal_details,
@@ -500,7 +501,7 @@ class EmployeeService:
                 office=current_job.office if current_job else None,
                 line_manager_id=current_job.line_manager_id if current_job else None,
                 line_manager_name=line_manager_name,
-                employment_status="ACTIVE"  # Default status
+                employment_status=emp.employment_status or "ACTIVE"  # Use actual status or default
             ))
         
         return employee_responses
@@ -2972,6 +2973,7 @@ class EmployeeService:
             employee.email = employee_data.email
             employee.phone = employee_data.phone
             employee.join_date = employee_data.join_date
+            employee.employment_status = employee_data.employment_status or "ACTIVE"
             employee.updated_at = datetime.now(timezone.utc)
             
             await db.commit()
@@ -3112,7 +3114,7 @@ class EmployeeService:
                 office=current_job.office if current_job else None,
                 line_manager_id=current_job.line_manager_id if current_job else None,
                 line_manager_name=line_manager_name,
-                employment_status="ACTIVE"  # Default status
+                employment_status=employee.employment_status or "ACTIVE"  # Use actual status or default
             )
             
         except ValueError:

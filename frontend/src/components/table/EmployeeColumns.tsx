@@ -14,7 +14,6 @@ export type EmployeeDetails = {
   email: string
   avatar?: string
   job_title: string
-  line_manager: string
   department: string
   office: string
   employment_status: string
@@ -97,20 +96,6 @@ export const employeeColumns: ColumnDef<EmployeeDetails>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
           Job Title
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-  },
-  {
-    accessorKey: 'line_manager',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Line Manager
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )

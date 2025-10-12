@@ -45,6 +45,7 @@ const deleteCookie = (name: string) => {
 }
 
 export const storeTokens = (tokens: AuthTokens) => {
+  if (typeof window === 'undefined') return // Skip on server-side
   // Store in localStorage for client-side access
   localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.access_token)
   localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refresh_token)
@@ -60,16 +61,19 @@ export const storeTokens = (tokens: AuthTokens) => {
 
 // Get access token
 export const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null // Skip on server-side
   return localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN)
 }
 
 // Get refresh token
 export const getRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null // Skip on server-side
   return localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN)
 }
 
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false // Skip on server-side
   const token = getAccessToken()
   if (!token) return false
 
@@ -90,32 +94,38 @@ export const isAuthenticated = (): boolean => {
 
 // Store user profile
 export const storeUserProfile = (profile: UserProfile) => {
+  if (typeof window === 'undefined') return // Skip on server-side
   localStorage.setItem(TOKEN_KEYS.USER_PROFILE, JSON.stringify(profile))
 }
 
 // Get user profile
 export const getUserProfile = (): UserProfile | null => {
+  if (typeof window === 'undefined') return null // Skip on server-side
   const profile = localStorage.getItem(TOKEN_KEYS.USER_PROFILE)
   return profile ? JSON.parse(profile) : null
 }
 
 // Store pending email for signup confirmation
 export const storePendingEmail = (email: string) => {
+  if (typeof window === 'undefined') return // Skip on server-side
   localStorage.setItem(TOKEN_KEYS.PENDING_EMAIL, email)
 }
 
 // Get pending email for signup confirmation
 export const getPendingEmail = (): string | null => {
+  if (typeof window === 'undefined') return null // Skip on server-side
   return localStorage.getItem(TOKEN_KEYS.PENDING_EMAIL)
 }
 
 // Clear pending email after successful confirmation
 export const clearPendingEmail = () => {
+  if (typeof window === 'undefined') return // Skip on server-side
   localStorage.removeItem(TOKEN_KEYS.PENDING_EMAIL)
 }
 
 // Clear all authentication data
 export const clearTokens = () => {
+  if (typeof window === 'undefined') return // Skip on server-side
   // Clear localStorage
   localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN)
   localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN)
