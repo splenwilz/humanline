@@ -21,10 +21,16 @@ import { employeeApi } from '@/data/api/employees'
 export default async function Page({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: { slug: string }
 }) {
-  const { slug } = await params
-  const employee = await employeeApi.getById(parseInt(slug))
+  const { slug } = params
+  const id = Number(slug)
+  if (!Number.isFinite(id)) {
+    // Optionally show 404
+    const { notFound } = await import('next/navigation')
+    notFound()
+  }
+  const employee = await employeeApi.getById(id)
   console.log(employee)
   return (
     <div className="w-full p-10 ">
@@ -46,7 +52,7 @@ export default async function Page({
               {employee.first_name} {employee.last_name}
             </h5>
             <p className="text-custom-grey-600 font-normal text-[14px] mt-2">
-              {employee.job_timeline[0].job_title || 'No title'}
+              {employee.job_timeline?.[0]?.job_title || 'No title'}
             </p>
             {/* Active Button */}
             <div className="flex justify-center gap-1 items-center">
@@ -90,7 +96,7 @@ export default async function Page({
                   Department
                 </span>
                 <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                  {employee.job_timeline[0].department || 'No department'}
+                  {employee.job_timeline?.[0]?.department || 'No department'}
                 </p>
               </div>
               <ChevronRightIcon className="text-custom-grey-500 h-4 w-4" />
@@ -100,7 +106,7 @@ export default async function Page({
               <div className="">
                 <span className="text-custom-grey-600 text-[12px]">Office</span>
                 <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                  {employee.job_timeline[0].office || 'No office'}
+                  {employee.job_timeline?.[0]?.office || 'No office'}
                 </p>
               </div>
               <ChevronRightIcon className="text-custom-grey-500 h-4 w-4" />
@@ -117,7 +123,7 @@ export default async function Page({
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                    {employee.job_timeline[0].line_manager_id || 'No line manager'}
+                    {employee.job_timeline?.[0]?.line_manager_id || 'No line manager'}
                   </p>
                 </div>
               </div>

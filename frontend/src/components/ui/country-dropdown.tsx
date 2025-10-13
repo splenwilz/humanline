@@ -73,12 +73,10 @@ const CountryDropdownComponent = (
 
   useEffect(() => {
     const currentValue = value !== undefined ? value : defaultValue;
-    console.log('🌍 CountryDropdown useEffect:', { currentValue, value, defaultValue });
     if (currentValue) {
       const initialCountry = options.find(
         (country) => country.alpha3 === currentValue
       );
-      console.log('🌍 Found country:', initialCountry);
       if (initialCountry) {
         setSelectedCountry(initialCountry);
       } else {
@@ -93,7 +91,6 @@ const CountryDropdownComponent = (
 
   const handleSelect = useCallback(
     (country: Country) => {
-      console.log("🌍 CountryDropdown value: ", country);
       setSelectedCountry(country);
       onChange?.(country);
       setOpen(false);
@@ -112,7 +109,6 @@ const CountryDropdownComponent = (
         ref={ref}
         className={`${triggerClasses} focus-visible:ring-0 focus-visible:border-custom-base-green shadow-xs`}
         disabled={disabled}
-        {...props}
       >
         {selectedCountry ? (
           <div className="flex items-center flex-grow w-0 gap-2 overflow-hidden">

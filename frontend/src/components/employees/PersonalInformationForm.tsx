@@ -30,12 +30,12 @@ import { countries } from 'country-data-list'
 
 const formSchema = z.object({
   first_name: z.string().min(2, {
-    message: 'Full Name must be at least 2 characters.',
+    message: 'First Name must be at least 2 characters.',
   }),
   last_name: z.string().min(2, {
     message: 'Last Name must be at least 2 characters.',
   }),
-  gender: z.string().nullable(),
+  gender: z.string().min(1, { message: 'Gender is required.' }),
   date_of_birth: z.string().min(1, {
     message: 'Date of birth is required.',
   }),

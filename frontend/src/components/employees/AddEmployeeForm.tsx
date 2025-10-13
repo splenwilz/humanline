@@ -64,12 +64,8 @@ export function AddEmployeeForm({ onSubmit, isLoading = false }: AddEmployeeForm
 
   // 2. Define a submit handler.
   async function handleSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      await onSubmit(values)
-      form.reset()
-    } catch {
-      // Error handling is done in the parent component
-    }
+    await onSubmit(values)
+    form.reset()
   }
   return (
     <Form {...form}>

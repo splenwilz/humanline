@@ -18,9 +18,8 @@ import {
 // Unified API client that works in both client and server environments
 class ApiClient {
   private config: ApiConfig
-  private abortController: AbortController | null = null
   private refreshPromise: Promise<string | null> | null = null
-  private requestQueue: Array<() => void> = []
+  private requestQueue: Array<() => Promise<void>> = []
   private isRefreshing = false
   private isServer = typeof window === 'undefined'
 
@@ -145,14 +144,8 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.config.baseURL}${endpoint}`
 
-    // Client-side: cancel previous request if it exists
-    if (!this.isServer && this.abortController) {
-      this.abortController.abort()
-    }
-
-    if (!this.isServer) {
-      this.abortController = new AbortController()
-    }
+    // Create a per-call controller; do not auto-abort prior unrelated requests
+    const controller = !this.isServer ? new AbortController() : null
 
     // Get and validate access token
     let accessToken = await this.getAuthToken()
@@ -181,7 +174,7 @@ class ApiClient {
         ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
         ...options.headers,
       },
-      ...(!this.isServer && this.abortController && { signal: this.abortController.signal }),
+      ...(controller && { signal: controller.signal }),
       ...options,
     }
 
@@ -190,7 +183,7 @@ class ApiClient {
       let timeoutId: NodeJS.Timeout | undefined
       if (!this.isServer) {
         timeoutId = setTimeout(() => {
-          this.abortController?.abort()
+          controller?.abort()
         }, this.config.timeout)
       }
 
@@ -343,9 +336,9 @@ class ApiClient {
 
   // Client-side only methods
   cancel() {
-    if (!this.isServer && this.abortController) {
-      this.abortController.abort()
-    }
+    // Note: With per-request controllers, this method is no longer useful
+    // Individual requests can be cancelled by their respective controllers
+    console.warn('cancel() method is deprecated - use per-request AbortController instead')
   }
 
   updateConfig(newConfig: Partial<ApiConfig>) {
