@@ -24,15 +24,19 @@ import {
 import { Label } from '../ui/label'
 import { Edit2Icon, EditIcon } from 'lucide-react'
 import Image from 'next/image'
+import type { Employee } from '@/types/employees'
+import { CountryDropdown } from '../ui/country-dropdown'
+import { countries } from 'country-data-list'
 
 const formSchema = z.object({
-  fullName: z.string().min(2, {
+  first_name: z.string().min(2, {
     message: 'Full Name must be at least 2 characters.',
   }),
-  gender: z.string().min(2, {
-    message: 'Gender must be at least 2 characters.',
+  last_name: z.string().min(2, {
+    message: 'Last Name must be at least 2 characters.',
   }),
-  dateOfBirth: z.string().min(1, {
+  gender: z.string().nullable(),
+  date_of_birth: z.string().min(1, {
     message: 'Date of birth is required.',
   }),
   email: z.email({
@@ -41,9 +45,7 @@ const formSchema = z.object({
   phone: z.string().min(10, {
     message: 'Phone number must be at least 10 characters.',
   }),
-  nationality: z.string().min(1, {
-    message: 'Nationality is required.',
-  }),
+  nationality: z.string().nullable(),
   healthCareProvider: z.string().min(1, {
     message: 'Health care provider is required.',
   }),
@@ -73,20 +75,43 @@ const formSchema = z.object({
   }),
 })
 
-export function PersonalInformationForm() {
+// Helper function to resolve country code - handles both names and codes
+const resolveCountryCode = (countryValue: string | null): string => {
+  if (!countryValue) return ''
+  
+  // If it's already a 3-letter code, return it
+  if (countryValue.length === 3) {
+    return countryValue
+  }
+  
+  // Otherwise, try to find the country by name and return its alpha3 code
+  const country = countries.all.find(c => 
+    c.name.toLowerCase() === countryValue.toLowerCase()
+  )
+  return country?.alpha3 || ''
+}
+
+export function PersonalInformationForm( { employee }: { employee: Employee }) {
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: '',
-      gender: '',
-      email: '',
-      phone: '',
-      nationality: '',
-      healthCareProvider: '',
-      maritalStatus: '',
-      PersonalTaxId: '',
-      SocialInsurance: '',
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      gender: employee.personal_details.gender,
+      date_of_birth: employee.personal_details.date_of_birth ?? '',
+      email: employee.email,
+      phone: employee.phone,
+      nationality: employee.personal_details.nationality,
+      healthCareProvider: employee.personal_details.health_care_provider ?? '',
+      maritalStatus: employee.personal_details.marital_status ?? '',
+      PersonalTaxId: employee.personal_details.personal_tax_id ?? '',
+      SocialInsurance: employee.personal_details.social_insurance_number ?? '',
+      primaryAddress: employee.personal_details.primary_address ?? '',
+      country: employee.personal_details.country ?? '',
+      city: employee.personal_details.city ?? '',
+      state: employee.personal_details.state ?? '',
+      postalCode: employee.personal_details.postal_code ?? '',
     },
   })
 
@@ -106,14 +131,16 @@ export function PersonalInformationForm() {
             </Label>
             <Image src="/icons/edit.svg" alt="edit" width={18} height={18} />
           </div>
+          
+          <div className="grid grid-cols-2 gap-4 gap-y-5">
           <FormField
             control={form.control}
-            name="fullName"
+            name="first_name"
             render={({ field }) => (
               <FormItem>
                 {/* Required */}
                 <FormLabel>
-                  Full Name <span className="text-red-500">*</span>
+                  First Name <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -126,6 +153,27 @@ export function PersonalInformationForm() {
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                {/* Required */}
+                <FormLabel>
+                  First Name <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="John"
+                    {...field}
+                    className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          </div>
           <div className="grid grid-cols-2 gap-4 gap-y-5">
             <FormField
               control={form.control}
@@ -135,20 +183,29 @@ export function PersonalInformationForm() {
                   <FormLabel>
                     Gender <span className="text-red-500">*</span>
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Doe"
-                      {...field}
-                      className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
-                    />
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value?.toLowerCase() ?? ''}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full h-11 data-[size=default]:h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="dateOfBirth"
+              name="date_of_birth"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -215,11 +272,16 @@ export function PersonalInformationForm() {
                     Nationality <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    {/* <Input
                       placeholder="Indonesia"
                       {...field}
                       className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
-                    />
+                    /> */}
+                      <CountryDropdown
+                        placeholder="Select country"
+                        value={resolveCountryCode(field.value)}
+                        onChange={(country) => field.onChange(country?.alpha3)}
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -254,7 +316,7 @@ export function PersonalInformationForm() {
                   </FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    defaultValue={field.value?.toLowerCase() ?? ''}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full h-11 data-[size=default]:h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green">
@@ -439,6 +501,12 @@ export function PersonalInformationForm() {
             </div>
           </div>
         </div>
+        <Button
+          type="submit"
+          className="bg-custom-grey-900 text-white cursor-pointer w-full mt-10"
+        >
+          Save
+        </Button>
       </form>
     </Form>
   )

@@ -1,4 +1,4 @@
-'use client'
+// 'use client'
 
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import EmployeeTable from '@/components/employees/EmployeeTable'

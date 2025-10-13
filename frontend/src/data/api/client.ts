@@ -1,10 +1,11 @@
+import { redirect } from 'next/navigation'
 import {
   ApiError,
   ValidationError,
   AuthError,
   NetworkError,
-  ApiConfig,
 } from './types'
+import type { ApiConfig } from './types'
 import {
   isTokenValid,
   isRefreshTokenValid,
@@ -14,35 +15,56 @@ import {
   clearTokens,
 } from '@/lib/auth'
 
+// Unified API client that works in both client and server environments
 class ApiClient {
   private config: ApiConfig
   private abortController: AbortController | null = null
   private refreshPromise: Promise<string | null> | null = null
   private requestQueue: Array<() => void> = []
   private isRefreshing = false
+  private isServer = typeof window === 'undefined'
 
   constructor() {
     this.config = {
-      baseURL:
-        process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1',
+      baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1',
       timeout: 10000,
       retries: 2,
     }
   }
 
-  // Process queued requests sequentially to avoid race conditions
-  private async processQueue(token: string | null) {
-    const pending = [...this.requestQueue]
-    this.requestQueue = []
-
-    for (const callback of pending) {
-      await callback()
+  // Get auth token - works differently for client vs server
+  private async getAuthToken(): Promise<string | null> {
+    if (this.isServer) {
+      // Server-side: get from cookies
+      const { cookies } = await import('next/headers')
+      const cookieStore = await cookies()
+      return cookieStore.get('access_token')?.value || null
+    } else {
+      // Client-side: get from localStorage
+      return getAccessToken()
     }
   }
 
-  // Refresh access token using refresh token with proper queuing
+  // Handle auth errors - works differently for client vs server
+  private handleAuthError(): void {
+    if (this.isServer) {
+      // Server-side: redirect
+      redirect('/signin')
+    } else {
+      // Client-side: clear tokens and redirect
+      clearTokens()
+      window.location.href = '/signin'
+    }
+  }
+
+  // Token refresh - only works on client-side
   private async refreshAccessToken(): Promise<string | null> {
-    // If already refreshing, return the existing promise
+    if (this.isServer) {
+      // Server-side: no token refresh, just return null
+      return null
+    }
+
+    // Client-side token refresh logic
     if (this.refreshPromise) {
       return this.refreshPromise
     }
@@ -68,7 +90,6 @@ class ApiClient {
         return null
       }
 
-      // Check if refresh token is valid before attempting refresh
       if (!isRefreshTokenValid()) {
         console.warn('Refresh token is invalid or expired')
         clearTokens()
@@ -92,8 +113,6 @@ class ApiClient {
       }
 
       const data = await response.json()
-
-      // Store new tokens
       storeTokens({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
@@ -109,6 +128,16 @@ class ApiClient {
     }
   }
 
+  private async processQueue(_token: string | null) {
+    const pending = [...this.requestQueue]
+    this.requestQueue = []
+
+    for (const callback of pending) {
+      await callback()
+    }
+  }
+
+  // Unified request method
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -116,18 +145,20 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.config.baseURL}${endpoint}`
 
-    // Cancel previous request if it exists
-    if (this.abortController) {
+    // Client-side: cancel previous request if it exists
+    if (!this.isServer && this.abortController) {
       this.abortController.abort()
     }
 
-    this.abortController = new AbortController()
+    if (!this.isServer) {
+      this.abortController = new AbortController()
+    }
 
     // Get and validate access token
-    let accessToken = getAccessToken()
+    let accessToken = await this.getAuthToken()
 
-    // Check if token is valid, if not try to refresh
-    if (accessToken) {
+    // Client-side: check if token is valid, if not try to refresh
+    if (!this.isServer && accessToken) {
       try {
         if (!isTokenValid(accessToken)) {
           console.log('Access token expired, attempting refresh...')
@@ -141,7 +172,6 @@ class ApiClient {
         }
       } catch (error) {
         console.warn('Error validating token:', error)
-        // Continue with the request even if token validation fails
       }
     }
 
@@ -151,20 +181,25 @@ class ApiClient {
         ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
         ...options.headers,
       },
-      signal: this.abortController.signal,
+      ...(!this.isServer && this.abortController && { signal: this.abortController.signal }),
       ...options,
     }
 
     try {
-      // Add timeout
-      const timeoutId = setTimeout(() => {
-        this.abortController?.abort()
-      }, this.config.timeout)
+      // Client-side: add timeout
+      let timeoutId: NodeJS.Timeout | undefined
+      if (!this.isServer) {
+        timeoutId = setTimeout(() => {
+          this.abortController?.abort()
+        }, this.config.timeout)
+      }
 
       const response = await fetch(url, config)
-      clearTimeout(timeoutId)
+      
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
 
-      // Handle different response types
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
 
@@ -175,11 +210,10 @@ class ApiClient {
               errorData,
             )
           case 401:
-            // Try to refresh token and retry once
-            if (retryCount === 0 && isRefreshTokenValid()) {
+            // Client-side: try to refresh token and retry once
+            if (!this.isServer && retryCount === 0 && isRefreshTokenValid()) {
               console.log('401 error, attempting token refresh and retry...')
 
-              // If currently refreshing, queue this request
               if (this.isRefreshing) {
                 return new Promise<T>((resolve, reject) => {
                   this.requestQueue.push(async () => {
@@ -200,15 +234,11 @@ class ApiClient {
               const newToken = await this.refreshAccessToken()
               if (newToken) {
                 console.log('Token refreshed, retrying request...')
-                // Retry the request with new token
                 return this.request(endpoint, options, retryCount + 1)
               }
             }
-            // If refresh failed or already retried, clear tokens and redirect
-            clearTokens()
-            if (typeof window !== 'undefined') {
-              window.location.href = '/signin'
-            }
+            // If refresh failed or server-side, handle auth error
+            this.handleAuthError()
             throw new AuthError(
               errorData.detail || 'Authentication failed',
               response.status,
@@ -220,6 +250,11 @@ class ApiClient {
             )
           case 404:
             throw new ApiError('Resource not found', 404, 'NOT_FOUND')
+          case 422:
+            throw new ValidationError(
+              errorData.detail || 'Validation failed',
+              errorData,
+            )
           case 500:
             throw new ApiError('Internal server error', 500, 'SERVER_ERROR')
           default:
@@ -231,7 +266,7 @@ class ApiClient {
         }
       }
 
-      // Parse response - handle empty responses (like DELETE with 204)
+      // Handle empty responses
       if (response.status === 204 || response.headers.get('content-length') === '0') {
         return undefined as T
       }
@@ -239,30 +274,31 @@ class ApiClient {
       const data = await response.json()
       return data
     } catch (error: unknown) {
-      // Handle network errors
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new NetworkError()
-      }
+      // Client-side: handle network errors
+      if (!this.isServer) {
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          throw new NetworkError()
+        }
 
-      // Handle abort errors
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new NetworkError('Request was cancelled')
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new NetworkError('Request was cancelled')
+        }
+
+        // Retry logic for network errors
+        if (retryCount < this.config.retries && error instanceof NetworkError) {
+          console.warn(
+            `Retrying request (${retryCount + 1}/${this.config.retries})`,
+          )
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * (retryCount + 1)),
+          )
+          return this.request(endpoint, options, retryCount + 1)
+        }
       }
 
       // Re-throw API errors
       if (error instanceof ApiError) {
         throw error
-      }
-
-      // Retry logic for network errors
-      if (retryCount < this.config.retries && error instanceof NetworkError) {
-        console.warn(
-          `Retrying request (${retryCount + 1}/${this.config.retries})`,
-        )
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (retryCount + 1)),
-        )
-        return this.request(endpoint, options, retryCount + 1)
       }
 
       // Wrap unknown errors
@@ -305,14 +341,13 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' })
   }
 
-  // Cancel ongoing requests
+  // Client-side only methods
   cancel() {
-    if (this.abortController) {
+    if (!this.isServer && this.abortController) {
       this.abortController.abort()
     }
   }
 
-  // Update config
   updateConfig(newConfig: Partial<ApiConfig>) {
     this.config = { ...this.config, ...newConfig }
   }

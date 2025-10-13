@@ -43,7 +43,7 @@ import { DownloadIcon, PlusIcon, SearchIcon } from 'lucide-react'
 import { AddEmployeeForm } from '../employees/AddEmployeeForm'
 import { useCreateEmployee, useDeleteEmployee } from '@/hooks/useEmployees'
 import { useState } from 'react'
-import { type CreateEmployeeRequest } from '@/data/api/employees'
+// import type { CreateEmployeeRequest } from '@/data/api/employees'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +55,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { createEmployeeColumns, type EmployeeDetails } from './EmployeeColumns'
+import type { CreateEmployeeRequest } from '@/types/employees'
 
 interface DataTableProps {
   data: EmployeeDetails[]

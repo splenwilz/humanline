@@ -1,9 +1,21 @@
+// Shared API types and interfaces
+
+export interface ApiConfig {
+  baseURL: string
+  timeout: number
+  retries: number
+}
+
+// Employee types
+
+
+
+// Error types
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public code?: string,
-    public details?: Record<string, unknown>,
+    public code: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -11,8 +23,8 @@ export class ApiError extends Error {
 }
 
 export class ValidationError extends ApiError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 400, 'VALIDATION_ERROR', details)
+  constructor(message: string, public details?: unknown) {
+    super(message, 400, 'VALIDATION_ERROR')
     this.name = 'ValidationError'
   }
 }
@@ -25,20 +37,16 @@ export class AuthError extends ApiError {
 }
 
 export class NetworkError extends ApiError {
-  constructor(message: string = 'Network request failed') {
+  constructor(message: string = 'Network error') {
     super(message, 0, 'NETWORK_ERROR')
     this.name = 'NetworkError'
   }
 }
 
-export interface ApiResponse<T = unknown> {
-  data?: T
-  message?: string
-  success: boolean
-}
-
-export interface ApiConfig {
-  baseURL: string
-  timeout: number
-  retries: number
+// Base API client interface
+export interface BaseApiClient {
+  get<T>(endpoint: string, options?: RequestInit): Promise<T>
+  post<T>(endpoint: string, data?: Record<string, unknown>, options?: RequestInit): Promise<T>
+  put<T>(endpoint: string, data?: Record<string, unknown>, options?: RequestInit): Promise<T>
+  delete<T>(endpoint: string, options?: RequestInit): Promise<T>
 }

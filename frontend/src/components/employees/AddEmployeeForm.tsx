@@ -170,7 +170,7 @@ export function AddEmployeeForm({ onSubmit, isLoading = false }: AddEmployeeForm
           render={({ field }) => (
             <FormItem>
               <FormLabel>Employment Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="w-full h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green">
                     <SelectValue placeholder="Select employment status" />

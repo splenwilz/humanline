@@ -1,26 +1,29 @@
-'use client'
-
-import { useEmployees } from '@/hooks/useEmployees'
-import React from 'react'
 import { EmployeeManagementTable } from '../table/EmployeeManagementTable'
+import { employeeApi } from '@/data/api/employees'
+import type { Employees } from '@/types/employees'
+import type { EmployeeDetails } from '../table/EmployeeColumns'
 
-export default function EmployeeTable() {
-  const { employees: employeeData, loading, error } = useEmployees()
-  const data = employeeData || []
+// Transform Employees to EmployeeDetails for table compatibility
+function transformEmployeeToTableFormat(employee: Employees): EmployeeDetails {
+  return {
+    id: employee.id.toString(),
+    name: `${employee.first_name} ${employee.last_name}`,
+    email: employee.email,
+    job_title: employee.job_title || '',
+    department: employee.department || '',
+    office: employee.office || '',
+    employment_status: employee.employment_status.toUpperCase(),
+    account: employee.email, // Using email as account for now
+  }
+}
+
+export default async function EmployeeTableMain() {
+  const employees = await employeeApi.getAll()
+  const transformedData = employees.map(transformEmployeeToTableFormat)
   
   return (
     <div className="flex flex-col gap-2 mt-5 w-full min-w-0">
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-custom-grey-600">Loading employees...</div>
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-red-500">Error: {error}</div>
-        </div>
-      ) : (
-        <EmployeeManagementTable data={data} />
-      )}
+      <EmployeeManagementTable data={transformedData} />
     </div>
   )
 }

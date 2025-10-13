@@ -5,13 +5,11 @@ import useSWRMutation from 'swr/mutation'
 import { mutate } from 'swr'
 import {
   employeeApi,
-  type Employee,
-  type CreateEmployeeRequest,
-  type UpdateEmployeeRequest,
 } from '@/data/api/employees'
-import { type EmployeeDetails } from '@/components/table/EmployeeColumns'
+import type { EmployeeDetails } from '@/components/table/EmployeeColumns'
 import { createCacheKey, invalidateCache } from '@/lib/swr-config'
 import { toast } from 'sonner'
+import type { CreateEmployeeRequest, Employee, Employees } from '@/types/employees'
 
 // Mutation fetchers
 async function createEmployeeFetcher(
@@ -21,12 +19,12 @@ async function createEmployeeFetcher(
   return employeeApi.create(arg)
 }
 
-async function updateEmployeeFetcher(
-  _: string,
-  { arg }: { arg: { id: number; data: Partial<UpdateEmployeeRequest> } },
-) {
-  return employeeApi.update(arg.id, arg.data)
-}
+// async function updateEmployeeFetcher(
+//   _: string,
+//   { arg }: { arg: { id: number; data: Partial<UpdateEmployeeRequest> } },
+// ) {
+//   return employeeApi.update(arg.id, arg.data)
+// }
 
 async function deleteEmployeeFetcher(
   _: string,
@@ -36,7 +34,7 @@ async function deleteEmployeeFetcher(
 }
 
 // Transform Employee to EmployeeDetails for table compatibility
-function transformEmployeeToTableFormat(employee: Employee): EmployeeDetails {
+function transformEmployeeToTableFormat(employee: Employees): EmployeeDetails {
   return {
     id: employee.id.toString(),
     name: `${employee.first_name} ${employee.last_name}`,
@@ -93,116 +91,6 @@ export const useEmployee = (id: number | null) => {
   }
 }
 
-// Hook to search employees
-export const useEmployeeSearch = () => {
-  const {
-    data: employees,
-    error,
-    isLoading,
-    mutate: performSearch,
-  } = useSWR(
-    null, // Will be set dynamically
-    null,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
-  )
-
-  const search = async (query: string) => {
-    if (!query.trim()) {
-      await performSearch([], false)
-      return
-    }
-
-    try {
-      const cacheKey = createCacheKey.employeeSearch(query)
-      const results = await mutate(cacheKey, () => employeeApi.search(query))
-      const transformedResults = results
-        ? results.map(transformEmployeeToTableFormat)
-        : []
-      await performSearch(transformedResults, false)
-    } catch (error: unknown) {
-      console.error('Employee search error:', error)
-      toast.error('Search failed. Please try again.')
-    }
-  }
-
-  return {
-    employees: employees || [],
-    loading: isLoading,
-    error: error?.message || null,
-    search,
-  }
-}
-
-// Hook to get employee statistics
-export const useEmployeeStats = () => {
-  const {
-    data: stats,
-    error,
-    isLoading,
-    mutate: refetch,
-  } = useSWR(createCacheKey.employeeStats(), () => employeeApi.getStats(), {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-  })
-
-  return {
-    stats,
-    loading: isLoading,
-    error: error?.message || null,
-    refetch,
-  }
-}
-
-// Hook to get employees by department
-export const useEmployeesByDepartment = (department: string | null) => {
-  const {
-    data: employees,
-    error,
-    isLoading,
-    mutate: refetch,
-  } = useSWR(
-    department ? createCacheKey.employeesByDepartment(department) : null,
-    department ? () => employeeApi.getByDepartment(department) : null,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    },
-  )
-
-  return {
-    employees: employees ? employees.map(transformEmployeeToTableFormat) : [],
-    loading: isLoading,
-    error: error?.message || null,
-    refetch,
-  }
-}
-
-// Hook to get employees by status
-export const useEmployeesByStatus = (status: string | null) => {
-  const {
-    data: employees,
-    error,
-    isLoading,
-    mutate: refetch,
-  } = useSWR(
-    status ? createCacheKey.employeesByStatus(status) : null,
-    status ? () => employeeApi.getByStatus(status) : null,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    },
-  )
-
-  return {
-    employees: employees ? employees.map(transformEmployeeToTableFormat) : [],
-    loading: isLoading,
-    error: error?.message || null,
-    refetch,
-  }
-}
 
 // Hook to create employee
 export const useCreateEmployee = () => {
@@ -218,7 +106,7 @@ export const useCreateEmployee = () => {
       // Optimistically add the new employee to the cache
       await mutate(
         createCacheKey.employees(),
-        (currentData: Employee[] | undefined) => {
+        (currentData: Employees[] | undefined) => {
           if (!currentData) return [newEmployee]
           return [...currentData, newEmployee]
         },
@@ -249,43 +137,43 @@ export const useCreateEmployee = () => {
 }
 
 // Hook to update employee
-export const useUpdateEmployee = () => {
-  const { trigger, data, error, isMutating } = useSWRMutation(
-    '/employees/update',
-    updateEmployeeFetcher,
-  )
+// export const useUpdateEmployee = () => {
+//   const { trigger, data, error, isMutating } = useSWRMutation(
+//     '/employees/update',
+//     updateEmployeeFetcher,
+//   )
 
-  const updateEmployee = async (
-    id: number,
-    employeeData: Partial<UpdateEmployeeRequest>,
-  ) => {
-    try {
-      const updatedEmployee = await trigger({ id, data: employeeData })
+//   const updateEmployee = async (
+//     id: number,
+//     employeeData: Partial<UpdateEmployeeRequest>,
+//   ) => {
+//     try {
+//       const updatedEmployee = await trigger({ id, data: employeeData })
 
-      // Invalidate specific employee and related caches
-      const keysToInvalidate = invalidateCache.employee(id.toString())
-      await Promise.all(
-        keysToInvalidate.map((key) =>
-          mutate(key, undefined, { revalidate: true }),
-        ),
-      )
+//       // Invalidate specific employee and related caches
+//       const keysToInvalidate = invalidateCache.employee(id.toString())
+//       await Promise.all(
+//         keysToInvalidate.map((key) =>
+//           mutate(key, undefined, { revalidate: true }),
+//         ),
+//       )
 
-      toast.success('Employee updated successfully!')
-      return { success: true, data: updatedEmployee }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update employee'
-      toast.error(errorMessage)
-      throw error
-    }
-  }
+//       toast.success('Employee updated successfully!')
+//       return { success: true, data: updatedEmployee }
+//     } catch (error: unknown) {
+//       const errorMessage = error instanceof Error ? error.message : 'Failed to update employee'
+//       toast.error(errorMessage)
+//       throw error
+//     }
+//   }
 
-  return {
-    updateEmployee,
-    data,
-    error,
-    isLoading: isMutating,
-  }
-}
+//   return {
+//     updateEmployee,
+//     data,
+//     error,
+//     isLoading: isMutating,
+//   }
+// }
 
 // Hook to delete employee
 export const useDeleteEmployee = () => {
@@ -299,7 +187,7 @@ export const useDeleteEmployee = () => {
       // Optimistically remove the employee from the cache
       await mutate(
         createCacheKey.employees(),
-        (currentData: Employee[] | undefined) => {
+        (currentData: Employees[] | undefined) => {
           if (!currentData) return currentData
           return currentData.filter(employee => employee.id !== id)
         },

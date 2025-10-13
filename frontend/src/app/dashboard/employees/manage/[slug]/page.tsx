@@ -16,6 +16,7 @@ import {
   MailIcon,
   PhoneIcon,
 } from 'lucide-react'
+import { employeeApi } from '@/data/api/employees'
 
 export default async function Page({
   params,
@@ -23,6 +24,8 @@ export default async function Page({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
+  const employee = await employeeApi.getById(parseInt(slug))
+  console.log(employee)
   return (
     <div className="w-full p-10 ">
       <div className="flex items-center gap-2">
@@ -40,15 +43,19 @@ export default async function Page({
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
             <h5 className="text-custom-grey-900 font-bold text-[20px] mt-4">
-              Pristia Candra
+              {employee.first_name} {employee.last_name}
             </h5>
             <p className="text-custom-grey-600 font-normal text-[14px] mt-2">
-              3D Designer
+              {employee.job_timeline[0].job_title || 'No title'}
             </p>
             {/* Active Button */}
             <div className="flex justify-center gap-1 items-center">
-              <Button className="bg-[#E7F7EF] text-[#27A376] text-xs h-5 rounded-[3px] mt-5 w-18 cursor-pointer">
-                Active
+              <Button className={`text-xs h-5 rounded-[3px] mt-5 w-18 cursor-pointer ${
+                employee.employment_status === 'ACTIVE' 
+                  ? 'bg-[#E7F7EF] text-[#27A376]' 
+                  : 'bg-[#FEF2F2] text-[#DC2626]'
+              }`}>
+                {employee.employment_status}
               </Button>
               <ChevronDownIcon className="text-custom-grey-600 mt-5 h-4 w-4 cursor-pointer" />
             </div>
@@ -59,13 +66,13 @@ export default async function Page({
             <div className="flex justify-left gap-4 items-center">
               <MailIcon className="text-custom-grey-600 h-4 w-4" />
               <p className="text-custom-grey-900 font-semibold text-[14px]">
-                lincoln@unpixel.com
+                {employee.email}
               </p>
             </div>
             <div className="flex justify-left gap-4 items-center">
               <PhoneIcon className="text-custom-grey-600 h-4 w-4" />
               <p className="text-custom-grey-900 font-semibold text-[14px]">
-                +62 812 3456 7890
+                {employee.phone}
               </p>
             </div>
             <div className="flex justify-left gap-4 items-center">
@@ -83,7 +90,7 @@ export default async function Page({
                   Department
                 </span>
                 <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                  Designer
+                  {employee.job_timeline[0].department || 'No department'}
                 </p>
               </div>
               <ChevronRightIcon className="text-custom-grey-500 h-4 w-4" />
@@ -93,7 +100,7 @@ export default async function Page({
               <div className="">
                 <span className="text-custom-grey-600 text-[12px]">Office</span>
                 <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                  Unpixel Office
+                  {employee.job_timeline[0].office || 'No office'}
                 </p>
               </div>
               <ChevronRightIcon className="text-custom-grey-500 h-4 w-4" />
@@ -110,7 +117,7 @@ export default async function Page({
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   <p className="text-custom-grey-900 font-semibold text-[13px] mt-1">
-                    Skylar Calzoni
+                    {employee.job_timeline[0].line_manager_id || 'No line manager'}
                   </p>
                 </div>
               </div>
@@ -161,7 +168,7 @@ export default async function Page({
               </TabsList>
             </div>
             <TabsContent value="general">
-              <PersonalInformationForm />
+              <PersonalInformationForm employee={employee} />
             </TabsContent>
             <TabsContent value="job">
               <EmploymentInformationForm />

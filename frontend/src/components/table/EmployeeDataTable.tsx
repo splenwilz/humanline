@@ -40,7 +40,7 @@ interface DataTableProps<TData, TValue> {
 // Helper function to get unique values from data
 function getUniqueValues<TData>(data: TData[], key: keyof TData): string[] {
   const values = data.map((item) => String(item[key]))
-  return Array.from(new Set(values)).sort()
+  return Array.from(new Set(values)).filter(value => value && value !== 'null' && value !== 'undefined').sort()
 }
 
 export function EmployeeDataTable<TData, TValue>({
@@ -75,7 +75,7 @@ export function EmployeeDataTable<TData, TValue>({
   const jobTitles = getUniqueValues(data, 'job_title' as keyof TData)
   const employmentStatuses = getUniqueValues(
     data,
-    'employement_status' as keyof TData,
+    'employment_status' as keyof TData,
   )
 
   return (
@@ -110,7 +110,7 @@ export function EmployeeDataTable<TData, TValue>({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Offices</SelectItem>
-            {offices.map((office) => (
+            {offices.filter(office => office && office.trim() !== '').map((office) => (
               <SelectItem key={office} value={office}>
                 {office}
               </SelectItem>
@@ -133,7 +133,7 @@ export function EmployeeDataTable<TData, TValue>({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Job Titles</SelectItem>
-            {jobTitles.map((title) => (
+            {jobTitles.filter(title => title && title.trim() !== '').map((title) => (
               <SelectItem key={title} value={title}>
                 {title}
               </SelectItem>
@@ -144,12 +144,12 @@ export function EmployeeDataTable<TData, TValue>({
         <Select
           value={
             (table
-              .getColumn('employement_status')
+              .getColumn('employment_status')
               ?.getFilterValue() as string) ?? ''
           }
           onValueChange={(value) =>
             table
-              .getColumn('employement_status')
+              .getColumn('employment_status')
               ?.setFilterValue(value === 'all' ? '' : value)
           }
         >
@@ -158,7 +158,7 @@ export function EmployeeDataTable<TData, TValue>({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {employmentStatuses.map((status) => (
+            {employmentStatuses.filter(status => status && status.trim() !== '').map((status) => (
               <SelectItem key={status} value={status}>
                 {status}
               </SelectItem>
