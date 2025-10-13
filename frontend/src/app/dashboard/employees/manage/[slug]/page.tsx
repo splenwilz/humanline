@@ -21,9 +21,9 @@ import { employeeApi } from '@/data/api/employees'
 export default async function Page({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const { slug } = params
+  const { slug } = await params
   const id = Number(slug)
   if (!Number.isFinite(id)) {
     // Optionally show 404
@@ -31,7 +31,6 @@ export default async function Page({
     notFound()
   }
   const employee = await employeeApi.getById(id)
-  console.log(employee)
   return (
     <div className="w-full p-10 ">
       <div className="flex items-center gap-2">

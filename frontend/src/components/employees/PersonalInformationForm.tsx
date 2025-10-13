@@ -45,7 +45,7 @@ const formSchema = z.object({
   phone: z.string().min(10, {
     message: 'Phone number must be at least 10 characters.',
   }),
-  nationality: z.string().nullable(),
+  nationality: z.string().min(1, { message: 'Nationality is required.' }),
   healthCareProvider: z.string().min(1, {
     message: 'Health care provider is required.',
   }),
@@ -102,7 +102,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
       date_of_birth: employee.personal_details.date_of_birth ?? '',
       email: employee.email,
       phone: employee.phone,
-      nationality: employee.personal_details.nationality,
+      nationality: employee.personal_details.nationality ?? '',
       healthCareProvider: employee.personal_details.health_care_provider ?? '',
       maritalStatus: employee.personal_details.marital_status ?? '',
       PersonalTaxId: employee.personal_details.personal_tax_id ?? '',
@@ -160,7 +160,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
               <FormItem>
                 {/* Required */}
                 <FormLabel>
-                  First Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
