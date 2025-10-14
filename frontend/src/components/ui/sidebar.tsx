@@ -613,11 +613,7 @@ function SidebarMenuSkeleton({
 }) {
   // Deterministic width based on content hash to avoid hydration mismatch
   const width = React.useMemo(() => {
-    // Use a simple hash based on showIcon to generate consistent width
-    const hash = showIcon ? 1 : 0
-    // Generate width between 50-90% based on hash
-    const percentage = 50 + (Math.abs(hash) % 40)
-    return `${percentage}%`
+    return showIcon ? '70%' : '60%'
   }, [showIcon])
 
   return (

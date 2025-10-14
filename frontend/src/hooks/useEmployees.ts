@@ -42,7 +42,7 @@ function transformEmployeeToTableFormat(employee: Employees): EmployeeDetails {
     job_title: employee.job_title || '',
     department: employee.department || '',
     office: employee.office || '',
-    employment_status: employee.employment_status.toUpperCase(),
+    employment_status: String(employee.employment_status).toUpperCase(),
     account: employee.email, // Using email as account for now
   }
 }
