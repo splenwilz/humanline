@@ -91,7 +91,7 @@ function SidebarProvider({
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+  }, [isMobile, setOpen])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -123,7 +123,7 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [state, open, setOpen, isMobile, openMobile, toggleSidebar],
   )
 
   return (
@@ -613,17 +613,12 @@ function SidebarMenuSkeleton({
 }) {
   // Deterministic width based on content hash to avoid hydration mismatch
   const width = React.useMemo(() => {
-    // Use a simple hash of the content to generate consistent width
-    let hash = 0
-    for (let i = 0; i < (children?.toString() || '').length; i++) {
-      const char = (children?.toString() || '').charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash = hash & hash // Convert to 32-bit integer
-    }
+    // Use a simple hash based on showIcon to generate consistent width
+    const hash = showIcon ? 1 : 0
     // Generate width between 50-90% based on hash
     const percentage = 50 + (Math.abs(hash) % 40)
     return `${percentage}%`
-  }, [children])
+  }, [showIcon])
 
   return (
     <div

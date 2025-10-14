@@ -1,4 +1,3 @@
-import DashboardNavigation from './NavigationWithSidebar'
 import MainNavigation from './MainNavigation'
 import NavigationWithSidebar from './NavigationWithSidebar'
 
@@ -12,5 +11,5 @@ export default function Navigation({ variant, className }: NavigationProps) {
     return <NavigationWithSidebar className={className} />
   }
 
-  return <MainNavigation className={className} />
+  return <MainNavigation />
 }

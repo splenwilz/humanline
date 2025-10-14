@@ -16,7 +16,7 @@ export const useDomainValidation = (domain: string) => {
   // Only validate if domain is long enough
   const shouldValidate = domain && domain.length >= 3
 
-  const { data, error, isLoading } = useSWR<DomainCheckResponse>(
+  const { data, isLoading } = useSWR<DomainCheckResponse>(
     shouldValidate
       ? `/onboarding/check-domain?domain=${encodeURIComponent(domain)}`
       : null,

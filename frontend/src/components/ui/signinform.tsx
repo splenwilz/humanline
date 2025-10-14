@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { useSignin } from '@/data/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
@@ -38,6 +38,7 @@ export default function SigninForm() {
   const [error, setError] = useState<string | null>(null)
   const { signin } = useSignin()
   const router = useRouter()
+  const rememberMeId = useId()
 
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
@@ -54,7 +55,7 @@ export default function SigninForm() {
     setError(null)
 
     try {
-      const result = await signin(values.email, values.password)
+      await signin(values.email, values.password)
 
       // Check for callback URL from middleware redirect
       const urlParams = new URLSearchParams(window.location.search)
@@ -159,9 +160,9 @@ export default function SigninForm() {
         {/* Remember me and Forgot password */}
         <div className="flex justify-between">
           <div className="flex items-center">
-            <Checkbox id="remember-me" />
+            <Checkbox id={rememberMeId} />
             <Label
-              htmlFor="remember-me"
+              htmlFor={rememberMeId}
               className="text-sm ml-2 text-[#687588] "
             >
               Remember me

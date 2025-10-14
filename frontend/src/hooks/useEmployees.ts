@@ -7,9 +7,9 @@ import {
   employeeApi,
 } from '@/data/api/employees'
 import type { EmployeeDetails } from '@/components/table/EmployeeColumns'
-import { createCacheKey, invalidateCache } from '@/lib/swr-config'
+import { createCacheKey } from '@/lib/swr-config'
 import { toast } from 'sonner'
-import type { CreateEmployeeRequest, Employee, Employees } from '@/types/employees'
+import type { CreateEmployeeRequest, Employees } from '@/types/employees'
 
 // Mutation fetchers
 async function createEmployeeFetcher(

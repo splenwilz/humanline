@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -22,11 +23,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '../ui/label'
-import { Edit2Icon, EditIcon } from 'lucide-react'
 import Image from 'next/image'
 import type { Employee } from '@/types/employees'
-import { CountryDropdown } from '../ui/country-dropdown'
-import { countries } from 'country-data-list'
+import { CountrySelect } from '../ui/country-select'
+import { StateSelect } from '../ui/state-select'
+import { CitySelect } from '../ui/city-select'
+import countriesData from '@/static-data/countriesminified.json'
+import type { Country, StatesData, State } from '@/types/geography'
 
 const formSchema = z.object({
   first_name: z.string().min(2, {
@@ -46,19 +49,19 @@ const formSchema = z.object({
     message: 'Phone number must be at least 10 characters.',
   }),
   nationality: z.string().min(1, { message: 'Nationality is required.' }),
-  healthCareProvider: z.string().min(1, {
+  health_care_provider: z.string().min(1, {
     message: 'Health care provider is required.',
   }),
-  maritalStatus: z.string().min(1, {
+  marital_status: z.string().min(1, {
     message: 'Marital status is required.',
   }),
-  PersonalTaxId: z.string().min(1, {
+  personal_tax_id: z.string().min(1, {
     message: 'Personal tax number is required.',
   }),
-  SocialInsurance: z.string().min(1, {
+  social_insurance_number: z.string().min(1, {
     message: 'Social insurance number is required.',
   }),
-  primaryAddress: z.string().min(1, {
+  primary_address: z.string().min(1, {
     message: 'Primary address is required.',
   }),
   country: z.string().min(1, {
@@ -70,26 +73,37 @@ const formSchema = z.object({
   state: z.string().min(1, {
     message: 'State is required.',
   }),
-  postalCode: z.string().min(1, {
+  postal_code: z.string().min(1, {
     message: 'Postal code is required.',
   }),
 })
 
-// Helper function to resolve country code - handles both names and codes
-const resolveCountryCode = (countryValue: string | null): string => {
-  if (!countryValue) return ''
-  
-  // If it's already a 3-letter code, return it
-  if (countryValue.length === 3) {
-    return countryValue
-  }
-  
-  // Otherwise, try to find the country by name and return its alpha3 code
-  const country = countries.all.find(c => 
-    c.name.toLowerCase() === countryValue.toLowerCase()
-  )
-  return country?.alpha3 || ''
+// Helper function to convert country iso3 to country ID
+const getCountryIdFromIso3 = (iso3: string | undefined): number | undefined => {
+  if (!iso3) return undefined
+  const country = (countriesData as Country[]).find((c: Country) => c.iso3 === iso3)
+  return country?.id
 }
+
+// Helper function to get state ID from state code
+const getStateIdFromCode = async (stateCode: string | undefined, countryId: number | undefined): Promise<number | undefined> => {
+  if (!stateCode || !countryId) return undefined
+  
+  try {
+    const response = await fetch('/data/statesminified.json')
+    if (!response.ok) return undefined
+    
+    const statesData = await response.json()
+    const country = statesData.find((country: StatesData) => country.id === countryId)
+    if (!country) return undefined
+    
+    const state = country.states.find((state: State) => state.state_code === stateCode)
+    return state?.id
+  } catch {
+    return undefined
+  }
+}
+
 
 export function PersonalInformationForm( { employee }: { employee: Employee }) {
   // 1. Define your form.
@@ -103,17 +117,38 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
       email: employee.email,
       phone: employee.phone,
       nationality: employee.personal_details.nationality ?? '',
-      healthCareProvider: employee.personal_details.health_care_provider ?? '',
-      maritalStatus: employee.personal_details.marital_status ?? '',
-      PersonalTaxId: employee.personal_details.personal_tax_id ?? '',
-      SocialInsurance: employee.personal_details.social_insurance_number ?? '',
-      primaryAddress: employee.personal_details.primary_address ?? '',
+      health_care_provider: employee.personal_details.health_care_provider ?? '',
+      marital_status: employee.personal_details.marital_status ?? '',
+      personal_tax_id: employee.personal_details.personal_tax_id ?? '',
+      social_insurance_number: employee.personal_details.social_insurance_number ?? '',
+      primary_address: employee.personal_details.primary_address ?? '',
       country: employee.personal_details.country ?? '',
       city: employee.personal_details.city ?? '',
       state: employee.personal_details.state ?? '',
-      postalCode: employee.personal_details.postal_code ?? '',
+      postal_code: employee.personal_details.postal_code ?? '',
     },
   })
+
+  // State to track resolved state ID for city filtering
+  const [resolvedStateId, setResolvedStateId] = React.useState<number | undefined>(undefined)
+
+  // Watch for state changes and resolve state ID
+  const watchedState = form.watch('state')
+  const watchedCountry = form.watch('country')
+  
+  React.useEffect(() => {
+    const resolveStateId = async () => {
+      const countryId = getCountryIdFromIso3(watchedCountry)
+      const stateId = await getStateIdFromCode(watchedState, countryId)
+      setResolvedStateId(stateId)
+    }
+    
+    if (watchedState && watchedCountry) {
+      resolveStateId()
+    } else {
+      setResolvedStateId(undefined)
+    }
+  }, [watchedState, watchedCountry])
 
   // 2. Define a submit handler.
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -272,16 +307,11 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
                     Nationality <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    {/* <Input
-                      placeholder="Indonesia"
-                      {...field}
-                      className="h-11 rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
-                    /> */}
-                      <CountryDropdown
-                        placeholder="Select country"
-                        value={resolveCountryCode(field.value)}
-                        onChange={(country) => field.onChange(country?.alpha3)}
-                      />
+                    <CountrySelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select nationality"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -289,7 +319,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
             />
             <FormField
               control={form.control}
-              name="healthCareProvider"
+              name="health_care_provider"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -308,7 +338,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
             />
             <FormField
               control={form.control}
-              name="maritalStatus"
+              name="marital_status"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -337,7 +367,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
             />
             <FormField
               control={form.control}
-              name="PersonalTaxId"
+              name="personal_tax_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -357,7 +387,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
           </div>
           <FormField
             control={form.control}
-            name="SocialInsurance"
+            name="social_insurance_number"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
@@ -400,7 +430,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
               </Label>
               <FormField
                 control={form.control}
-                name="primaryAddress"
+                name="primary_address"
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormControl className="w-full ">
@@ -425,9 +455,10 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormControl className="w-full ">
-                      <Input
-                        placeholder="Indonesia"
-                        {...field}
+                      <CountrySelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select country"
                         className="border-0 shadow-none h-11 text-custom-grey-900 placeholder:text-custom-grey-900 w-full rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
                       />
                     </FormControl>
@@ -446,9 +477,12 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormControl className="w-full ">
-                      <Input
-                        placeholder="Central Java"
-                        {...field}
+                      <CitySelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select city"
+                        countryId={getCountryIdFromIso3(form.watch('country'))}
+                        stateId={resolvedStateId}
                         className="border-0 shadow-none h-11 text-custom-grey-900 placeholder:text-custom-grey-900 w-full rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
                       />
                     </FormControl>
@@ -467,9 +501,11 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormControl className="w-full ">
-                      <Input
-                        placeholder="Semarang"
-                        {...field}
+                      <StateSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select state"
+                        countryId={getCountryIdFromIso3(form.watch('country'))}
                         className="border-0 shadow-none h-11 text-custom-grey-900 placeholder:text-custom-grey-900 w-full rounded-[10px] focus-visible:ring-0 focus-visible:border-custom-base-green"
                       />
                     </FormControl>
@@ -484,7 +520,7 @@ export function PersonalInformationForm( { employee }: { employee: Employee }) {
               </Label>
               <FormField
                 control={form.control}
-                name="postalCode"
+                name="postal_code"
                 render={({ field }) => (
                   <FormItem className="w-full">
                     <FormControl className="w-full ">

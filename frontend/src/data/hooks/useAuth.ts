@@ -8,7 +8,7 @@ import {
   clearPendingEmail,
   storePendingEmail,
 } from '@/lib/auth'
-import { createCacheKey, invalidateCache } from '@/lib/swr-config'
+import { createCacheKey } from '@/lib/swr-config'
 import { toast } from 'sonner'
 import { Role } from '@/lib/rbac'
 

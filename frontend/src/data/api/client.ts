@@ -73,7 +73,7 @@ class ApiClient {
 
     try {
       const newToken = await this.refreshPromise
-      await this.processQueue(newToken)
+      await this.processQueue()
       return newToken
     } finally {
       this.isRefreshing = false
@@ -127,7 +127,7 @@ class ApiClient {
     }
   }
 
-  private async processQueue(_token: string | null) {
+  private async processQueue() {
     const pending = [...this.requestQueue]
     this.requestQueue = []
 

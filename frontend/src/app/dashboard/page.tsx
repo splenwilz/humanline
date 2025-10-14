@@ -4,7 +4,6 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import EmployeeTable from '@/components/employees/EmployeeTable'
 import Greeting from '@/components/navigation/Greeting'
 import Navigation from '@/components/navigation/Navigation'
-import { employeeColumns } from '@/components/table/EmployeeColumns'
 import {
   Card,
   CardContent,

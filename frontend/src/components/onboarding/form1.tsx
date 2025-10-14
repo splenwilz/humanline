@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Label } from '../ui/label'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { DomainInput } from '@/components/ui/domain-input'
+import type { CompanySize } from '@/types/onboarding'
 
 const formSchema = z.object({
   companyName: z.string().min(2, {
@@ -33,7 +34,7 @@ const formSchema = z.object({
 })
 
 export function OnboardForm1() {
-  const { formData, updateFormData, nextStep, canGoNext } = useOnboarding()
+  const { formData, updateFormData, nextStep } = useOnboarding()
 
   // 1. Define your form with initial values from context
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,7 +61,7 @@ export function OnboardForm1() {
     updateFormData({
       companyName: values.companyName,
       companyDomain: values.companyDomain,
-      companySize: values.companySize,
+      companySize: values.companySize as CompanySize,
     })
 
     // Move to next step
@@ -74,7 +75,7 @@ export function OnboardForm1() {
         updateFormData({
           companyName: values.companyName || '',
           companyDomain: values.companyDomain || '',
-          companySize: values.companySize || '',
+          companySize: (values.companySize as CompanySize) || '1-10',
         })
       }
     })
@@ -162,28 +163,18 @@ export function OnboardForm1() {
                   className="grid grid-cols-4 gap-y-5 gap-x-5"
                 >
                   {companySizes.map((size) => (
-                    <div
+                    <label
                       key={size.value}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        field.onChange(size.value)
-                      }}
+                      htmlFor={`r-${size.value}`}
                       className={`flex justify-between gap-8 p-3 py-3 border rounded-[10px] cursor-pointer transition-all ${
                         field.value === size.value
                           ? 'border-custom-base-green bg-custom-base-green/5'
                           : 'border-gray-300 hover:border-custom-base-green/50'
                       }`}
                     >
-                      <Label
-                        htmlFor={`r-${size.value}`}
-                        className="cursor-pointer"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          field.onChange(size.value)
-                        }}
-                      >
+                      <span className="cursor-pointer">
                         {size.label}
-                      </Label>
+                      </span>
                       <RadioGroupItem
                         value={size.value}
                         id={`r-${size.value}`}
@@ -192,12 +183,8 @@ export function OnboardForm1() {
                             ? 'border-custom-base-green'
                             : ''
                         }
-                        onClick={(e) => {
-                          e.preventDefault()
-                          field.onChange(size.value)
-                        }}
                       />
-                    </div>
+                    </label>
                   ))}
                 </RadioGroup>
               </FormControl>

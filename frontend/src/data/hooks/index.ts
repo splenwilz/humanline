@@ -10,4 +10,4 @@ export {
 } from './useAuth'
 
 // User state hooks
-export { useUser, useAuth, useAccessToken } from './useUser'
+export { useUser, useAuth } from './useUser'

@@ -6,7 +6,7 @@ import MessageIcon from './MessageIcon'
 import NotificationIcon from './NotificationIcon'
 import { ProfileIcon } from './ProfileIcon'
 
-export default function MainNavigation({ className }: { className?: string }) {
+export default function MainNavigation() {
   const user = {
     name: 'John Doe',
     email: 'john.doe@example.com',

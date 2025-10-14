@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { XCircle, Loader2 } from 'lucide-react'
@@ -25,7 +25,6 @@ import { getPendingEmail } from '@/lib/auth'
 import {
   useEmailConfirmation,
   useResendConfirmation,
-  useSignin,
 } from '@/data/hooks/useAuth'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -61,7 +60,6 @@ export default function EmailConfirmationPage() {
 
   const { confirmEmail, isLoading: isVerifying } = useEmailConfirmation()
   const { resendConfirmation, isLoading: isResending } = useResendConfirmation()
-  const { signin } = useSignin()
 
   const form = useForm<z.infer<typeof OTPFormSchema>>({
     resolver: zodResolver(OTPFormSchema),
@@ -79,16 +77,9 @@ export default function EmailConfirmationPage() {
       // No pending email found, redirect to signup
       // router.push('/signup')
     }
-  }, [router])
+  }, [])
 
-  // Redirect to signin after successful email confirmation
-  useEffect(() => {
-    if (status.success && userEmail && !isAutoLoggingIn) {
-      handleRedirectToSignin()
-    }
-  }, [status.success, userEmail, isAutoLoggingIn])
-
-  const handleRedirectToSignin = async () => {
+  const handleRedirectToSignin = useCallback(async () => {
     if (!userEmail) return
 
     setIsAutoLoggingIn(true)
@@ -112,7 +103,14 @@ export default function EmailConfirmationPage() {
     } finally {
       setIsAutoLoggingIn(false)
     }
-  }
+  }, [userEmail, router])
+
+  // Redirect to signin after successful email confirmation
+  useEffect(() => {
+    if (status.success && userEmail && !isAutoLoggingIn) {
+      handleRedirectToSignin()
+    }
+  }, [status.success, userEmail, isAutoLoggingIn, handleRedirectToSignin])
 
   const onSubmit = async (data: z.infer<typeof OTPFormSchema>) => {
     if (!userEmail) {
@@ -144,10 +142,7 @@ export default function EmailConfirmationPage() {
         setStatus({
           loading: false,
           success: false,
-          error:
-            result.error instanceof Error
-              ? result.error.message
-              : 'Failed to verify OTP',
+          error: 'Failed to verify OTP',
           userEmail: null,
         })
       }
@@ -162,9 +157,6 @@ export default function EmailConfirmationPage() {
     }
   }
 
-  const handleSignIn = () => {
-    router.push('/signin')
-  }
 
   const handleGoHome = () => {
     router.push('/')
@@ -191,6 +183,7 @@ export default function EmailConfirmationPage() {
         })
       }
     } catch (error) {
+      console.error('Resend OTP error:', error)
       toast.error('Network error', {
         description: 'Please check your connection and try again.',
       })

@@ -64,7 +64,7 @@ export function ProtectedRoute({
     if (!isLoading) {
       setIsChecking(false)
     }
-  }, [isLoading, isAuthenticated, isChecking])
+  }, [isLoading, isAuthenticated, isChecking, redirectTo, requiredRole, requiredPermissions, user?.role, user?.permissions, router])
 
   // Show loading state
   if (isLoading || isChecking) {

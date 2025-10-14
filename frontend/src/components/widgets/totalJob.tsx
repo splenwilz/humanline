@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Pie, PieChart, Cell } from 'recharts'
-import { Calendar } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -112,7 +111,7 @@ export default function TotalJob({ className }: { className: string }) {
               >
                 {currentData.map((entry, index) => (
                   <Cell
-                    key={`cell-${index}`}
+                    key={entry.name}
                     fill={entry.fill}
                     stroke={entry.fill}
                     strokeWidth={activeIndex === index ? 3 : 1}
@@ -148,7 +147,7 @@ export default function TotalJob({ className }: { className: string }) {
         <div className="mt-6 space-y-3">
           {currentData.map((item, index) => (
             <div
-              key={`${item.name}-${index}`}
+              key={item.name}
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-3">

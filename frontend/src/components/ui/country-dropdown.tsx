@@ -62,7 +62,6 @@ const CountryDropdownComponent = (
     disabled = false,
     placeholder = "Select a country",
     slim = false,
-    ...props
   }: CountryDropdownProps,
   ref: React.ForwardedRef<HTMLButtonElement>
 ) => {
@@ -127,7 +126,7 @@ const CountryDropdownComponent = (
         ) : (
           <span>
             {slim === false ? (
-              placeholder || setSelectedCountry.name
+              placeholder
             ) : (
               <Globe size={20} />
             )}
@@ -149,7 +148,7 @@ const CountryDropdownComponent = (
             <CommandGroup>
               {options
                 .filter((x) => x.name)
-                .map((option, key: number) => (
+                .map((option) => (
                   <CommandItem
                     className="flex items-center w-full gap-2"
                     key={option.alpha2}

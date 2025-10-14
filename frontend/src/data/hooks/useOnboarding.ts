@@ -202,14 +202,17 @@ export const useSubmitOnboarding = () => {
         if (error instanceof ValidationError) {
           errorMessage = error.message
 
+          // Type the error details properly
+          const details = error.details as { code?: string; field?: string } | undefined
+
           // Provide specific guidance based on error code
-          if (error.details?.code === 'DOMAIN_TAKEN') {
+          if (details?.code === 'DOMAIN_TAKEN') {
             errorDescription =
               'Try adding numbers or hyphens to make it unique.'
-          } else if (error.details?.code === 'DUPLICATE_ONBOARDING') {
+          } else if (details?.code === 'DUPLICATE_ONBOARDING') {
             errorDescription = 'Redirecting you to the dashboard...'
             setTimeout(() => router.push('/dashboard'), 2000)
-          } else if (error.details?.field === 'company_domain') {
+          } else if (details?.field === 'company_domain') {
             errorDescription = 'Please check your domain format and try again.'
           }
         }
