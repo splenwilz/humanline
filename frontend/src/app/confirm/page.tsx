@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { XCircle, Loader2 } from 'lucide-react'
@@ -57,6 +57,7 @@ export default function EmailConfirmationPage() {
   })
   const [userEmail, setUserEmail] = useState<string>('')
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState<boolean>(false)
+  const hasRedirectedRef = useRef(false)
 
   const { confirmEmail, isLoading: isVerifying } = useEmailConfirmation()
   const { resendConfirmation, isLoading: isResending } = useResendConfirmation()
@@ -82,6 +83,7 @@ export default function EmailConfirmationPage() {
   const handleRedirectToSignin = useCallback(async () => {
     if (!userEmail) return
 
+    hasRedirectedRef.current = true
     setIsAutoLoggingIn(true)
 
     try {
@@ -107,10 +109,10 @@ export default function EmailConfirmationPage() {
 
   // Redirect to signin after successful email confirmation
   useEffect(() => {
-    if (status.success && userEmail && !isAutoLoggingIn) {
+    if (status.success && userEmail && !hasRedirectedRef.current) {
       handleRedirectToSignin()
     }
-  }, [status.success, userEmail, isAutoLoggingIn, handleRedirectToSignin])
+  }, [status.success, userEmail, handleRedirectToSignin])
 
   const onSubmit = async (data: z.infer<typeof OTPFormSchema>) => {
     if (!userEmail) {

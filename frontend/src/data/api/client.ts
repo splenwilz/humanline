@@ -277,8 +277,11 @@ class ApiClient {
           throw new NetworkError('Request was cancelled')
         }
 
-        // Retry logic for network errors
-        if (retryCount < this.config.retries && error instanceof NetworkError) {
+        // Retry logic for network errors (idempotent methods only)
+        const method = (options.method ?? 'GET').toUpperCase()
+        const idempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
+        
+        if (idempotent && retryCount < this.config.retries && error instanceof NetworkError) {
           console.warn(
             `Retrying request (${retryCount + 1}/${this.config.retries})`,
           )
